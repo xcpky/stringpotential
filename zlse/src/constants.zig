@@ -1,0 +1,13 @@
+const f_pi: f64 = 0.092 ;
+const g_pi: f64 = 0.5704 ;
+const m_pi: f64 = 0.138039407 ;
+const m_K: f64 = 0.498 ;
+const m_eta: f64 = 0.548 ;
+const m_B: f64 = 5.27934 ;
+const m_B_star: f64 = 5.32471 ;
+const m_B_s: f64 = 5.36692 ;
+const m_B_star_s: f64 = 5.4154 ;
+const m11: f64 = m_B;
+const m12: f64 = m_B_star;
+const m21: f64 = m_B_s;
+const m22: f64 = m_B_star_s;

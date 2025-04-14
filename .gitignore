@@ -1,0 +1,13 @@
+Figs.dir
+*.ipynb
+Mathematica
+bibliography
+*.so
+*.png
+graphics
+old
+papers
+*.bib
+*.tex
+*.zip
+
