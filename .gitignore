@@ -10,4 +10,4 @@ papers
 *.bib
 *.tex
 *.zip
-
+.zig-cache
