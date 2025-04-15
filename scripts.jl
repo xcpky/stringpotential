@@ -36,4 +36,54 @@ if "--testSchrodinger" in ARGS
     @. w = Scaling * (2 * w / (1 - p)^2)
     y = @. (p^2 + p'^2) / 2 / (p * p')
     sol = Solver(1.0, 1.0, 1.0, 0.0)
+    E, psi = solve(sol, 0)
+end
+
+function naivedif1(Ngauss, Nlag, p)
+    dif = zeros(Float64, (Ngauss, Ngauss))
+    for j in 1:Ngauss
+        for i in 1:Ngauss
+            start = min(Ngauss - Nlag + 1, max(1, i - Int(floor(Nlag // 2))))
+            range = start:start+Nlag-1
+            mask = setdiff(range, j)
+            for m in mask
+                mtemp = 1
+                mas = setdiff(mask, m)
+                for k in mas
+                    mtemp *= (p[i] - p[k]) / (p[j] - p[k])
+                end
+                dif[i, j] += mtemp / (p[j] - p[m])
+            end
+        end
+    end
+    return dif
+end
+
+function naivedif2(Ngauss, Nlag, p)
+    dif = zeros(Float64, (Ngauss, Ngauss))
+    for j in 1:Ngauss
+        for i in 1:Ngauss
+            start = min(Ngauss - Nlag + 1, max(1, i - Int(floor(Nlag // 2))))
+            range = start:start+Nlag-1
+            mask = setdiff(range, j)
+            for m in mask
+                mas = setdiff(mask, m)
+                mtemp = 0
+                for l in mas
+                    ma = setdiff(mas, l)
+                    ltemp = 1
+                    for k in ma
+                        ltemp *= (p[i] - p[k]) / (p[j] - p[k])
+                    end
+                    mtemp += ltemp / (p[j] - p[l])
+                end
+                dif[i, j] += mtemp / (p[j] - p[m])
+            end
+        end
+    end
+    return dif
+end
+
+function naivedif(Ngauss, Nlag, p)
+    return naivedif1(Ngauss, Nlag, p), naivedif2(Ngauss, Nlag, p)
 end

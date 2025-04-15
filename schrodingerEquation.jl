@@ -57,7 +57,7 @@ struct Solver
         end
         dif1, dif2 = Dmat(Ngauss, Nlag, p)
         LegendreMat, LegendreDerivMat, Qmat, Q0, Wderiv = legendre(Ngauss, y)
-        new(Ngauss, p, w, y, KinCoeffi, LinearCoeffi, ReciproCoeffi, [s1, s2, s3], dif1, dif2, LegendreMat, LegendreDerivMat, Qmat, Q0, Wderiv)
+        new(Ngauss, p, w, y, KinCoeffi, LinearCoeffi, ReciproCoeffi, [s1, s2, s3], dif1, dif2, LegendreMat, LegendreDerivMat, Wderiv, Qmat, Q0)
     end
 end
 
@@ -100,12 +100,12 @@ function M_0(solver::Solver)
         for j in 1:Ngauss
             if i == j
                 M[i, j] = KinCoeffi * p[i]^2 + ReciproCoeffi * p[i] / pi * (S[3][i] - pi^2 / 2) + 2 * LinearCoeffi / pi * S[1][i]
-            end
-            if i != j
+            else
                 M[i, j] = -ReciproCoeffi / pi * w[j] * p[j] / p[i] * q0[i, j]
                 M[i, j] -= 2 * LinearCoeffi / pi * w[j] * (2 * p[j]^2 / (p[j]^2 - p[i]^2)^2)
             end
-            M[i, j] += 2 * LinearCoeffi / pi * ((p[i] * S[2][i] - 3 * w[i] / 4 / p[i]) * dif1[i][j] - w[i] / 4 * dif2[i][j])
+
+            M[i, j] += 2 * LinearCoeffi / pi * ((p[i] * S[2][i] - 3 * w[i] / 4 / p[i]) * dif1[i, j] - w[i] / 4 * dif2[i, j])
         end
     end
     return M
@@ -136,11 +136,12 @@ function M_l(solver::Solver, l::Int)
                 M[i, j] = -ReciproCoeffi / pi * w[j] * p[j] / p[i] * ql[l, i, j]
                 M[i, j] -= 2 * LinearCoeffi / pi * w[j] * (2 * p[j]^2 / (p[j]^2 - p[i]^2)^2 * Pl[l, i, j] - q0[i, j] / 2 / p[i]^2 * Plderiv[l, i, j])
             end
-            M[i, j] += 2 * LinearCoeffi / pi * ((p[i] * S[2][i] - 3 * w[i] / 4 / p[i]) * dif1[i][j] - w[i] / 4 * dif2[i][j] - w[j] * Wderiv[l, i, j] / 2 / p[i]^2)
+                M[i, j] += 2 * LinearCoeffi / pi * ((p[i] * S[2][i] - 3 * w[i] / 4 / p[i]) * dif1[i, j] - w[i] / 4 * dif2[i, j] - w[j] * Wderiv[l, i, j] / 2 / p[i]^2)
         end
     end
     return M
 end
+
 
 function Dmat(Ngauss::Int64, Nlag::Int64, p::Vector{Float64})
     dif1 = Matrix{Float64}(undef, Ngauss, Ngauss)
@@ -151,11 +152,13 @@ function Dmat(Ngauss::Int64, Nlag::Int64, p::Vector{Float64})
             range = start:start+Nlag-1
             mask = setdiff(range, [i, j])
             if i != j
-                dif1[i, j] = 1 / (p[j] - p[i]) * prod((p[i] .- p[mask]) ./ (p[j] .- p[mask]))
+                local temp = (p[i] .- p[mask]) ./ (p[j] .- p[mask])
+                dif1[i, j] = 1 / (p[j] - p[i]) * prod(temp)
                 dif2[i, j] = 0
                 for m in mask
                     mas = setdiff(mask, m)
-                    dif2[i, j] += 1 / (p[j] - p[m]) * prod((p[i] .- p[mas]) ./ (p[j] .- p[mas]))
+                    local temp = (p[i] .- p[mas]) ./ (p[j] .- p[mas])
+                    dif2[i, j] += 1 / (p[j] - p[m]) * prod(temp)
                 end
                 # for l in mask
                 #     mas = setdiff(mask, l)
@@ -163,11 +166,13 @@ function Dmat(Ngauss::Int64, Nlag::Int64, p::Vector{Float64})
                 # end
                 dif2[i, j] *= 2 / (p[j] - p[i])
             else
-                dif1[i, i] = sum(1 / (p[j] .- p[mask]))
+                local temp = 1 ./ (p[j] .- p[mask])
+                dif1[i, i] = sum(temp)
                 dif2[i, i] = 0
                 for m in mask
                     mas = setdiff(mask, m)
-                    dif2[i, i] += 1 / (p[j] - p[m]) * sum(1 / (p[j] .- p[mas]))
+                    local temp = 1 ./ (p[j] .- p[mas])
+                    dif2[i, i] += 1 / (p[j] - p[m]) * sum(temp)
                 end
             end
         end
