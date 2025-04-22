@@ -37,3 +37,6 @@ const g2 = g*0.006467550544943349
 const delta = [0, m21 + m22 - m11 - m12]
 const mu = [m11 * m12 / (m11 + m12), m21 * m22 / (m21 + m22)]
 const ϵ = 1e-9
+#constants to express Schroedinger equation in dimensionless units (according to Cornell paper)
+m_c=1.85 #GeV
+a_Cornell=1.95 #GeV^-1

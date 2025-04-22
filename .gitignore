@@ -12,3 +12,5 @@ papers
 *.zip
 .zig-cache
 */.zig-cache
+*.html
+*cache*

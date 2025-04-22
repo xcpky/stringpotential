@@ -1,0 +1,523 @@
+{
+  "version": "1",
+  "metadata": {
+    "marimo_version": "0.12.8"
+  },
+  "cells": [
+    {
+      "id": "Hbol",
+      "code_hash": "711124ef49a28ec6ab7ba6e5b82535a0",
+      "outputs": [
+        {
+          "type": "data",
+          "data": {
+            "text/plain": ""
+          }
+        }
+      ],
+      "console": []
+    },
+    {
+      "id": "MJUe",
+      "code_hash": "757ab9ba5db6d220c1e633ce83b699ad",
+      "outputs": [
+        {
+          "type": "data",
+          "data": {
+            "text/plain": ""
+          }
+        }
+      ],
+      "console": []
+    },
+    {
+      "id": "vblA",
+      "code_hash": "49dd272720ed75996a5d8155d183f036",
+      "outputs": [
+        {
+          "type": "data",
+          "data": {
+            "text/plain": ""
+          }
+        }
+      ],
+      "console": []
+    },
+    {
+      "id": "bkHC",
+      "code_hash": "79e4a943999e3410b8c1c4c4c57b2b58",
+      "outputs": [
+        {
+          "type": "data",
+          "data": {
+            "text/plain": ""
+          }
+        }
+      ],
+      "console": []
+    },
+    {
+      "id": "lEQa",
+      "code_hash": "802c17965e11a9828dd6ff0781e22bca",
+      "outputs": [
+        {
+          "type": "data",
+          "data": {
+            "text/plain": ""
+          }
+        }
+      ],
+      "console": []
+    },
+    {
+      "id": "PKri",
+      "code_hash": "0e77d5ee3acc37683ef16e4f1a953693",
+      "outputs": [
+        {
+          "type": "data",
+          "data": {
+            "text/plain": ""
+          }
+        }
+      ],
+      "console": [
+        {
+          "type": "stream",
+          "name": "stdout",
+          "text": "-1.0918023276884035\n"
+        }
+      ]
+    },
+    {
+      "id": "Xref",
+      "code_hash": "9003c771cf2090776cfb90dfaf8f7bcc",
+      "outputs": [
+        {
+          "type": "data",
+          "data": {
+            "text/plain": ""
+          }
+        }
+      ],
+      "console": []
+    },
+    {
+      "id": "SFPL",
+      "code_hash": "54a3f71899e9154bebd14861bcf1e6e4",
+      "outputs": [
+        {
+          "type": "data",
+          "data": {
+            "text/plain": ""
+          }
+        }
+      ],
+      "console": []
+    },
+    {
+      "id": "BYtC",
+      "code_hash": "b0d5b5e2b10a809352c301b5e7a9c7d6",
+      "outputs": [
+        {
+          "type": "data",
+          "data": {
+            "text/plain": ""
+          }
+        }
+      ],
+      "console": [
+        {
+          "type": "stream",
+          "name": "stdout",
+          "text": "-0.7112700000000007\n"
+        }
+      ]
+    },
+    {
+      "id": "RGSE",
+      "code_hash": "db4b33107742e52d05b63abdd08d1de5",
+      "outputs": [
+        {
+          "type": "data",
+          "data": {
+            "text/plain": ""
+          }
+        }
+      ],
+      "console": [
+        {
+          "type": "stream",
+          "name": "stdout",
+          "text": "[-0.73101967  0.34498458  0.71809363  0.97249055  1.18013856  1.36768937\n  1.53581963  1.71960951  2.01288542  2.13888282  2.53074525  3.12153061\n  3.25347772  3.93056313  4.94582919  5.34109977  6.26167908  7.95109432\n  9.17896356 10.13075399 12.94235086 15.83716836 16.58101631 21.30745223\n 27.49443971 28.52095886 35.70807467 46.93408961 51.74559474 63.47201838]\n"
+        }
+      ]
+    },
+    {
+      "id": "Kclp",
+      "code_hash": "8b1cbabf54daae924d1acc2440fc7f9b",
+      "outputs": [
+        {
+          "type": "data",
+          "data": {
+            "text/plain": ""
+          }
+        }
+      ],
+      "console": [
+        {
+          "type": "stream",
+          "name": "stdout",
+          "text": "In dimensionless units, \\zeta: [ -2.18624647   1.03173874   2.1475888    2.90840877   3.52941769\n   4.0903223    4.59314624   5.14280309   6.01989773   6.39671572\n   7.56865114   9.33550157   9.73011325  11.75505955  14.79139625\n  15.97352436  18.72668321  23.77918486  27.45134978  30.29785112\n  38.70643981  47.36391485  49.58852659  63.7237876   82.22709206\n  85.29708314 106.79145218 140.36487916 154.75455502 189.82454467]\n"
+        }
+      ]
+    },
+    {
+      "id": "emfo",
+      "code_hash": "14fe0e7688ace1edc98272e84c972b9f",
+      "outputs": [
+        {
+          "type": "data",
+          "data": {
+            "text/plain": ""
+          }
+        }
+      ],
+      "console": [
+        {
+          "type": "stream",
+          "name": "stdout",
+          "text": "[-1.69092180e-01  3.66724631e-01 -7.39822988e-01  7.78804712e-01\n -1.17512614e+00  8.16616200e-01 -1.26664466e+00  7.63181952e-01\n -8.91758952e-01  7.04326860e-01 -5.78804725e-01  4.57098075e-01\n -3.50322894e-01  2.61808737e-01 -1.91658548e-01  1.37981649e-01\n -9.80068588e-02  6.88459436e-02 -4.79052089e-02  3.30444831e-02\n -2.25903159e-02  1.52811910e-02 -1.01909351e-02  6.65369751e-03\n -4.20025270e-03  2.50806014e-03 -1.36334967e-03  6.30013266e-04\n -2.17079162e-04  4.07998990e-05]\n2.990680768115226\n1.85\n"
+        }
+      ]
+    },
+    {
+      "id": "Hstk",
+      "code_hash": "4f187dba224c8a1a9c41e3d57a355ddf",
+      "outputs": [
+        {
+          "type": "data",
+          "data": {
+            "text/plain": ""
+          }
+        }
+      ],
+      "console": []
+    },
+    {
+      "id": "nWHF",
+      "code_hash": "0186c994226956ba8a06d0e9bebfcfb2",
+      "outputs": [
+        {
+          "type": "data",
+          "data": {
+            "text/plain": ""
+          }
+        }
+      ],
+      "console": []
+    },
+    {
+      "id": "iLit",
+      "code_hash": "017dd10cf5094b45e401662a986a7cf6",
+      "outputs": [
+        {
+          "type": "data",
+          "data": {
+            "text/plain": ""
+          }
+        }
+      ],
+      "console": [
+        {
+          "type": "stream",
+          "name": "stdout",
+          "text": "7.652528760376099\n"
+        }
+      ]
+    },
+    {
+      "id": "ZHCJ",
+      "code_hash": "a59c46908c17b2a42d9ebf1e3bc293b6",
+      "outputs": [
+        {
+          "type": "data",
+          "data": {
+            "text/plain": ""
+          }
+        }
+      ],
+      "console": []
+    },
+    {
+      "id": "ROlb",
+      "code_hash": "cee2e4dc955575e6a535ac590033609d",
+      "outputs": [
+        {
+          "type": "error",
+          "ename": "exception",
+          "evalue": "name '_l' is not defined",
+          "traceback": []
+        }
+      ],
+      "console": [
+        {
+          "type": "stream",
+          "name": "stderr",
+          "text": "<span class=\"codehilite\"><div class=\"highlight\"><pre><span></span><span class=\"gt\">Traceback (most recent call last):</span>\n  File <span class=\"nb\">&quot;/home/choros/.local/share/mamba/lib/python3.13/site-packages/marimo/_runtime/executor.py&quot;</span>, line <span class=\"m\">141</span>, in <span class=\"n\">execute_cell</span>\n<span class=\"w\">    </span><span class=\"n\">exec</span><span class=\"p\">(</span><span class=\"n\">cell</span><span class=\"o\">.</span><span class=\"n\">body</span><span class=\"p\">,</span> <span class=\"n\">glbls</span><span class=\"p\">)</span>\n<span class=\"w\">    </span><span class=\"pm\">~~~~^^^^^^^^^^^^^^^^^^</span>\n  File <span class=\"nb\">&quot;/tmp/marimo_150368/__marimo__cell_ROlb_.py&quot;</span>, line <span class=\"m\">3</span>, in <span class=\"n\">&lt;module&gt;</span>\n<span class=\"w\">    </span><span class=\"n\">plt</span><span class=\"o\">.</span><span class=\"n\">plot</span><span class=\"p\">(</span><span class=\"n\">r_plot</span><span class=\"p\">,</span> <span class=\"n\">r_plot</span> <span class=\"o\">*</span> <span class=\"n\">psi_nlm_cs</span><span class=\"p\">(</span><span class=\"n\">r_plot</span><span class=\"p\">,</span> <span class=\"mi\">0</span><span class=\"p\">,</span> <span class=\"n\">ll</span><span class=\"p\">,</span> <span class=\"mi\">0</span><span class=\"p\">,</span> <span class=\"mi\">0</span><span class=\"p\">,</span> <span class=\"mi\">0</span><span class=\"p\">)</span><span class=\"o\">.</span><span class=\"n\">real</span> <span class=\"o\">/</span> <span class=\"n\">special</span><span class=\"o\">.</span><span class=\"n\">sph_harm</span><span class=\"p\">(</span><span class=\"mi\">0</span><span class=\"p\">,</span> <span class=\"mi\">0</span><span class=\"p\">,</span> <span class=\"mi\">0</span><span class=\"p\">,</span> <span class=\"mi\">0</span><span class=\"p\">)</span><span class=\"o\">.</span><span class=\"n\">real</span><span class=\"p\">)</span>\n<span class=\"w\">                              </span><span class=\"pm\">~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^</span>\n  File <span class=\"nb\">&quot;/tmp/marimo_150368/__marimo__cell_Hstk_.py&quot;</span>, line <span class=\"m\">16</span>, in <span class=\"n\">psi_nlm_cs</span>\n<span class=\"w\">    </span><span class=\"k\">if</span> <span class=\"n\">psi_nlm</span><span class=\"p\">(</span><span class=\"mf\">0.0</span> <span class=\"o\">+</span> <span class=\"mf\">0.0001</span><span class=\"p\">,</span> <span class=\"n\">n</span><span class=\"p\">,</span> <span class=\"n\">_l</span><span class=\"p\">,</span> <span class=\"n\">m</span><span class=\"p\">,</span> <span class=\"n\">theta</span><span class=\"p\">,</span> <span class=\"n\">phi</span><span class=\"p\">)</span> <span class=\"o\">&lt;</span> <span class=\"mf\">0.0</span><span class=\"p\">:</span>\n<span class=\"w\">                                </span><span class=\"pm\">^^</span>\n<span class=\"gr\">NameError</span>: <span class=\"n\">name &#39;_l&#39; is not defined. Did you mean: &#39;l&#39;?</span>\n</pre></div>\n</span>"
+        }
+      ]
+    },
+    {
+      "id": "qnkX",
+      "code_hash": "d0ec059ca98be52a66befd794b58e6f0",
+      "outputs": [],
+      "console": []
+    },
+    {
+      "id": "TqIu",
+      "code_hash": "fc9ab9c5118757b41fd231a1cb658daa",
+      "outputs": [],
+      "console": []
+    },
+    {
+      "id": "Vxnm",
+      "code_hash": "39f47084dc96e0e7b07970bf00e0298e",
+      "outputs": [],
+      "console": []
+    },
+    {
+      "id": "DnEU",
+      "code_hash": "ae1e5c2e8ccabae6988f793d25de363a",
+      "outputs": [],
+      "console": []
+    },
+    {
+      "id": "ulZA",
+      "code_hash": "e558df52fbc57d1ce8f3c6d957ab2b9c",
+      "outputs": [],
+      "console": []
+    },
+    {
+      "id": "ecfG",
+      "code_hash": "529aa525d773f9a9efa2fbc28fabe444",
+      "outputs": [],
+      "console": []
+    },
+    {
+      "id": "Pvdt",
+      "code_hash": "f31b8ee2837f26b9de431ecc112be391",
+      "outputs": [],
+      "console": []
+    },
+    {
+      "id": "ZBYS",
+      "code_hash": "2c54cb8063b8d6b6422e24b6b6e30036",
+      "outputs": [],
+      "console": []
+    },
+    {
+      "id": "aLJB",
+      "code_hash": "d7039477b4c82ac84153eade35e89db9",
+      "outputs": [],
+      "console": []
+    },
+    {
+      "id": "nHfw",
+      "code_hash": "205b1c7cdb84cb4a54cdfaee1dbc4785",
+      "outputs": [],
+      "console": []
+    },
+    {
+      "id": "xXTn",
+      "code_hash": "f549f712e8b394ee3439ad0028bfe242",
+      "outputs": [],
+      "console": []
+    },
+    {
+      "id": "AjVT",
+      "code_hash": "7e0d09a05d2872b6da24a90623a77989",
+      "outputs": [],
+      "console": []
+    },
+    {
+      "id": "pHFh",
+      "code_hash": "9accf92a3712099092fead00836659b3",
+      "outputs": [],
+      "console": []
+    },
+    {
+      "id": "NCOB",
+      "code_hash": "10cc0416e4d2fa7af96249bb6cef8367",
+      "outputs": [],
+      "console": []
+    },
+    {
+      "id": "aqbW",
+      "code_hash": "042e0795a164d07cfb19dfcf395018fa",
+      "outputs": [],
+      "console": []
+    },
+    {
+      "id": "TRpd",
+      "code_hash": "45f0b059f50799c8c0ff74272406774e",
+      "outputs": [],
+      "console": []
+    },
+    {
+      "id": "TXez",
+      "code_hash": "7c648832fe804174730977920061cfe9",
+      "outputs": [],
+      "console": []
+    },
+    {
+      "id": "dNNg",
+      "code_hash": "fa59127e257d3a1e993dc590b855c02c",
+      "outputs": [],
+      "console": []
+    },
+    {
+      "id": "yCnT",
+      "code_hash": "e06474944a77321c8e1d0708f586f52a",
+      "outputs": [],
+      "console": []
+    },
+    {
+      "id": "wlCL",
+      "code_hash": "c7aaeb9651a5928be90be109575a5360",
+      "outputs": [],
+      "console": []
+    },
+    {
+      "id": "kqZH",
+      "code_hash": "fbd930933aa356c173200eba0a6ce349",
+      "outputs": [],
+      "console": []
+    },
+    {
+      "id": "wAgl",
+      "code_hash": "a5e27ec1e1a0b59f6bb3a6a308402f32",
+      "outputs": [],
+      "console": []
+    },
+    {
+      "id": "rEll",
+      "code_hash": "455d76cd418959121e3d4372012cb25c",
+      "outputs": [],
+      "console": []
+    },
+    {
+      "id": "dGlV",
+      "code_hash": "9453bf5a9e5d3677ce13f073a1be2392",
+      "outputs": [],
+      "console": []
+    },
+    {
+      "id": "SdmI",
+      "code_hash": "13493abb6b6d900b09abd56295ee2361",
+      "outputs": [],
+      "console": []
+    },
+    {
+      "id": "lgWD",
+      "code_hash": "ce1a462043a1a559a396949d7c220dbb",
+      "outputs": [],
+      "console": []
+    },
+    {
+      "id": "yOPj",
+      "code_hash": "32eaa541975ef28430fd8736550d74ac",
+      "outputs": [],
+      "console": []
+    },
+    {
+      "id": "fwwy",
+      "code_hash": "33b55fe18988d3cb166895992adb1fcf",
+      "outputs": [],
+      "console": []
+    },
+    {
+      "id": "LJZf",
+      "code_hash": "8dff20adef1567775806fec96f85be71",
+      "outputs": [],
+      "console": []
+    },
+    {
+      "id": "urSm",
+      "code_hash": "0dd030dde74e0f415bc24a4597c92afc",
+      "outputs": [],
+      "console": []
+    },
+    {
+      "id": "jxvo",
+      "code_hash": "0e2be8933400cefc94a0ac3f8ffaeea3",
+      "outputs": [],
+      "console": []
+    },
+    {
+      "id": "mWxS",
+      "code_hash": "d7f04f3f12e3167717e104930e94df50",
+      "outputs": [],
+      "console": []
+    },
+    {
+      "id": "CcZR",
+      "code_hash": "53135b092064789b47d30dc407351736",
+      "outputs": [],
+      "console": []
+    },
+    {
+      "id": "YWSi",
+      "code_hash": "9048a79165f180165fe33b32ada3b430",
+      "outputs": [],
+      "console": []
+    },
+    {
+      "id": "zlud",
+      "code_hash": "a3069b61b56dc9e63d33f983fa241e5b",
+      "outputs": [],
+      "console": []
+    },
+    {
+      "id": "tZnO",
+      "code_hash": "eab0db05ab6dd30aa4a037e5abe00171",
+      "outputs": [],
+      "console": []
+    },
+    {
+      "id": "xvXZ",
+      "code_hash": "12b3a1695ad427c1ba5ef885c0c8dccb",
+      "outputs": [],
+      "console": []
+    },
+    {
+      "id": "CLip",
+      "code_hash": "25dca898e4d02d27a32b4f6771577d10",
+      "outputs": [],
+      "console": []
+    },
+    {
+      "id": "YECM",
+      "code_hash": "d49fa0831ffee6c1c4951a2dfbef4126",
+      "outputs": [],
+      "console": []
+    },
+    {
+      "id": "cEAS",
+      "code_hash": "e3bdbb114ff61552cc496be0b044fc0a",
+      "outputs": [],
+      "console": []
+    },
+    {
+      "id": "iXej",
+      "code_hash": "52490eb18cb20917afd9763e8362c4da",
+      "outputs": [],
+      "console": []
+    },
+    {
+      "id": "EJmg",
+      "code_hash": "4264891c5c010cedd96d280a456e9c65",
+      "outputs": [],
+      "console": []
+    }
+  ]
+}
