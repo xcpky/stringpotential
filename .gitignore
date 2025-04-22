@@ -14,3 +14,4 @@ papers
 */.zig-cache
 *.html
 *cache*
+*marimo*
