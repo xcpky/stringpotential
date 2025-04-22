@@ -146,7 +146,7 @@ const LSE = struct {
             const mU = mu[i];
             const x0 = self.x0[i];
             var int = comp(0, 0);
-            std.debug.print("dE: {e:.3} mU: {e:.3} epsilon: {e:.3}\n", .{dE, mU, self.epsilon});
+            std.debug.print("dE: {e:.3} mU: {e:.3} epsilon: {e:.3}\n", .{ dE, mU, self.epsilon });
             for (self.xi, self.wi) |x, w| {
                 var new = comp(self.E - square(x) / 2 / mU, self.epsilon);
                 new = inverse(new);
@@ -169,8 +169,8 @@ const LSE = struct {
                 const denominator = comp(dE - square(self.xi[m]) / 2 / mU, self.epsilon);
                 const inv = inverse(denominator);
                 std.debug.print("xi: {e:.3}\n", .{self.xi[m]});
-                std.debug.print("denominator: {e:.3} + im{e:.3}        inverse: {e:.3} + im{e:.3}\n", .{denominator.dat[0], denominator.dat[1], inv.dat[0], inv.dat[1]});
-                std.debug.print("lhs: {e:.3} + im{e:.3}, rhs: {e:.3}\n\n\n", .{lhs.dat[0], lhs.dat[1], rhs});
+                std.debug.print("denominator: {e:.3} + im{e:.3}        inverse: {e:.3} + im{e:.3}\n", .{ denominator.dat[0], denominator.dat[1], inv.dat[0], inv.dat[1] });
+                std.debug.print("lhs: {e:.3} + im{e:.3}, rhs: {e:.3}\n\n\n", .{ lhs.dat[0], lhs.dat[1], rhs });
                 matrix_set(self.G, pos, pos, ele);
                 // std.debug.print("m: {} {e} {e}\n", .{m, self.xi[m], mul_real(inverse(comp(dE - square(self.xi[m]) / 2 / mU, self.epsilon)), square(self.xi[m]) * self.wi[m] / 2 / square(pi)).dat[0]});
             }
@@ -475,7 +475,7 @@ fn test_blas(comptime n: u8) !void {
             const pos = i * 2 + j;
             const val = mat1.data[2 * pos];
             // const val = matrix_get(mat2, i, j);
-            std.debug.print("{d:.3} ", .{val});
+            std.debug.print("{d:.3} + Im{d:.3}  ", .{ val, mat1.data[2 * pos + 1] });
         }
         std.debug.print("\n", .{});
     }
@@ -485,13 +485,13 @@ fn test_blas(comptime n: u8) !void {
             const pos = i * 2 + j;
             const val = mat2.data[2 * pos];
             // const val = matrix_get(mat2, i, j);
-            std.debug.print("{d:.3} ", .{val});
+            std.debug.print("{d:.3} + Im{d:.3}  ", .{ val, mat2.data[2 * pos + 1] });
         }
         std.debug.print("\n", .{});
     }
     matrix_set_zero(mat3);
     const alpha = comp(1, 0);
-    std.debug.print("alpha: {d:.3} + im{d:.3}\n", .{ alpha.dat[0], alpha.dat[1] });
+    std.debug.print("alpha: {d:.3} + Im{d:.3}\n", .{ alpha.dat[0], alpha.dat[1] });
     const beta = comp(0, 0);
     // Verify tda matches row count
     std.debug.assert(mat1.tda == mat1.size1);
@@ -528,7 +528,7 @@ fn test_blas(comptime n: u8) !void {
             // const pos = i*2 + j;
             // const val = mat3.data[2*pos];
             const val = matrix_get(mat3, i, j);
-            std.debug.print("{d:.3} ", .{val.dat[1]});
+            std.debug.print("{d:.3} + Im{d:.3}  ", .{val.dat[0], val.dat[1]});
         }
         std.debug.print("\n", .{});
     }
@@ -537,18 +537,17 @@ fn test_blas(comptime n: u8) !void {
 fn test_mat() !void {
     var x = comp(1, 2);
     x = inverse(x);
-    std.debug.print("{e:.3} + Im{e:.3}\n\n\n\n", .{x.dat[0], x.dat[1]});
+    std.debug.print("{e:.3} + Im{e:.3}\n\n\n\n", .{ x.dat[0], x.dat[1] });
 }
 
-test "small test" {
-}
+test "small test" {}
 
 test "basic functionality" {
     // try testing.expect(add(3, 7) == 10);
-    try test_mat();
-    var lse = try LSE.init(std.heap.c_allocator, 2, 4, 0.000001, 0.2);
-    defer lse.deinit();
-    try lse.run();
+    // try test_mat();
+    // var lse = try LSE.init(std.heap.c_allocator, 2, 4, 0.000001, 0.2);
+    // defer lse.deinit();
+    // try lse.run();
     // const n = 2*(lse.Ngauss + 1);
     // for (0..n) |i| {
     //     for (0..n) |j| {
@@ -558,7 +557,7 @@ test "basic functionality" {
     //     }
     //     std.debug.print("\n", .{});
     // }
-    // try test_blas(2);
+    try test_blas(2);
     // std.debug.print("gmat: size1 {}, size2 {}\n", .{ lse.G.size1, lse.G.size2 });
     // std.debug.print("vmat: size1 {}, size2 {}\n", .{ lse.V.size1, lse.V.size2 });
     // std.debug.print("tmat: size1 {}, size2 {}\n", .{ lse.T.size1, lse.T.size2 });

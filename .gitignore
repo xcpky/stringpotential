@@ -11,3 +11,4 @@ papers
 *.tex
 *.zip
 .zig-cache
+*/.zig-cache

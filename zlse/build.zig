@@ -41,8 +41,6 @@ pub fn build(b: *std.Build) void {
         .name = "lse",
         .root_module = lib_mod,
     });
-    lib.addIncludePath(b.path("../../../gsl-install/include"));
-    lib.addLibraryPath(b.path("../../../gsl-install/include"));
     lib.linkLibC();
     lib.linkSystemLibrary("gsl");
     lib.linkSystemLibrary("gslcblas");
