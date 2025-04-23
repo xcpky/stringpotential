@@ -12,6 +12,16 @@ const r_1 = 0.02 * 5.068  # GeV^-1
 const r_n_max = 30 * 5.068  # GeV^-1
 const c_T = (-1) * 0.19732^2 / (1 / 2 * 4.18) * 5.068
 
+function quadgauss(f, x::T, w::T) where {T<:Vector{Float64}}
+    res = zero(f(x[1]))  # zero of the same type as f(x[1]), to avoid type instability
+    @inbounds @simd for i in eachindex(x)
+        res += f(x[i]) * w[i]
+    end
+    return res
+end
+
+
+
 # Double factorial function
 function doublefactorial(n::Int)
     n == 0 || n == 1 ? 1 : n * doublefactorial(n - 2)
@@ -88,7 +98,6 @@ end
 # Solve generalized eigenvalue problem
 E_solution = eigen(H_Cornell, N_n_n).values
 c_solution = eigen(H_Cornell, N_n_n).vectors
-c_solution ./= sqrt(c_solution[:, 1]' * N_n_n * c_solution[:, 1])
 for i in 1:n_max
     c_solution[:, i] ./= sqrt(c_solution[:, i]' * N_n_n * c_solution[:, i])
 end
@@ -146,5 +155,64 @@ if debug
 end
 
 function PIgauss(x, a1, a2, mu1, mu2, sigma1, sigma2)
-    a1*exp(-(x-mu1)^2/(2*sigma1^2))+a2*exp(-(x-mu2)^2/(2*sigma2^2))
+    a1 * exp(-(x - mu1)^2 / (2 * sigma1^2)) + a2 * exp(-(x - mu2)^2 / (2 * sigma2^2))
+end
+
+function psi_3P1_momentum(p, n, Ngauss, Λ)
+    x, w = gauss(Ngauss, 0, Λ)
+    integrand1(x) = exp(1im * x * p) * x / p * psi_nlm_cs(x, n, 1, 0, 0, 0)
+    integrand2(x) = -exp(-1im * x * p) * x / p * psi_nlm_cs(x, n, 1, 0, 0, 0)
+    result1 = -im * 2 * π * (quadgauss(integrand1, x, w) + quadgauss(integrand2, x, w))
+    result2 = real(result1)^2 + im * imag(result1)^2
+    return result1, result2
+end
+
+function psi_S_1_3_momentum(p, n, Ngauss, Λ)
+    x, w = gauss(Ngauss, 0, Λ)
+    integrand1(x) = exp(im * x * p) * x / p * psi_nlm_cs(x, n, 0, 0, 0, 0)
+    integrand2(x) = -exp(-im * x * p) * x / p * psi_nlm_cs(x, n, 0, 0, 0, 0)
+    result1 = -im * 2 * π * (quadgauss(integrand1, x, w) + quadgauss(integrand2, x, w))
+    result2 = real(result1)^2 + im * imag(result1)^2
+    return result1, result2
+end
+
+E_sample = range(delta[1] - 1, delta[2] + 0.4, 1000)
+Nq = 40
+Ntower = 30
+xq, wq = gauss(Nq)
+psi_mat_q1 = zeros((Ntower * length(E_sample), Nq + 1))
+psi_mat_q2 = zeros((Ntower * length(E_sample), Nq + 1))
+@inline function xsqrt(x)
+    imag(x) >= 0 ? sqrt(x + 0im) : -sqrt(x - 0im)
+end
+@inline function q0(E)
+    dE = -(delta .- E)
+    x0 = xsqrt.(2 * mu .* dE)
+    return x0
+end
+
+# for i in 1:Ntower
+#     for k in 1:psi_mat_q1.size[2]-1
+#         psi_mat_q1[i, k] = real(psi_S_1_3_momentum(xq[k], i, Nq, 20)[1])
+#         psi_mat_q2[i, k] = psi_mat_q1[i, k]
+#     end
+#     for l in 1:length(E_sample)
+#         psi_mat_q1[i+Ntower*(l-1), Nq+1] = real(psi_S_1_3_momentum(q0(E_sample[l])[1], i, Nq, 20)[1])
+#         psi_mat_q2[i+Ntower*(l-1), Nq+1] = real(psi_S_1_3_momentum(q0(E_sample[l])[2], i, Nq, 20)[1])
+#         psi_mat_q1[i+Ntower*(l-1), 1:end-1] = psi_mat_q1[i, 1:end-1]
+#         psi_mat_q2[i+Ntower*(l-1), 1:end-1] = psi_mat_q2[i, 1:end-1]
+#     end
+# end
+#
+for i in 1:Ntower
+    for k in 1:psi_mat_q1.size[2]-1
+        psi_mat_q1[i, k] = real(psi_nlm_p(xq[k], i))
+        psi_mat_q2[i, k] = psi_mat_q1[i, k]
+    end
+    for l in 1:length(E_sample)
+        psi_mat_q1[i+Ntower*(l-1), Nq+1] = real(psi_nlm_p(q0(E_sample[l])[1], i))
+        psi_mat_q2[i+Ntower*(l-1), Nq+1] = real(psi_nlm_p(q0(E_sample[l])[2], i))
+        psi_mat_q1[i+Ntower*(l-1), 1:end-1] = psi_mat_q1[i, 1:end-1]
+        psi_mat_q2[i+Ntower*(l-1), 1:end-1] = psi_mat_q2[i, 1:end-1]
+    end
 end

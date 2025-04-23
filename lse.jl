@@ -6,7 +6,7 @@ using QuadGK
 
 function quadgauss(f, x::T, w::T) where {T<:Vector{Float64}}
     res = zero(f(x[1]))  # zero of the same type as f(x[1]), to avoid type instability
-    for i in eachindex(x)
+    @inbounds @simd for i in eachindex(x)
         res += f(x[i]) * w[i]
     end
     return res
