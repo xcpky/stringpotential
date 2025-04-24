@@ -1,0 +1,32 @@
+[
+  {
+    "arguments": [
+      "/sbin/gcc",
+      "-Wall",
+      "-Wextra",
+      "-O2",
+      "-c",
+      "-o",
+      "main.o",
+      "main.c"
+    ],
+    "directory": "/home/choros/code/stringpotential/c",
+    "file": "/home/choros/code/stringpotential/c/main.c",
+    "output": "/home/choros/code/stringpotential/c/main.o"
+  },
+  {
+    "arguments": [
+      "/sbin/gcc",
+      "-Wall",
+      "-Wextra",
+      "-O2",
+      "-c",
+      "-o",
+      "functions.o",
+      "functions.c"
+    ],
+    "directory": "/home/choros/code/stringpotential/c",
+    "file": "/home/choros/code/stringpotential/c/functions.c",
+    "output": "/home/choros/code/stringpotential/c/functions.o"
+  }
+]

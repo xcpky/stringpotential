@@ -1,3 +1,5 @@
+using Base.Threads
+using BenchmarkTools
 using LinearAlgebra
 using SpecialFunctions
 using SphericalHarmonics
@@ -163,7 +165,7 @@ function psi_3P1_momentum(p, n, Ngauss, Λ)
     integrand1(x) = exp(1im * x * p) * x / p * psi_nlm_cs(x, n, 1, 0, 0, 0)
     integrand2(x) = -exp(-1im * x * p) * x / p * psi_nlm_cs(x, n, 1, 0, 0, 0)
     result1 = -im * 2 * π * (quadgauss(integrand1, x, w) + quadgauss(integrand2, x, w))
-    result2 = real(result1)^2 + im * imag(result1)^2
+    result2 = real(result1)^2 + imag(result1)^2
     return result1, result2
 end
 
@@ -172,11 +174,11 @@ function psi_S_1_3_momentum(p, n, Ngauss, Λ)
     integrand1(x) = exp(im * x * p) * x / p * psi_nlm_cs(x, n, 0, 0, 0, 0)
     integrand2(x) = -exp(-im * x * p) * x / p * psi_nlm_cs(x, n, 0, 0, 0, 0)
     result1 = -im * 2 * π * (quadgauss(integrand1, x, w) + quadgauss(integrand2, x, w))
-    result2 = real(result1)^2 + im * imag(result1)^2
+    result2 = real(result1)^2 + imag(result1)^2
     return result1, result2
 end
 
-E_sample = range(delta[1] - 1, delta[2] + 0.4, 1000)
+E_sample = range(delta[1]-1, delta[2] + 0.4, 1000)
 Nq = 40
 Ntower = 30
 xq, wq = gauss(Nq)
@@ -191,27 +193,27 @@ end
     return x0
 end
 
-# for i in 1:Ntower
+# @time for i in 1:Ntower
 #     for k in 1:psi_mat_q1.size[2]-1
-#         psi_mat_q1[i, k] = real(psi_S_1_3_momentum(xq[k], i, Nq, 20)[1])
+#         psi_mat_q1[i, k] = real(psi_3P1_momentum(xq[k], i, Nq, 20)[1])
 #         psi_mat_q2[i, k] = psi_mat_q1[i, k]
 #     end
-#     for l in 1:length(E_sample)
-#         psi_mat_q1[i+Ntower*(l-1), Nq+1] = real(psi_S_1_3_momentum(q0(E_sample[l])[1], i, Nq, 20)[1])
-#         psi_mat_q2[i+Ntower*(l-1), Nq+1] = real(psi_S_1_3_momentum(q0(E_sample[l])[2], i, Nq, 20)[1])
+#     @threads for l in eachindex(E_sample)
+#         psi_mat_q1[i+Ntower*(l-1), Nq+1] = real(psi_3P1_momentum(q0(E_sample[l])[1], i, Nq, 20)[1])
+#         psi_mat_q2[i+Ntower*(l-1), Nq+1] = real(psi_3P1_momentum(q0(E_sample[l])[2], i, Nq, 20)[1])
 #         psi_mat_q1[i+Ntower*(l-1), 1:end-1] = psi_mat_q1[i, 1:end-1]
 #         psi_mat_q2[i+Ntower*(l-1), 1:end-1] = psi_mat_q2[i, 1:end-1]
 #     end
 # end
-#
+
 for i in 1:Ntower
     for k in 1:psi_mat_q1.size[2]-1
         psi_mat_q1[i, k] = real(psi_nlm_p(xq[k], i))
         psi_mat_q2[i, k] = psi_mat_q1[i, k]
     end
-    for l in 1:length(E_sample)
-        psi_mat_q1[i+Ntower*(l-1), Nq+1] = real(psi_nlm_p(q0(E_sample[l])[1], i))
-        psi_mat_q2[i+Ntower*(l-1), Nq+1] = real(psi_nlm_p(q0(E_sample[l])[2], i))
+    for l in eachindex(E_sample)
+        psi_mat_q1[i+Ntower*(l-1), Nq+1] = imag(psi_nlm_p(q0(E_sample[l])[1], i))
+        psi_mat_q2[i+Ntower*(l-1), Nq+1] = imag(psi_nlm_p(q0(E_sample[l])[2], i))
         psi_mat_q1[i+Ntower*(l-1), 1:end-1] = psi_mat_q1[i, 1:end-1]
         psi_mat_q2[i+Ntower*(l-1), 1:end-1] = psi_mat_q2[i, 1:end-1]
     end
