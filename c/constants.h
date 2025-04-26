@@ -33,5 +33,7 @@
 #define m_c 1.85
 #define a_Cornell 1.95
 
+extern const double delta[2];
+extern const double mu[2];
 
 #endif // !DEBUG

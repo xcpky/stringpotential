@@ -32,8 +32,9 @@ size_t WF_get_E_solution_length(WaveFunction *self);
 double *WF_get_E_solution_data(WaveFunction *self);
 complex double psi_n(WaveFunction *self, double r, uint64_t n, double theta);
 complex double psi_n_ft(WaveFunction *self, double p, uint64_t n);
-void psi_n_batch(WaveFunction *self, const double *r_values, double complex *results,
-                 size_t num_points, uint64_t n, double theta);
+void psi_n_batch(WaveFunction *self, const double *r_values,
+                 double complex *results, size_t num_points, uint64_t n,
+                 double theta);
 void psi_n_ft_batch(WaveFunction *self, const double *p_values,
                     double complex *results, size_t num_points, uint64_t n);
 
@@ -108,7 +109,6 @@ static inline double V_r_n_n_prime_tilde(int n, int n_prime, int l) {
 }
 
 static inline complex double integrand(double r, double p, int n, int l) {
-  return sqrt(2 * l + 1) * sqrt(PI) * 2 * gsl_complex_pow_real(I, l) *
-         gsl_sf_bessel_jl(l, p * r) * pow(r, l) * exp(-nu_n(n) * r * r);
+  return gsl_sf_bessel_jl(l, p * r) * pow(r, l+2) * exp(-nu_n(n) * r * r);
 }
 #endif // !WAVEFUNCTION_H
