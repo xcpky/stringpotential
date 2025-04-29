@@ -6,13 +6,14 @@ OBJS = $(SRCS:.c=.o)
 TARGET = GaussianVariation
 
 # Shared library settings
-WFSRCS = wavefunction.c
+WFSRCS = wavefunction.c constants.c
 WFOBJS = $(WFSRCS:.c=.pic.o)
 WFTARGET = libwavefunction.so
 
-LSESRCS = lse.c
+# LSE shared library - add constants.c as a dependency
+LSESRCS = lse.c constants.c wavefunction.c
 LSEOBJS = $(LSESRCS:.c=.pic.o)
-LSETARGET = lse.so
+LSETARGET = liblse.so
 
 all: $(TARGET)
 
@@ -32,13 +33,10 @@ $(WFTARGET): $(WFOBJS)
 %.pic.o: %.c
 	$(CC) $(CFLAGS) -fPIC -c $< -o $@
 
-lse: $(LSETARGET)
+lseso: $(LSETARGET)
 
 $(LSETARGET): $(LSEOBJS)
 	$(CC) -shared -o $@ $^ $(LDFLAGS)
 
-%.pic.o: %.c
-	$(CC) $(CFLAGS) -fPIC -c $< -o $@
-
 clean:
-	rm -f $(OBJS) $(WFOBJS) $(TARGET) $(WFTARGET) $(LSETARGET)
+	rm -f $(OBJS) $(WFOBJS) $(LSEOBJS) $(TARGET) $(WFTARGET) $(LSETARGET)

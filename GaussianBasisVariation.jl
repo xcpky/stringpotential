@@ -193,28 +193,28 @@ end
     return x0
 end
 
-# @time for i in 1:Ntower
-#     for k in 1:psi_mat_q1.size[2]-1
-#         psi_mat_q1[i, k] = real(psi_3P1_momentum(xq[k], i, Nq, 20)[1])
-#         psi_mat_q2[i, k] = psi_mat_q1[i, k]
-#     end
-#     @threads for l in eachindex(E_sample)
-#         psi_mat_q1[i+Ntower*(l-1), Nq+1] = real(psi_3P1_momentum(q0(E_sample[l])[1], i, Nq, 20)[1])
-#         psi_mat_q2[i+Ntower*(l-1), Nq+1] = real(psi_3P1_momentum(q0(E_sample[l])[2], i, Nq, 20)[1])
-#         psi_mat_q1[i+Ntower*(l-1), 1:end-1] = psi_mat_q1[i, 1:end-1]
-#         psi_mat_q2[i+Ntower*(l-1), 1:end-1] = psi_mat_q2[i, 1:end-1]
-#     end
-# end
-
-for i in 1:Ntower
+@time for i in 1:Ntower
     for k in 1:psi_mat_q1.size[2]-1
-        psi_mat_q1[i, k] = real(psi_nlm_p(xq[k], i))
+        psi_mat_q1[i, k] = real(psi_3P1_momentum(xq[k], i, Nq, 20)[1])
         psi_mat_q2[i, k] = psi_mat_q1[i, k]
     end
-    for l in eachindex(E_sample)
-        psi_mat_q1[i+Ntower*(l-1), Nq+1] = imag(psi_nlm_p(q0(E_sample[l])[1], i))
-        psi_mat_q2[i+Ntower*(l-1), Nq+1] = imag(psi_nlm_p(q0(E_sample[l])[2], i))
+    @threads for l in eachindex(E_sample)
+        psi_mat_q1[i+Ntower*(l-1), Nq+1] = real(psi_3P1_momentum(q0(E_sample[l])[1], i, Nq, 20)[1])
+        psi_mat_q2[i+Ntower*(l-1), Nq+1] = real(psi_3P1_momentum(q0(E_sample[l])[2], i, Nq, 20)[1])
         psi_mat_q1[i+Ntower*(l-1), 1:end-1] = psi_mat_q1[i, 1:end-1]
         psi_mat_q2[i+Ntower*(l-1), 1:end-1] = psi_mat_q2[i, 1:end-1]
     end
 end
+
+# for i in 1:Ntower
+#     for k in 1:psi_mat_q1.size[2]-1
+#         psi_mat_q1[i, k] = real(psi_nlm_p(xq[k], i))
+#         psi_mat_q2[i, k] = psi_mat_q1[i, k]
+#     end
+#     for l in eachindex(E_sample)
+#         psi_mat_q1[i+Ntower*(l-1), Nq+1] = imag(psi_nlm_p(q0(E_sample[l])[1], i))
+#         psi_mat_q2[i+Ntower*(l-1), Nq+1] = imag(psi_nlm_p(q0(E_sample[l])[2], i))
+#         psi_mat_q1[i+Ntower*(l-1), 1:end-1] = psi_mat_q1[i, 1:end-1]
+#         psi_mat_q2[i+Ntower*(l-1), 1:end-1] = psi_mat_q2[i, 1:end-1]
+#     end
+# end

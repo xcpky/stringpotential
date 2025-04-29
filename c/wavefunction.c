@@ -1,4 +1,5 @@
 #include "wavefunction.h"
+#include <complex.h>
 #include <gsl/gsl_eigen.h>
 #include <gsl/gsl_integration.h>
 #include <gsl/gsl_sf_legendre.h>
@@ -6,18 +7,18 @@
 #include <stddef.h>
 #include <sys/types.h>
 
-WaveFunction *WFnew(uint64_t l, double Lambda, uint64_t Ngauss) {
+WaveFunction *WFnew(uint64_t l, double Lambda, uint64_t rNgauss) {
   WaveFunction *self = (WaveFunction *)malloc(sizeof(WaveFunction));
   if (!self) {
     return NULL;
   }
   self->l = l;
   self->Lambda = Lambda;
-  self->Ngauss = Ngauss;
-  self->table = gsl_integration_glfixed_table_alloc(Ngauss);
-  self->xi = (double *)malloc(sizeof(double) * Ngauss);
-  self->wi = (double *)malloc(sizeof(double) * Ngauss);
-  for (uint64_t i = 0; i < Ngauss; i += 1) {
+  self->Ngauss = rNgauss;
+  self->table = gsl_integration_glfixed_table_alloc(rNgauss);
+  self->xi = (double *)malloc(sizeof(double) * rNgauss);
+  self->wi = (double *)malloc(sizeof(double) * rNgauss);
+  for (uint64_t i = 0; i < rNgauss; i += 1) {
     gsl_integration_glfixed_point(0, Lambda, i, &self->xi[i], &self->wi[i], self->table);
   }
   self->c_solution = gsl_matrix_alloc(N_MAX, N_MAX);
@@ -132,6 +133,23 @@ complex double psi_n(WaveFunction *self, double r, uint64_t n, double theta) {
   return psi;
 }
 
+complex double psi_n_ftcomplex(WaveFunction *self, double complex p, uint64_t n) {
+  const uint64_t Ngauss = self->Ngauss;
+  const uint64_t l = self->l;
+  double *xi = self->xi;
+  double *wi = self->wi;
+  complex double psi = 0.0;
+  for (size_t gauss = 0; gauss < N_MAX; gauss += 1) {
+    complex double quad = 0 + 0 * I;
+    for (size_t i = 0; i < Ngauss; i += 1) {
+      quad += integrand_complex(xi[i], p, gauss + 1, l) * wi[i];
+    }
+    psi += gsl_matrix_get(self->c_solution, gauss, n - 1) * N_nl(gauss + 1, l) *
+           quad;
+  }
+  return sqrt(2 * l + 1) * 2 * sqrt(PI) * cpow(I, l + 0*I) * psi;
+}
+
 complex double psi_n_ft(WaveFunction *self, double p, uint64_t n) {
   const uint64_t Ngauss = self->Ngauss;
   const uint64_t l = self->l;
@@ -146,7 +164,7 @@ complex double psi_n_ft(WaveFunction *self, double p, uint64_t n) {
     psi += gsl_matrix_get(self->c_solution, gauss, n - 1) * N_nl(gauss + 1, l) *
            quad;
   }
-  return sqrt(2 * l + 1) * 2 * sqrt(PI) * gsl_complex_pow_real(I, l) * psi;
+  return sqrt(2 * l + 1) * 2 * sqrt(PI) * cpow(I, l + 0*I) * psi;
 }
 
 void psi_n_batch(WaveFunction *self, const double *r_values,

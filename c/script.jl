@@ -1,4 +1,7 @@
 # Load the shared library
+include("lse.jl")
+using .CLSE
+using LinearAlgebra
 const libwavefunction = joinpath(@__DIR__, "libwavefunction.so")
 
 # Define the function signatures
@@ -76,10 +79,10 @@ function get_c_solution_matrix(wf_ptr::Ptr{Cvoid})
     rows, cols = wf_get_c_solution_dims(wf_ptr)
     tda = wf_get_c_solution_tda(wf_ptr)
     data_ptr = wf_get_c_solution_data(wf_ptr)
-    
+
     # Create a Julia array that references the C memory
     data_array = unsafe_wrap(Array, data_ptr, (tda, cols), own=false)
-    
+
     # Extract the relevant part (in case tda > rows) and make a copy
     return copy(data_array[1:rows, 1:cols])
 end
@@ -88,7 +91,7 @@ end
 function get_e_solution_vector(wf_ptr::Ptr{Cvoid})
     len = wf_get_e_solution_length(wf_ptr)
     data_ptr = wf_get_e_solution_data(wf_ptr)
-    
+
     # Create a Julia array that references the C memory
     return copy(unsafe_wrap(Array, data_ptr, len, own=false))
 end
@@ -116,33 +119,68 @@ end
 function psi_n_batch(wf_ptr::Ptr{Cvoid}, r_values::Vector{Float64}, n::UInt64, theta::Float64)
     num_points = length(r_values)
     results = Vector{ComplexF64}(undef, num_points)
-    
+
     ccall(
         (:psi_n_batch, libwavefunction),
         Cvoid,
         (Ptr{Cvoid}, Ptr{Cdouble}, Ptr{ComplexF64}, Csize_t, UInt64, Cdouble),
         wf_ptr, r_values, results, num_points, n, theta
     )
-    
+
     return results
 end
 
 function psi_n_ft_batch(wf_ptr::Ptr{Cvoid}, p_values::Vector{Float64}, n::UInt64)
     num_points = length(p_values)
     results = Vector{ComplexF64}(undef, num_points)
-    
+
     ccall(
         (:psi_n_ft_batch, libwavefunction),
         Cvoid,
         (Ptr{Cvoid}, Ptr{Cdouble}, Ptr{ComplexF64}, Csize_t, UInt64),
         wf_ptr, p_values, results, num_points, n
     )
-    
+
     return results
 end
 
 # Example usage
-wf = wf_new(0, 20, 40)
-c_matrix = get_c_solution_matrix(wf)
-e_vector = get_e_solution_vector(wf)
+# wf = wf_new(0, 20, 40)
+# c_matrix = get_c_solution_matrix(wf)
+# e_vector = get_e_solution_vector(wf)
 # println("C solution matrix: ", c_matrix)
+Ngauss = 2
+lse = lse_malloc(Ngauss, 4, 1e-7)
+function OnshellT(lse::Ptr{LSE}, E::Real)
+    lse_compute(lse, E)
+    T = lse_get_t_data(lse)
+    return T[Ngauss+1, Ngauss+1], T[Ngauss+1, end], T[end, Ngauss+1], T[end]
+end
+function OnshellG(lse::Ptr{LSE}, E::Real)
+    lse_refresh(lse, E)
+    lse_gmat(lse)
+    G = lse_get_g_data(lse)
+    return [tr(G[1:Ngauss+1, 1:Ngauss+1]), tr(G[Ngauss+2:2*Ngauss+2, Ngauss+2:2*Ngauss+2])]
+end
+function OnshellV(lse::Ptr{LSE}, E::Real)
+    lse_refresh(lse, E)
+    lse_vmat(lse)
+    V = lse_get_v_data(lse)
+    return V[Ngauss+1, Ngauss+1], V[Ngauss+1, end], V[end, Ngauss+1], V[end]
+end
+
+E = -2:0.002:0.54
+if "--onshellG" in ARGS
+    tce = OnshellG.(lse, E)
+    g11 = [tce[i][1] for i in 1:size(E)[1]]
+    g22 = [tce[i][2] for i in 1:size(E)[1]]
+end
+
+if "--onshellT" in ARGS
+    oT = OnshellT.(lse, E)
+    oT11 = [abs(oT[i][1]) for i in eachindex(E)]
+    oT12 = [abs(oT[i][2]) for i in eachindex(E)]
+    oT21 = [abs(oT[i][3]) for i in eachindex(E)]
+    oT22 = [abs(oT[i][4]) for i in eachindex(E)]
+end
+

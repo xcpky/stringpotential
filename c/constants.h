@@ -1,7 +1,11 @@
 #ifndef CONSTANTS_H
 #define CONSTANTS_H
+#define PNGAUSS 40
+#define RNGAUSS 40
+#define RLAMBDA 20
 #define f_pi (0.092) 
 #define g_pi (0.5704) 
+#define g_c 1
 
 #define m_pi (0.138039407) 
 #define m_K (0.498) 
@@ -32,6 +36,7 @@
 #define mu1 (m21 * m22 / (m21 + m22))
 #define m_c 1.85
 #define a_Cornell 1.95
+#define g_qm 1
 
 extern const double delta[2];
 extern const double mu[2];

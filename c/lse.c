@@ -1,15 +1,28 @@
 #include "lse.h"
+#include "wavefunction.h"
 #include <gsl/gsl_linalg.h>
 #include <gsl/gsl_permutation.h>
+#include <stdint.h>
+#include <string.h>
 
-LSE *lse_malloc(size_t Ngauss, double Lambda, double epsilon) {
+double complex V_QM(LSE *self, double E, uint64_t p, uint64_t pprime) {
+  double complex res = 0 + 0 * I;
+  for (uint64_t i = 0; i < N_MAX; i += 1) {
+    res += self->psi_n_mat[i][p] * self->psi_n_mat[i][pprime] /
+           (E - self->E_vec[i]);
+  }
+  return res * g_qm;
+}
+
+LSE *lse_malloc(size_t pNgauss, double Lambda, double epsilon) {
   LSE *self = (LSE *)malloc(sizeof(LSE));
   if (!self)
     return NULL;
 
-  const size_t n = 2 * (Ngauss + 1);
+  const size_t n = 2 * (pNgauss + 1);
 
-  self->Ngauss = Ngauss;
+  self->wf = WFnew(1, RLAMBDA, RNGAUSS);
+  self->Ngauss = pNgauss;
   self->Lambda = Lambda;
   self->epsilon = epsilon;
   // self->E = E;
@@ -29,9 +42,9 @@ LSE *lse_malloc(size_t Ngauss, double Lambda, double epsilon) {
     return NULL;
   }
 
-  self->table = gsl_integration_glfixed_table_alloc(Ngauss);
-  self->xi = (double *)malloc(Ngauss * sizeof(double));
-  self->wi = (double *)malloc(Ngauss * sizeof(double));
+  self->table = gsl_integration_glfixed_table_alloc(pNgauss);
+  self->xi = (double *)malloc(pNgauss * sizeof(double));
+  self->wi = (double *)malloc(pNgauss * sizeof(double));
 
   if (!self->table || !self->xi || !self->wi) {
     if (self->T)
@@ -50,11 +63,19 @@ LSE *lse_malloc(size_t Ngauss, double Lambda, double epsilon) {
     return NULL;
   }
 
-  for (size_t i = 0; i < Ngauss; i++) {
+  for (size_t i = 0; i < pNgauss; i++) {
     gsl_integration_glfixed_point(0, Lambda, i, &self->xi[i], &self->wi[i],
                                   self->table);
   }
 
+  self->psi_n_mat = (double complex **)malloc(sizeof(double complex *) * N_MAX);
+  for (uint64_t i = 0; i < N_MAX; i += 1) {
+    self->psi_n_mat[i] =
+        (double complex *)malloc(sizeof(double complex) * (pNgauss + 3));
+    psi_n_ft_batch(self->wf, self->xi, self->psi_n_mat[i], pNgauss, i + 1);
+  }
+  self->E_vec = (double *)malloc(sizeof(double) * N_MAX);
+  memcpy(self->E_vec, self->wf->E_solution->data, N_MAX * sizeof(double));
   // Initialize x0
   // for (int i = 0; i < 2; i++) {
   //   const double dE = E - delta[i];
@@ -67,15 +88,18 @@ LSE *lse_malloc(size_t Ngauss, double Lambda, double epsilon) {
 }
 
 // Refresh LSE parameters
-static inline void lse_refresh(LSE *self, double E) {
+void lse_refresh(LSE *self, double E) {
   // self->Lambda = Lambda;
   self->E = E;
 
   for (int i = 0; i < 2; i++) {
     const double dE = E - delta[i];
     const double mU = mu[i];
-    const double tmp = sqrt(2 * mU * dE);
+    const double complex tmp = csqrt(2 * mU * dE);
     self->x0[i] = tmp;
+    for (uint64_t j = 0; j < N_MAX; j += 1) {
+      self->psi_n_mat[j][self->Ngauss + i] = psi_n_ftcomplex(self->wf, tmp, j + 1);
+    }
   }
 }
 
@@ -88,20 +112,25 @@ void lse_free(LSE *self) {
   gsl_matrix_complex_free(self->V);
   gsl_matrix_complex_free(self->G);
   gsl_integration_glfixed_table_free(self->table);
+  WFfree(self->wf);
   free(self->xi);
   free(self->wi);
+  free(self->E_vec);
+  for (uint64_t i = 0; i < N_MAX; i += 1) {
+    free(self->psi_n_mat[i]);
+  }
+  free(self->psi_n_mat);
   free(self);
 }
 
 // Calculate G matrix
-int lse_gmat(LSE *self, double E) {
+int lse_gmat(LSE *self) {
   matrix_set_zero(self->G);
-  lse_refresh(self, E);
 
   for (int i = 0; i < 2; i++) {
     const double dE = self->E - delta[i];
     const double mU = mu[i];
-    const double x0 = self->x0[i];
+    const double complex x0 = self->x0[i];
     if (dE >= 0) {
 
       double complex int_val = 0 + 0 * I;
@@ -117,7 +146,7 @@ int lse_gmat(LSE *self, double E) {
       double complex tmp =
           mU * x0 * log((self->Lambda + x0) / (self->Lambda - x0)) -
           mU * x0 * M_PI * I;
-      tmp = tmp - int_val * square(x0);
+      tmp = tmp - int_val * x0 * x0;
 
       const size_t ii = self->Ngauss + i * (self->Ngauss + 1);
       matrix_set(self->G, ii, ii, tmp * (1 / square(M_PI) / 2));
@@ -138,70 +167,141 @@ int lse_gmat(LSE *self, double E) {
 }
 
 // Calculate V matrix
-int lse_vmat(LSE *self, double E) {
-  lse_refresh(self, E);
+int lse_vmat(LSE *self) {
   gsl_matrix_complex_set_zero(self->V);
 
-  double **x = (double **)malloc(2 * sizeof(double *));
-  if (!x)
-    return -1;
-
-  for (int i = 0; i < 2; i++) {
-    x[i] = (double *)malloc((self->Ngauss + 1) * sizeof(double));
-    if (!x[i]) {
-      for (int j = 0; j < i; j++) {
-        free(x[j]);
-      }
-      free(x);
-      return -1;
-    }
-
-    // Copy xi values
-    for (size_t j = 0; j < self->Ngauss; j++) {
-      x[i][j] = self->xi[j];
-    }
-
-    // Set last element to x0
-    x[i][self->Ngauss] = self->x0[i];
-  }
-  // Unrolled loops for alpha=0, beta=0
-  for (size_t idx = 0; idx <= self->Ngauss; idx++) {
-    double p[4];
-    p[0] = x[0][idx];
-    p[1] = x[0][idx];
-    p[2] = x[1][idx];
-    p[3] = x[1][idx];
-    for (size_t jdx = 0; jdx <= self->Ngauss; jdx++) {
-      double pprime = x[0][jdx];
-      size_t i = idx + 0 * (self->Ngauss + 1);
-      size_t j = jdx + 0 * (self->Ngauss + 1);
-      gsl_matrix_complex_set(self->V, i, j, V_OME_00(self->E, p[0], pprime));
-      pprime = x[1][jdx];
-      i = idx + 0 * (self->Ngauss + 1);
-      j = jdx + 1 * (self->Ngauss + 1);
-      gsl_matrix_complex_set(self->V, i, j, V_OME_01(self->E, p[1], pprime));
-      pprime = x[0][jdx];
-      i = idx + 1 * (self->Ngauss + 1);
-      j = jdx + 0 * (self->Ngauss + 1);
-      gsl_matrix_complex_set(self->V, i, j, V_OME_10(self->E, p[2], pprime));
-      pprime = x[1][jdx];
-      i = idx + 1 * (self->Ngauss + 1);
-      j = jdx + 1 * (self->Ngauss + 1);
-      gsl_matrix_complex_set(self->V, i, j, V_OME_11(self->E, p[3], pprime));
+    for (size_t idx = 0; idx < self->Ngauss; idx++) {
+    double complex p = self->xi[idx];
+    for (size_t jdx = 0; jdx < self->Ngauss; jdx++) {
+      double complex pprime = self->xi[jdx];
+      
+      // Calculate matrix indices
+      size_t i00 = idx + 0 * (self->Ngauss + 1);
+      size_t j00 = jdx + 0 * (self->Ngauss + 1);
+      size_t i01 = idx + 0 * (self->Ngauss + 1);
+      size_t j01 = jdx + 1 * (self->Ngauss + 1);
+      size_t i10 = idx + 1 * (self->Ngauss + 1);
+      size_t j10 = jdx + 0 * (self->Ngauss + 1);
+      size_t i11 = idx + 1 * (self->Ngauss + 1);
+      size_t j11 = jdx + 1 * (self->Ngauss + 1);
+      
+      // Set matrix elements for regular cases
+      gsl_matrix_complex_set(self->V, i00, j00,
+                           V_OME_00(self->E, p, pprime) + Ctct_00(g_c));
+      
+      gsl_matrix_complex_set(self->V, i01, j01,
+                           V_OME_01(self->E, p, pprime) + Ctct_01(g_c));
+      
+      gsl_matrix_complex_set(self->V, i10, j10,
+                           V_OME_10(self->E, p, pprime) + Ctct_01(g_c));
+      
+      gsl_matrix_complex_set(self->V, i11, j11,
+                           V_OME_11(self->E, p, pprime) + Ctct_11(g_c));
     }
   }
-  for (int i = 0; i < 2; i++) {
-    free(x[i]);
+  
+  // Handle edge cases separately
+  
+  // Case 1: idx = Ngauss (special x0 value for first dimension)
+  size_t idx = self->Ngauss;
+  double complex p_edge = self->x0[0]; // Use x0 for the edge case
+  
+  for (size_t jdx = 0; jdx < self->Ngauss; jdx++) {
+    double complex pprime = self->xi[jdx];
+    
+    // Calculate matrix indices
+    size_t i00 = idx + 0 * (self->Ngauss + 1);
+    size_t j00 = jdx + 0 * (self->Ngauss + 1);
+    size_t i01 = idx + 0 * (self->Ngauss + 1);
+    size_t j01 = jdx + 1 * (self->Ngauss + 1);
+    size_t i10 = idx + 1 * (self->Ngauss + 1);
+    size_t j10 = jdx + 0 * (self->Ngauss + 1);
+    size_t i11 = idx + 1 * (self->Ngauss + 1);
+    size_t j11 = jdx + 1 * (self->Ngauss + 1);
+    
+    // Set matrix elements for edge cases
+    gsl_matrix_complex_set(self->V, i00, j00,
+                         V_OME_00(self->E, p_edge, pprime) + Ctct_00(g_c));
+    
+    gsl_matrix_complex_set(self->V, i01, j01,
+                         V_OME_01(self->E, p_edge, pprime) + Ctct_01(g_c));
+    
+    p_edge = self->x0[1];
+    gsl_matrix_complex_set(self->V, i10, j10,
+                         V_OME_10(self->E, p_edge, pprime) + Ctct_01(g_c));
+    
+    gsl_matrix_complex_set(self->V, i11, j11,
+                         V_OME_11(self->E, p_edge, pprime) + Ctct_11(g_c));
   }
-  free(x);
+  
+  // Case 2: jdx = Ngauss (special x0 value for second dimension)
+  size_t jdx = self->Ngauss;
+  double complex pprime_edge = self->x0[0]; // Use x0 for the edge case
+  
+  for (size_t idx = 0; idx < self->Ngauss; idx++) {
+    double complex p = self->xi[idx];
+    
+    // Calculate matrix indices
+    size_t i00 = idx + 0 * (self->Ngauss + 1);
+    size_t j00 = jdx + 0 * (self->Ngauss + 1);
+    size_t i01 = idx + 0 * (self->Ngauss + 1);
+    size_t j01 = jdx + 1 * (self->Ngauss + 1);
+    size_t i10 = idx + 1 * (self->Ngauss + 1);
+    size_t j10 = jdx + 0 * (self->Ngauss + 1);
+    size_t i11 = idx + 1 * (self->Ngauss + 1);
+    size_t j11 = jdx + 1 * (self->Ngauss + 1);
+    
+    // Set matrix elements for edge cases
+    gsl_matrix_complex_set(self->V, i00, j00,
+                         V_OME_00(self->E, p, pprime_edge) + Ctct_00(g_c));
+    
+    pprime_edge = self->x0[1]; // Use x0[1] for the second dimension
+    gsl_matrix_complex_set(self->V, i01, j01,
+                         V_OME_01(self->E, p, pprime_edge) + Ctct_01(g_c));
+    
+    pprime_edge = self->x0[0]; // Use x0[0] for the first dimension
+    gsl_matrix_complex_set(self->V, i10, j10,
+                         V_OME_10(self->E, p, pprime_edge) + Ctct_01(g_c));
+    
+    pprime_edge = self->x0[1]; // Use x0[1] for the second dimension
+    gsl_matrix_complex_set(self->V, i11, j11,
+                         V_OME_11(self->E, p, pprime_edge) + Ctct_11(g_c));
+  }
+  
+  // Case 3: Both idx = Ngauss and jdx = Ngauss (special x0 values for both dimensions)
+  idx = self->Ngauss;
+  jdx = self->Ngauss;
+  
+  // Calculate matrix indices for the corner case
+  size_t i00 = idx + 0 * (self->Ngauss + 1);
+  size_t j00 = jdx + 0 * (self->Ngauss + 1);
+  size_t i01 = idx + 0 * (self->Ngauss + 1);
+  size_t j01 = jdx + 1 * (self->Ngauss + 1);
+  size_t i10 = idx + 1 * (self->Ngauss + 1);
+  size_t j10 = jdx + 0 * (self->Ngauss + 1);
+  size_t i11 = idx + 1 * (self->Ngauss + 1);
+  size_t j11 = jdx + 1 * (self->Ngauss + 1);
+  
+  // Set matrix elements for the corner case
+  gsl_matrix_complex_set(self->V, i00, j00,
+                       V_OME_00(self->E, self->x0[0], self->x0[0]) + Ctct_00(g_c));
+  
+  gsl_matrix_complex_set(self->V, i01, j01,
+                       V_OME_01(self->E, self->x0[0], self->x0[1]) + Ctct_01(g_c));
+  
+  gsl_matrix_complex_set(self->V, i10, j10,
+                       V_OME_10(self->E, self->x0[1], self->x0[0]) + Ctct_01(g_c));
+  
+  gsl_matrix_complex_set(self->V, i11, j11,
+                       V_OME_11(self->E, self->x0[1], self->x0[1]) + Ctct_11(g_c));
+
 
   return 0;
 }
 
 // Calculate T matrix
-int lse_tmat(LSE *self, double E) {
+int lse_tmat(LSE *self) {
   const size_t n = 2 * (self->Ngauss + 1);
-  lse_refresh(self, E);
 
   // Step 1: Compute VG = V * G
   gsl_matrix_complex *VG = gsl_matrix_complex_alloc(n, n);
@@ -286,30 +386,37 @@ int lse_tmat(LSE *self, double E) {
 
 // Run the LSE solver
 int lse_compute(LSE *app, double E) {
-  if (lse_gmat(app, E) != 0)
+  lse_refresh(app, E);
+  if (lse_gmat(app) != 0)
     return -1;
-  if (lse_vmat(app, E) != 0)
+  if (lse_vmat(app) != 0)
     return -1;
-  if (lse_tmat(app, E) != 0)
+  if (lse_tmat(app) != 0)
     return -1;
   return 0;
 }
 
-double *lse_get_g_data(LSE *app) { return (double *)app->G->data; }
+double complex *lse_get_g_data(LSE *app) {
+  return (double complex *)app->G->data;
+}
 
 void lse_get_g_size(LSE *app, unsigned int *rows, unsigned int *cols) {
   *rows = (unsigned int)app->G->size1;
   *cols = (unsigned int)app->G->size2;
 }
 
-double *lse_get_v_data(LSE *app) { return (double *)app->V->data; }
+double complex *lse_get_v_data(LSE *app) {
+  return (double complex *)app->V->data;
+}
 
 void lse_get_v_size(LSE *app, unsigned int *rows, unsigned int *cols) {
   *rows = (unsigned int)app->V->size1;
   *cols = (unsigned int)app->V->size2;
 }
 
-double *lse_get_t_data(LSE *app) { return (double *)app->T->data; }
+double complex *lse_get_t_data(LSE *app) {
+  return (double complex *)app->T->data;
+}
 
 void lse_get_t_size(LSE *app, unsigned int *rows, unsigned int *cols) {
   *rows = (unsigned int)app->T->size1;
