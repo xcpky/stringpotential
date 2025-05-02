@@ -1,6 +1,7 @@
 # Load the shared library
 include("lse.jl")
 using .CLSE
+using QuadGK
 using LinearAlgebra
 const libwavefunction = joinpath(@__DIR__, "libwavefunction.so")
 
@@ -149,8 +150,9 @@ end
 # c_matrix = get_c_solution_matrix(wf)
 # e_vector = get_e_solution_vector(wf)
 # println("C solution matrix: ", c_matrix)
-Ngauss = 2
+Ngauss = 100
 lse = lse_malloc(Ngauss, 4, 1e-7)
+lse_refresh(lse, -0.2)
 function OnshellT(lse::Ptr{LSE}, E::Real)
     lse_compute(lse, E)
     T = lse_get_t_data(lse)
@@ -168,12 +170,31 @@ function OnshellV(lse::Ptr{LSE}, E::Real)
     V = lse_get_v_data(lse)
     return V[Ngauss+1, Ngauss+1], V[Ngauss+1, end], V[end, Ngauss+1], V[end]
 end
+function OnshellPsi(lse::Ptr{LSE}, E::Real, n::Int)
+    lse_refresh(lse, E)
+    psi = lse_get_psi(lse)
+    return psi[n, end-2], psi[n, end-1]
+end
 
-E = -2:0.002:0.54
+E = -1:0.02:1
+if "--onshellPsi" in ARGS
+    op = OnshellPsi.(lse, E, 1)
+    psi0 = [op[i][1] for i in eachindex(E)]
+    psi1 = [op[i][2] for i in eachindex(E)]
+end
+
 if "--onshellG" in ARGS
     tce = OnshellG.(lse, E)
-    g11 = [tce[i][1] for i in 1:size(E)[1]]
-    g22 = [tce[i][2] for i in 1:size(E)[1]]
+    g11 = [tce[i][1] for i in eachindex(E)]
+    g22 = [tce[i][2] for i in eachindex(E)]
+end
+
+if "--onshellV" in ARGS
+    oV = OnshellV.(lse, E)
+    oV11 = [abs(oV[i][1]) for i in eachindex(E)]
+    oV12 = [abs(oV[i][2]) for i in eachindex(E)]
+    oV21 = [abs(oV[i][3]) for i in eachindex(E)]
+    oV22 = [abs(oV[i][4]) for i in eachindex(E)]
 end
 
 if "--onshellT" in ARGS

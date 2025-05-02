@@ -8,7 +8,7 @@
 double complex V_QM(LSE *self, double E, uint64_t p, uint64_t pprime) {
   double complex res = 0 + 0 * I;
   for (uint64_t i = 0; i < N_MAX; i += 1) {
-    res += self->psi_n_mat[i][p] * self->psi_n_mat[i][pprime] /
+    res += self->psi_n_mat[i][p] * conj(self->psi_n_mat[i][pprime]) /
            (E - self->E_vec[i]);
   }
   return res * g_qm;
@@ -68,10 +68,11 @@ LSE *lse_malloc(size_t pNgauss, double Lambda, double epsilon) {
                                   self->table);
   }
 
+  self->psi_raw =
+      (double complex *)malloc(sizeof(double complex) * N_MAX * (pNgauss + 2));
   self->psi_n_mat = (double complex **)malloc(sizeof(double complex *) * N_MAX);
   for (uint64_t i = 0; i < N_MAX; i += 1) {
-    self->psi_n_mat[i] =
-        (double complex *)malloc(sizeof(double complex) * (pNgauss + 3));
+    self->psi_n_mat[i] = &self->psi_raw[i * (pNgauss + 2)];
     psi_n_ft_batch(self->wf, self->xi, self->psi_n_mat[i], pNgauss, i + 1);
   }
   self->E_vec = (double *)malloc(sizeof(double) * N_MAX);
@@ -98,7 +99,8 @@ void lse_refresh(LSE *self, double E) {
     const double complex tmp = csqrt(2 * mU * dE);
     self->x0[i] = tmp;
     for (uint64_t j = 0; j < N_MAX; j += 1) {
-      self->psi_n_mat[j][self->Ngauss + i] = psi_n_ftcomplex(self->wf, tmp, j + 1);
+      self->psi_n_mat[j][self->Ngauss + i] =
+          psi_n_ftcomplex(self->wf, tmp, j + 1);
     }
   }
 }
@@ -116,9 +118,7 @@ void lse_free(LSE *self) {
   free(self->xi);
   free(self->wi);
   free(self->E_vec);
-  for (uint64_t i = 0; i < N_MAX; i += 1) {
-    free(self->psi_n_mat[i]);
-  }
+  free(self->psi_raw);
   free(self->psi_n_mat);
   free(self);
 }
@@ -170,11 +170,11 @@ int lse_gmat(LSE *self) {
 int lse_vmat(LSE *self) {
   gsl_matrix_complex_set_zero(self->V);
 
-    for (size_t idx = 0; idx < self->Ngauss; idx++) {
+  for (size_t idx = 0; idx < self->Ngauss; idx++) {
     double complex p = self->xi[idx];
     for (size_t jdx = 0; jdx < self->Ngauss; jdx++) {
       double complex pprime = self->xi[jdx];
-      
+
       // Calculate matrix indices
       size_t i00 = idx + 0 * (self->Ngauss + 1);
       size_t j00 = jdx + 0 * (self->Ngauss + 1);
@@ -184,31 +184,27 @@ int lse_vmat(LSE *self) {
       size_t j10 = jdx + 0 * (self->Ngauss + 1);
       size_t i11 = idx + 1 * (self->Ngauss + 1);
       size_t j11 = jdx + 1 * (self->Ngauss + 1);
-      
+
       // Set matrix elements for regular cases
-      gsl_matrix_complex_set(self->V, i00, j00,
-                           V_OME_00(self->E, p, pprime) + Ctct_00(g_c));
-      
-      gsl_matrix_complex_set(self->V, i01, j01,
-                           V_OME_01(self->E, p, pprime) + Ctct_01(g_c));
-      
-      gsl_matrix_complex_set(self->V, i10, j10,
-                           V_OME_10(self->E, p, pprime) + Ctct_01(g_c));
-      
-      gsl_matrix_complex_set(self->V, i11, j11,
-                           V_OME_11(self->E, p, pprime) + Ctct_11(g_c));
+      gsl_matrix_complex_set(self->V, i00, j00, V00(self->E, p, pprime));
+
+      gsl_matrix_complex_set(self->V, i01, j01, V01(self->E, p, pprime));
+
+      gsl_matrix_complex_set(self->V, i10, j10, V10(self->E, p, pprime));
+
+      gsl_matrix_complex_set(self->V, i11, j11, V11(self->E, p, pprime));
     }
   }
-  
+
   // Handle edge cases separately
-  
+
   // Case 1: idx = Ngauss (special x0 value for first dimension)
   size_t idx = self->Ngauss;
   double complex p_edge = self->x0[0]; // Use x0 for the edge case
-  
+
   for (size_t jdx = 0; jdx < self->Ngauss; jdx++) {
     double complex pprime = self->xi[jdx];
-    
+
     // Calculate matrix indices
     size_t i00 = idx + 0 * (self->Ngauss + 1);
     size_t j00 = jdx + 0 * (self->Ngauss + 1);
@@ -218,29 +214,25 @@ int lse_vmat(LSE *self) {
     size_t j10 = jdx + 0 * (self->Ngauss + 1);
     size_t i11 = idx + 1 * (self->Ngauss + 1);
     size_t j11 = jdx + 1 * (self->Ngauss + 1);
-    
+
     // Set matrix elements for edge cases
-    gsl_matrix_complex_set(self->V, i00, j00,
-                         V_OME_00(self->E, p_edge, pprime) + Ctct_00(g_c));
-    
-    gsl_matrix_complex_set(self->V, i01, j01,
-                         V_OME_01(self->E, p_edge, pprime) + Ctct_01(g_c));
-    
+    gsl_matrix_complex_set(self->V, i00, j00, V00(self->E, p_edge, pprime));
+
+    gsl_matrix_complex_set(self->V, i01, j01, V01(self->E, p_edge, pprime));
+
     p_edge = self->x0[1];
-    gsl_matrix_complex_set(self->V, i10, j10,
-                         V_OME_10(self->E, p_edge, pprime) + Ctct_01(g_c));
-    
-    gsl_matrix_complex_set(self->V, i11, j11,
-                         V_OME_11(self->E, p_edge, pprime) + Ctct_11(g_c));
+    gsl_matrix_complex_set(self->V, i10, j10, V10(self->E, p_edge, pprime));
+
+    gsl_matrix_complex_set(self->V, i11, j11, V11(self->E, p_edge, pprime));
   }
-  
+
   // Case 2: jdx = Ngauss (special x0 value for second dimension)
   size_t jdx = self->Ngauss;
   double complex pprime_edge = self->x0[0]; // Use x0 for the edge case
-  
+
   for (size_t idx = 0; idx < self->Ngauss; idx++) {
     double complex p = self->xi[idx];
-    
+
     // Calculate matrix indices
     size_t i00 = idx + 0 * (self->Ngauss + 1);
     size_t j00 = jdx + 0 * (self->Ngauss + 1);
@@ -250,28 +242,25 @@ int lse_vmat(LSE *self) {
     size_t j10 = jdx + 0 * (self->Ngauss + 1);
     size_t i11 = idx + 1 * (self->Ngauss + 1);
     size_t j11 = jdx + 1 * (self->Ngauss + 1);
-    
+
     // Set matrix elements for edge cases
-    gsl_matrix_complex_set(self->V, i00, j00,
-                         V_OME_00(self->E, p, pprime_edge) + Ctct_00(g_c));
-    
+    gsl_matrix_complex_set(self->V, i00, j00, V00(self->E, p, pprime_edge));
+
     pprime_edge = self->x0[1]; // Use x0[1] for the second dimension
-    gsl_matrix_complex_set(self->V, i01, j01,
-                         V_OME_01(self->E, p, pprime_edge) + Ctct_01(g_c));
-    
+    gsl_matrix_complex_set(self->V, i01, j01, V01(self->E, p, pprime_edge));
+
     pprime_edge = self->x0[0]; // Use x0[0] for the first dimension
-    gsl_matrix_complex_set(self->V, i10, j10,
-                         V_OME_10(self->E, p, pprime_edge) + Ctct_01(g_c));
-    
+    gsl_matrix_complex_set(self->V, i10, j10, V10(self->E, p, pprime_edge));
+
     pprime_edge = self->x0[1]; // Use x0[1] for the second dimension
-    gsl_matrix_complex_set(self->V, i11, j11,
-                         V_OME_11(self->E, p, pprime_edge) + Ctct_11(g_c));
+    gsl_matrix_complex_set(self->V, i11, j11, V11(self->E, p, pprime_edge));
   }
-  
-  // Case 3: Both idx = Ngauss and jdx = Ngauss (special x0 values for both dimensions)
+
+  // Case 3: Both idx = Ngauss and jdx = Ngauss (special x0 values for both
+  // dimensions)
   idx = self->Ngauss;
   jdx = self->Ngauss;
-  
+
   // Calculate matrix indices for the corner case
   size_t i00 = idx + 0 * (self->Ngauss + 1);
   size_t j00 = jdx + 0 * (self->Ngauss + 1);
@@ -281,20 +270,19 @@ int lse_vmat(LSE *self) {
   size_t j10 = jdx + 0 * (self->Ngauss + 1);
   size_t i11 = idx + 1 * (self->Ngauss + 1);
   size_t j11 = jdx + 1 * (self->Ngauss + 1);
-  
+
   // Set matrix elements for the corner case
   gsl_matrix_complex_set(self->V, i00, j00,
-                       V_OME_00(self->E, self->x0[0], self->x0[0]) + Ctct_00(g_c));
-  
-  gsl_matrix_complex_set(self->V, i01, j01,
-                       V_OME_01(self->E, self->x0[0], self->x0[1]) + Ctct_01(g_c));
-  
-  gsl_matrix_complex_set(self->V, i10, j10,
-                       V_OME_10(self->E, self->x0[1], self->x0[0]) + Ctct_01(g_c));
-  
-  gsl_matrix_complex_set(self->V, i11, j11,
-                       V_OME_11(self->E, self->x0[1], self->x0[1]) + Ctct_11(g_c));
+                         V00(self->E, self->x0[0], self->x0[0]));
 
+  gsl_matrix_complex_set(self->V, i01, j01,
+                         V01(self->E, self->x0[0], self->x0[1]));
+
+  gsl_matrix_complex_set(self->V, i10, j10,
+                         V10(self->E, self->x0[1], self->x0[0]));
+
+  gsl_matrix_complex_set(self->V, i11, j11,
+                         V11(self->E, self->x0[1], self->x0[1]));
 
   return 0;
 }
@@ -307,16 +295,12 @@ int lse_tmat(LSE *self) {
   gsl_matrix_complex *VG = gsl_matrix_complex_alloc(n, n);
   if (!VG)
     return -1;
-
   gsl_matrix_complex_set_zero(VG);
 
+  // Use GSL BLAS wrapper for matrix multiplication: VG = V * G
   gsl_complex alpha = gsl_complex_rect(1.0, 0.0);
   gsl_complex beta = gsl_complex_rect(0.0, 0.0);
-
-  // Perform matrix multiplication: VG = V * G
-  cblas_zgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, (int)n, (int)n, (int)n,
-              &GSL_REAL(alpha), self->V->data, (int)self->V->tda, self->G->data,
-              (int)self->G->tda, &GSL_REAL(beta), VG->data, (int)VG->tda);
+  gsl_blas_zgemm(CblasNoTrans, CblasNoTrans, alpha, self->V, self->G, beta, VG);
 
   // Step 2: Compute I - VG
   gsl_matrix_complex *I_minus_VG = gsl_matrix_complex_alloc(n, n);
@@ -369,11 +353,9 @@ int lse_tmat(LSE *self) {
     return -1;
   }
 
-  // Step 4: Compute T = inv(I - VG) * V
-  cblas_zgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, (int)n, (int)n, (int)n,
-              &GSL_REAL(alpha), inv_I_minus_VG->data, (int)inv_I_minus_VG->tda,
-              self->V->data, (int)self->V->tda, &GSL_REAL(beta), self->T->data,
-              (int)self->T->tda);
+  // Step 4: Compute T = inv(I - VG) * V using GSL BLAS wrapper
+  gsl_blas_zgemm(CblasNoTrans, CblasNoTrans, alpha, inv_I_minus_VG, self->V,
+                 beta, self->T);
 
   // Clean up
   gsl_matrix_complex_free(VG);
@@ -421,4 +403,11 @@ double complex *lse_get_t_data(LSE *app) {
 void lse_get_t_size(LSE *app, unsigned int *rows, unsigned int *cols) {
   *rows = (unsigned int)app->T->size1;
   *cols = (unsigned int)app->T->size2;
+}
+
+double complex *lse_get_psi(LSE *self) { return self->psi_raw; }
+
+void lse_get_psi_size(LSE *self, unsigned int *rows, unsigned int *cols) {
+  *rows = (unsigned int)N_MAX;
+  *cols = (unsigned int)(self->Ngauss + 2);
 }

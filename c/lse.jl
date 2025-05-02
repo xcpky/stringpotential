@@ -3,7 +3,7 @@ module CLSE
 using Libdl
 
 # Load the shared library
-const liblse = Libdl.dlopen("/home/choros/code/stringpotential/c/liblse.so")
+const liblse = Libdl.dlopen("/home/zhy/code/stringpotential/c/liblse.so")
 
 # Define struct to match the C structure
 mutable struct LSE
@@ -154,6 +154,28 @@ function lse_get_v_data(lse_ptr::Ptr{LSE})
     return unsafe_wrap(Array, data_ptr, (rows[], cols[]), own=false)
 end
 
-export LSE, lse_free, lse_malloc, lse_compute, lse_get_t_data, lse_get_g_data, lse_get_v_data, lse_refresh, lse_gmat, lse_vmat, lse_tmat
+function lse_get_psi(lse_ptr::Ptr{LSE})
+    data_ptr = ccall(
+        Libdl.dlsym(liblse, :lse_get_psi),
+        Ptr{ComplexF64},
+        (Ptr{LSE},),
+        lse_ptr
+    )
+
+    rows = Ref{Cuint}(0)
+    cols = Ref{Cuint}(0)
+    
+    ccall(
+        Libdl.dlsym(liblse, :lse_get_psi_size),
+        Cvoid,
+        (Ptr{LSE}, Ptr{Cuint}, Ptr{Cuint}),
+        lse_ptr, rows, cols
+    )
+    # Convert to Julia array
+    psi = unsafe_wrap(Array, data_ptr, rows[]*cols[], own=false)
+    return transpose(reshape(psi, (cols[], rows[])))
+end
+
+export LSE, lse_free, lse_malloc, lse_compute, lse_get_t_data, lse_get_g_data, lse_get_v_data, lse_refresh, lse_gmat, lse_vmat, lse_tmat, lse_get_psi
 
 end # module

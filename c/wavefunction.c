@@ -139,12 +139,12 @@ complex double psi_n_ftcomplex(WaveFunction *self, double complex p, uint64_t n)
   double *xi = self->xi;
   double *wi = self->wi;
   complex double psi = 0.0;
-  for (size_t gauss = 0; gauss < N_MAX; gauss += 1) {
+  for (size_t nidx = 0; nidx < N_MAX; nidx += 1) {
     complex double quad = 0 + 0 * I;
     for (size_t i = 0; i < Ngauss; i += 1) {
-      quad += integrand_complex(xi[i], p, gauss + 1, l) * wi[i];
+      quad += integrand_complex(xi[i], p, nidx + 1, l) * wi[i];
     }
-    psi += gsl_matrix_get(self->c_solution, gauss, n - 1) * N_nl(gauss + 1, l) *
+    psi += gsl_matrix_get(self->c_solution, nidx, n - 1) * N_nl(nidx + 1, l) *
            quad;
   }
   return sqrt(2 * l + 1) * 2 * sqrt(PI) * cpow(I, l + 0*I) * psi;
@@ -156,12 +156,12 @@ complex double psi_n_ft(WaveFunction *self, double p, uint64_t n) {
   double *xi = self->xi;
   double *wi = self->wi;
   complex double psi = 0.0;
-  for (size_t gauss = 0; gauss < N_MAX; gauss += 1) {
+  for (size_t nidx = 0; nidx < N_MAX; nidx += 1) {
     complex double quad = 0 + 0 * I;
     for (size_t i = 0; i < Ngauss; i += 1) {
-      quad += integrand(xi[i], p, gauss + 1, l) * wi[i];
+      quad += integrand(xi[i], p, nidx + 1, l) * wi[i];
     }
-    psi += gsl_matrix_get(self->c_solution, gauss, n - 1) * N_nl(gauss + 1, l) *
+    psi += gsl_matrix_get(self->c_solution, nidx, n - 1) * N_nl(nidx + 1, l) *
            quad;
   }
   return sqrt(2 * l + 1) * 2 * sqrt(PI) * cpow(I, l + 0*I) * psi;

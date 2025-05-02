@@ -7,25 +7,25 @@
 #include <gsl/gsl_eigen.h>
 
 void testwf() {
-  WaveFunction *wf = WFnew(1, 20, RNGAUSS);
-  double complex **psi_n_mat =
-      (double complex **)malloc(sizeof(double complex *) * N_MAX);
-  for (uint64_t i = 0; i < PNGAUSS; i += 1) {
-    psi_n_mat[i] = (double complex *)malloc(sizeof(double complex) * PNGAUSS);
-  }
-  double *pi = (double *)malloc(sizeof(double) * PNGAUSS);
-  double *wi = (double *)malloc(sizeof(double) * PNGAUSS);
-  gsl_integration_glfixed_table *table =
-      gsl_integration_glfixed_table_alloc(PNGAUSS);
-  for (uint64_t i = 0; i < PNGAUSS; i += 1) {
-    gsl_integration_glfixed_point(0, 4, i, &pi[i], &wi[i], table);
-  }
-  for (uint64_t i = 0; i < N_MAX; i += 1) {
-    psi_n_ft_batch(wf, pi, psi_n_mat[i], PNGAUSS, i + 1);
-  }
-  for (uint64_t i = 0; i < N_MAX; i += 1) {
-    printf("%.3e + Im %.3e\n", creal(psi_n_mat[i][0]), cimag(psi_n_mat[i][0]));
-  }
+  // WaveFunction *wf = WFnew(1, 20, RNGAUSS);
+  // double complex **psi_n_mat =
+  //     (double complex **)malloc(sizeof(double complex *) * N_MAX);
+  // for (uint64_t i = 0; i < PNGAUSS; i += 1) {
+  //   psi_n_mat[i] = (double complex *)malloc(sizeof(double complex) * PNGAUSS);
+  // }
+  // double *pi = (double *)malloc(sizeof(double) * PNGAUSS);
+  // double *wi = (double *)malloc(sizeof(double) * PNGAUSS);
+  // gsl_integration_glfixed_table *table =
+  //     gsl_integration_glfixed_table_alloc(PNGAUSS);
+  // for (uint64_t i = 0; i < PNGAUSS; i += 1) {
+  //   gsl_integration_glfixed_point(0, 4, i, &pi[i], &wi[i], table);
+  // }
+  // for (uint64_t i = 0; i < N_MAX; i += 1) {
+  //   psi_n_ft_batch(wf, pi, psi_n_mat[i], PNGAUSS, i + 1);
+  // }
+  // for (uint64_t i = 0; i < PNGAUSS; i += 1) {
+  //   printf("%.3e + Im %.3e\n", creal(psi_n_mat[0][i]), cimag(psi_n_mat[0][i]));
+  // }
   // printf("Eigenvalues:\n");
   // for (int i = 0; i < N_MAX; i++) {
   //   printf("%d: %f\n", i, gsl_vector_get(wf->E_solution, i));
@@ -44,14 +44,24 @@ void testwf() {
   //   psi = psi_n(wf, r, 1, 0);
   //   printf("%f + Im%f\n", GSL_REAL(psi), GSL_IMAG(psi));
   // }
-  free(pi);
-  free(wi);
-  gsl_integration_glfixed_table_free(table);
-  WFfree(wf);
+  // free(pi);
+  // free(wi);
+  // gsl_integration_glfixed_table_free(table);
+  // WFfree(wf);
+  LSE *lse = lse_malloc(10, 4, 1e-7);
+  if (!lse) {
+    fprintf(stderr, "Failed to create LSE solver\n");
+    exit(1);
+  }
+  lse_refresh(lse, -0.2);
+  for (uint64_t i = 0; i < 10; i += 1) {
+    printf("i %lu: %.3e + Im%.3e\n", i, creal(lse->psi_raw[i]), cimag(lse->psi_raw[i]));
+  }
+  lse_free(lse);
 }
 
 void testlse() {
-  LSE *lse = lse_malloc(2, 4, 1e-7);
+  LSE *lse = lse_malloc(10, 4, 1e-7);
   if (!lse) {
     fprintf(stderr, "Failed to create LSE solver\n");
     exit(1);
@@ -101,6 +111,7 @@ void testlse() {
 }
 
 int main() {
-  testlse();
+  // testlse();
+  testwf();
   return 0;
 }
