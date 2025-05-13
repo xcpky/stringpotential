@@ -29,10 +29,11 @@ typedef struct {
   size_t Ngauss;
   double Lambda;
   double epsilon;
-  double E;
+  double complex E;
   matrix *T;
   matrix *V;
   matrix *G;
+  matrix *reg;
   double *xi;
   double *wi;
   double complex x0[2];
@@ -44,7 +45,7 @@ typedef struct {
 } LSE;
 
 LSE *lse_malloc(size_t pNgauss, double Lambda, double epsilon);
-int lse_compute(LSE *app, double E);
+int lse_compute(LSE *app, double complex E, int64_t rs);
 void lse_free(LSE *app);
 double complex *lse_get_g_data(LSE *app);
 void lse_get_g_size(LSE *app, unsigned int *rows, unsigned int *cols);
@@ -52,17 +53,33 @@ double complex *lse_get_v_data(LSE *app);
 void lse_get_v_size(LSE *app, unsigned int *rows, unsigned int *cols);
 double complex *lse_get_t_data(LSE *app);
 void lse_get_t_size(LSE *app, unsigned int *rows, unsigned int *cols);
+double complex *lse_get_ivg_data(LSE *app);
+void lse_get_ivg_size(LSE *app, unsigned int *rows, unsigned int *cols);
+double complex *lse_get_iivg_data(LSE *app);
+void lse_get_iivg_size(LSE *app, unsigned int *rows, unsigned int *cols);
 double complex *lse_get_psi(LSE *self);
 void lse_get_psi_size(LSE *self, unsigned int *rows, unsigned int *cols);
+double *lse_get_E(LSE *self);
+void lse_get_E_size(unsigned int *levels);
+void lse_get_M_size(LSE *app, unsigned int *rows, unsigned int *cols);
+double complex O00(double complex E, double complex p, double complex pprime,
+                   double m);
+double complex O01(double complex E, double complex p, double complex pprime,
+                   double m);
+double complex O10(double complex E, double complex p, double complex pprime,
+                   double m);
+double complex O11(double complex E, double complex p, double complex pprime,
+                   double m);
 
 // LSE methods
 int lse_gmat(LSE *self);
 int lse_vmat(LSE *self);
 int lse_tmat(LSE *self);
-void lse_refresh(LSE *self, double E);
+double complex lse_detImVG(LSE *self, double complex E);
+void lse_refresh(LSE *self, double complex E, int64_t rs);
 
 // Complex square root function
-static inline complex double xsqrt(complex double x) {
+static inline double complex xsqrt(double complex x) {
   if (cimag(x) >= 0)
     return csqrt(x);
   else
@@ -77,6 +94,10 @@ static inline double complex csquare(double complex x) { return x * x; }
 static inline double Ctct_00(double g_C) { return -3 * 2 * g_C; }
 
 static inline double Ctct_01(double g_C) {
+  return pow(1.0 / 2.0, 3.0 / 2.0) * 4 * g_C;
+}
+
+static inline double Ctct_10(double g_C) {
   return pow(1.0 / 2.0, 3.0 / 2.0) * 4 * g_C;
 }
 
@@ -121,134 +142,93 @@ static inline double complex omegaprime_11(double complex p,
   return 2 * m_B_star_s + (p * p + pprime * pprime) / (2 * m_B_star_s);
 }
 
-static inline double complex O_00(double E, double complex p,
-                                  double complex pprime, double m) {
-  // if (fabs(p) <= 1e-8) {
-  //   p += 1e-6;
-  // }
-  // if (fabs(pprime) <= 1e-8) {
-  //   pprime += 1e-6;
-  // }
-  return -1. / 4. / p / pprime *
-         (clog((E - (m + csquare(p - pprime) / 2 / m) - omega_00(p, pprime)) /
-                   E -
-               (m + csquare(p + pprime) / 2 / m) - omega_00(p, pprime) +
-               0 * I) +
-          clog((E - (m + csquare(p - pprime) / 2 / m) -
-                omegaprime_00(p, pprime)) /
-                   E -
-               (m + csquare(p + pprime) / 2 / m) - omegaprime_00(p, pprime) +
-               0 * I)) *
-         4 * square(g_pi) / square(f_pi);
-}
+#define DEFINE_O_FUNCTION(suffix)                                              \
+  static inline double complex O_##suffix(double complex E, double complex p,  \
+                                          double complex pprime, double m) {   \
+    if (cabs(p) <= 1e-8) {                                                     \
+      p += 1e-6;                                                               \
+    }                                                                          \
+    if (cabs(pprime) <= 1e-8) {                                                \
+      pprime += 1e-6;                                                          \
+    }                                                                          \
+    return square(g_pi) / square(f_pi) * -1. / 4. / p / pprime *               \
+           (clog((E - (m + csquare(p - pprime) / 2 / m) -                      \
+                  omega_##suffix(p, pprime)) /                                 \
+                 (E - (m + csquare(p + pprime) / 2 / m) -                      \
+                  omega_##suffix(p, pprime) + 0 * I)) +                        \
+            clog((E - (m + csquare(p - pprime) / 2 / m) -                      \
+                  omegaprime_##suffix(p, pprime)) /                            \
+                 (E - (m + csquare(p + pprime) / 2 / m) -                      \
+                  omegaprime_##suffix(p, pprime) + 0 * I)));                   \
+  }
 
-static inline double complex O_01(double E, double complex p,
-                                  double complex pprime, double m) {
-  // if (fabs(p) <= 1e-8) {
-  //   p += 1e-6;
-  // }
-  // if (fabs(pprime) <= 1e-8) {
-  //   pprime += 1e-6;
-  // }
-  return -1. / 4. / p / pprime *
-         (clog((E - (m + csquare(p - pprime) / 2 / m) - omega_01(p, pprime)) /
-                   E -
-               (m + csquare(p + pprime) / 2 / m) - omega_01(p, pprime) +
-               0 * I) +
-          clog((E - (m + csquare(p - pprime) / 2 / m) -
-                omegaprime_01(p, pprime)) /
-                   E -
-               (m + csquare(p + pprime) / 2 / m) - omegaprime_01(p, pprime) +
-               0 * I)) *
-         4 * square(g_pi) / square(f_pi);
-}
+DEFINE_O_FUNCTION(00);
+DEFINE_O_FUNCTION(01);
+DEFINE_O_FUNCTION(10);
+DEFINE_O_FUNCTION(11);
 
-static inline double complex O_10(double E, double complex p,
-                                  double complex pprime, double m) {
-  // if (fabs(p) <= 1e-8) {
-  //   p += 1e-6;
-  // }
-  // if (fabs(pprime) <= 1e-8) {
-  //   pprime += 1e-6;
-  // }
-  return -1. / 4. / p / pprime *
-         (clog((E - (m + csquare(p - pprime) / 2 / m) - omega_10(p, pprime)) /
-                   E -
-               (m + csquare(p + pprime) / 2 / m) - omega_10(p, pprime) +
-               0 * I) +
-          clog((E - (m + csquare(p - pprime) / 2 / m) -
-                omegaprime_10(p, pprime)) /
-                   E -
-               (m + csquare(p + pprime) / 2 / m) - omegaprime_10(p, pprime) +
-               0 * I)) *
-         4 * square(g_pi) / square(f_pi);
-}
-
-static inline double complex O_11(double E, double complex p,
-                                  double complex pprime, double m) {
-  // if (fabs(p) <= 1e-8) {
-  //   p += 1e-6;
-  // }
-  // if (fabs(pprime) <= 1e-8) {
-  //   pprime += 1e-6;
-  // }
-  return -1. / 4. / p / pprime *
-         (clog((E - (m + csquare(p - pprime) / 2 / m) - omega_11(p, pprime)) /
-                   E -
-               (m + csquare(p + pprime) / 2 / m) - omega_11(p, pprime) +
-               0 * I) +
-          clog((E - (m + csquare(p - pprime) / 2 / m) -
-                omegaprime_11(p, pprime)) /
-                   E -
-               (m + csquare(p + pprime) / 2 / m) - omegaprime_11(p, pprime) +
-               0 * I)) *
-         4 * square(g_pi) / square(f_pi);
-}
-
-static inline double complex V_OME_00(double E, double complex p,
+static inline double complex V_OME_00(double complex E, double complex p,
                                       double complex pprime) {
   return -3 * (3 * O_00(E, p, pprime, m_pi) + O_00(E, p, pprime, m_eta) / 3);
 }
 
-static inline double complex V_OME_01(double E, double complex p,
+static inline double complex V_OME_01(double complex E, double complex p,
                                       double complex pprime) {
   return pow(2, 3. / 2) * O_01(E, p, pprime, m_K);
 }
 
-static inline double complex V_OME_10(double E, double complex p,
+static inline double complex V_OME_10(double complex E, double complex p,
                                       double complex pprime) {
   return pow(2, 3. / 2) * O_10(E, p, pprime, m_K);
 }
 
-static inline double complex V_OME_11(double E, double complex p,
+static inline double complex V_OME_11(double complex E, double complex p,
                                       double complex pprime) {
   return 2. / 3 * O_11(E, p, pprime, m_eta);
 }
 
-double complex V_QM(LSE *self, double E, uint64_t p, uint64_t pprime);
+double complex V_QM_00(LSE *self, uint64_t p, uint64_t pprime);
+double complex V_QM_01(LSE *self, uint64_t p, uint64_t pprime);
+double complex V_QM_10(LSE *self, uint64_t p, uint64_t pprime);
+double complex V_QM_11(LSE *self, uint64_t p, uint64_t pprime);
 
-static inline gsl_complex V00(double E, double complex p,
-                              double complex pprime) {
-  return V_OME_00(E, p, pprime) + Ctct_00(g_c);
-  return gsl_complex_rect(1, 0);
-}
+#define DEFINE_V_FUNCTION(suffix)                                              \
+  static inline gsl_complex V##suffix(LSE *self, double complex p,             \
+                                      double complex pprime) {                 \
+    __auto_type E = self->E;                                                   \
+    return V_QM_##suffix(self, p, pprime);                                     \
+  }
 
-static inline gsl_complex V01(double E, double complex p,
-                              double complex pprime) {
-  return V_OME_01(E, p, pprime) + Ctct_01(g_c);
-  return gsl_complex_rect(1, 0);
-}
+DEFINE_V_FUNCTION(00);
+DEFINE_V_FUNCTION(01);
+DEFINE_V_FUNCTION(10);
+DEFINE_V_FUNCTION(11);
 
-static inline gsl_complex V10(double E, double complex p,
-                              double complex pprime) {
-  return V_OME_10(E, p, pprime) + Ctct_01(g_c);
-  return gsl_complex_rect(1, 0);
-}
+#define DEFINE_VQM(alpha, beta)                                                \
+  double complex V_QM_##alpha##beta(LSE *self, uint64_t p, uint64_t pprime) {  \
+    double complex res = 0 + 0I;                                               \
+    auto E = self->E;                                                          \
+    for (size_t i = 0; i < N_MAX; i++) {                                       \
+      res -= self->psi_n_mat[i][p] * conj(self->psi_n_mat[i][pprime]) /        \
+             (E - self->E_vec[i] + self->epsilon * I);                         \
+    }                                                                          \
+    return res * g##alpha * g##beta;                                           \
+  }
 
-static inline gsl_complex V11(double E, double complex p,
-                              double complex pprime) {
-  return V_OME_11(E, p, pprime) + Ctct_00(g_c);
-  return gsl_complex_rect(1, 0);
-}
-
+double complex noninline_O_00(double E, double complex p, double complex pprime,
+                              double m);
+double complex noninline_O_01(double E, double complex p, double complex pprime,
+                              double m);
+double complex noninline_O_10(double E, double complex p, double complex pprime,
+                              double m);
+double complex noninline_O_11(double E, double complex p, double complex pprime,
+                              double m);
+double complex noninline_V_OME_01(double E, double complex p,
+                                  double complex pprime);
+double complex noninline_V_OME_10(double E, double complex p,
+                                  double complex pprime);
+double complex noninline_V_OME_01(double E, double complex p,
+                                  double complex pprime);
+double complex noninline_V_OME_11(double E, double complex p,
+                                  double complex pprime);
 #endif // !LSE_H

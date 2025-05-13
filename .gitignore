@@ -18,3 +18,5 @@ papers
 *GaussianVariation
 *.o
 *.so
+*.ipynb_checkpoints*
+*.dat

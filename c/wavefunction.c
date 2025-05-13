@@ -7,23 +7,36 @@
 #include <stddef.h>
 #include <sys/types.h>
 
-WaveFunction *WFnew(uint64_t l, double Lambda, uint64_t rNgauss) {
+const size_t rsample = 1000;
+
+double *linspace(double start, double end, size_t len) {
+  double *res = (double *)malloc(sizeof(double) * len);
+  double step = (end - start) / len;
+  for (size_t i = 0; i < len; i += 1) {
+    res[i] = start + step * i;
+  }
+  return res;
+}
+
+WaveFunction *WFnew(uint64_t l, double rLambda, uint64_t rNgauss) {
   WaveFunction *self = (WaveFunction *)malloc(sizeof(WaveFunction));
   if (!self) {
     return NULL;
   }
   self->l = l;
-  self->Lambda = Lambda;
-  self->Ngauss = rNgauss;
+  self->rLambda = rLambda;
+  self->rNgauss = rNgauss;
   self->table = gsl_integration_glfixed_table_alloc(rNgauss);
   self->xi = (double *)malloc(sizeof(double) * rNgauss);
   self->wi = (double *)malloc(sizeof(double) * rNgauss);
   for (uint64_t i = 0; i < rNgauss; i += 1) {
-    gsl_integration_glfixed_point(0, Lambda, i, &self->xi[i], &self->wi[i], self->table);
+    gsl_integration_glfixed_point(0, rLambda, i, &self->xi[i], &self->wi[i],
+                                  self->table);
   }
   self->c_solution = gsl_matrix_alloc(N_MAX, N_MAX);
   self->E_solution = gsl_vector_alloc(N_MAX);
   build(self);
+  double *rsamples = linspace(0, 7, rsample);
   return self;
 };
 void WFfree(WaveFunction *self) {
@@ -86,6 +99,7 @@ void build(WaveFunction *self) {
                      gsl_matrix_get(self->c_solution, j, i) / norm);
     }
   }
+
   gsl_matrix_free(H_Cornell);
   gsl_matrix_free(N_n_n_matrix);
   gsl_matrix_free(N_copy);
@@ -118,13 +132,13 @@ size_t WF_get_c_solution_tda(WaveFunction *self) {
 }
 
 // Wavefunction definition
-complex double psi_n(WaveFunction *self, double r, uint64_t n, double theta) {
-  complex double psi = 0.0;
+double complex psi_n(WaveFunction *self, double r, uint64_t n, double theta) {
+  double complex psi = 0.0;
 
   for (int i = 0; i < N_MAX; i++) {
     int n_prime = i + 1;
 
-    complex double Y_lm = gsl_sf_legendre_sphPlm(self->l, 0, cos(theta));
+    double complex Y_lm = gsl_sf_legendre_sphPlm(self->l, 0, cos(theta));
 
     psi += gsl_matrix_get(self->c_solution, i, n - 1) * N_nl(n_prime, self->l) *
            pow(r, self->l) * exp(-nu_n(n_prime) * r * r) * Y_lm;
@@ -133,38 +147,39 @@ complex double psi_n(WaveFunction *self, double r, uint64_t n, double theta) {
   return psi;
 }
 
-complex double psi_n_ftcomplex(WaveFunction *self, double complex p, uint64_t n) {
-  const uint64_t Ngauss = self->Ngauss;
+double complex psi_n_ftcomplex(WaveFunction *self, double complex p,
+                               uint64_t n) {
+  const uint64_t Ngauss = self->rNgauss;
   const uint64_t l = self->l;
   double *xi = self->xi;
   double *wi = self->wi;
-  complex double psi = 0.0;
+  double complex psi = 0.0;
   for (size_t nidx = 0; nidx < N_MAX; nidx += 1) {
-    complex double quad = 0 + 0 * I;
-    for (size_t i = 0; i < Ngauss; i += 1) {
-      quad += integrand_complex(xi[i], p, nidx + 1, l) * wi[i];
-    }
-    psi += gsl_matrix_get(self->c_solution, nidx, n - 1) * N_nl(nidx + 1, l) *
-           quad;
-  }
-  return sqrt(2 * l + 1) * 2 * sqrt(PI) * cpow(I, l + 0*I) * psi;
-}
-
-complex double psi_n_ft(WaveFunction *self, double p, uint64_t n) {
-  const uint64_t Ngauss = self->Ngauss;
-  const uint64_t l = self->l;
-  double *xi = self->xi;
-  double *wi = self->wi;
-  complex double psi = 0.0;
-  for (size_t nidx = 0; nidx < N_MAX; nidx += 1) {
-    complex double quad = 0 + 0 * I;
+    double complex quad = 0 + 0 * I;
     for (size_t i = 0; i < Ngauss; i += 1) {
       quad += integrand(xi[i], p, nidx + 1, l) * wi[i];
     }
     psi += gsl_matrix_get(self->c_solution, nidx, n - 1) * N_nl(nidx + 1, l) *
            quad;
   }
-  return sqrt(2 * l + 1) * 2 * sqrt(PI) * cpow(I, l + 0*I) * psi;
+  return sqrt(2 * l + 1) * 2 * sqrt(PI) * cpow(I, l) * psi;
+}
+
+double complex psi_n_ft(WaveFunction *self, double p, uint64_t n) {
+  const uint64_t Ngauss = self->rNgauss;
+  const uint64_t l = self->l;
+  double *xi = self->xi;
+  double *wi = self->wi;
+  double complex psi = 0.0;
+  for (size_t nidx = 0; nidx < N_MAX; nidx += 1) {
+    double complex quad = 0 + 0 * I;
+    for (size_t i = 0; i < Ngauss; i += 1) {
+      quad += integrand(xi[i], p, nidx + 1, l) * wi[i];
+    }
+    psi += gsl_matrix_get(self->c_solution, nidx, n - 1) * N_nl(nidx + 1, l) *
+           quad;
+  }
+  return sqrt(2 * l + 1) * 2 * sqrt(PI) * cpow(I, l + 0 * I) * psi;
 }
 
 void psi_n_batch(WaveFunction *self, const double *r_values,
@@ -178,6 +193,6 @@ void psi_n_batch(WaveFunction *self, const double *r_values,
 void psi_n_ft_batch(WaveFunction *self, const double *p_values,
                     double complex *results, size_t num_points, uint64_t n) {
   for (size_t i = 0; i < num_points; i++) {
-    results[i] = psi_n_ft(self, p_values[i], n);
+    results[i] = psi_n_ftcomplex(self, p_values[i], n);
   }
 }

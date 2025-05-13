@@ -51,6 +51,12 @@ function vmat(Λ, E, Ngauss, g_C)
     append!(p[2], x0[2])
     for i = 1:Ngauss+1
         for j = 1:Ngauss+1
+            # if i == 1 && j == 1
+            #     println("V_OME_11($(E), $(p[1][i]), $(p[1][j])) + Ctct_11($(g_C))")
+            #     println(V_OME_11(E, p[1][i], p[1][j]) + Ctct_11(g_C))
+            #     println("V_OME_22($(E), $(p[2][i]), $(p[2][j])) + Ctct_22($(g_C))")
+            #     println(V_OME_22(E, p[2][i], p[2][j]) + Ctct_22(g_C))
+            # end
             mat[i, j] = V_OME_11(E, p[1][i], p[1][j]) + Ctct_11(g_C)
             mat[i+Ngauss+1, j] = V_OME_21(E, p[2][i], p[1][j]) + Ctct_12(g_C)
             mat[i, j+Ngauss+1] = V_OME_12(E, p[1][i], p[2][j]) + Ctct_12(g_C)
@@ -62,6 +68,6 @@ end
 
 function tmat(Λ, E, Ngauss)
     G = gmat(Λ, E, Ngauss)
-    V = vmat(Λ, E, Ngauss, 1)
+    V = vmat(Λ, E, Ngauss, -1/4)
     return inv(I - V * G) * V
 end

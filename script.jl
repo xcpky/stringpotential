@@ -1,7 +1,8 @@
 include("lse.jl")
 
-Ngauss = 48
-E = delta[1]-2:0.002001:delta[2]+0.5
+Ngauss = 40
+# E = delta[1]-2:0.002001:delta[2]+0.5
+E = -2.5:0.00201:0.5
 
 function onshellG(matrix)
     return [tr(matrix[1:Ngauss+1, 1:Ngauss+1]), tr(matrix[Ngauss+2:2*Ngauss+2, Ngauss+2:2*Ngauss+2])]
@@ -19,10 +20,16 @@ if "--onshellG" in ARGS
 end
 
 if "--onshellT" in ARGS
-    tmatrices = tmat.(4, E, Ngauss)
-    osT = onshellT.(tmatrices)
+    osT = onshellT.(gmat.(4, E, Ngauss))
     len = size(E)[1]
-    T = [[osT[i][1] for i in 1:len], [osT[i][2] for i in 1:len], [osT[i][1] for i in 1:len], [osT[i][4] for i in 1:len]]
+    T = [[abs(osT[i][1]) for i in 1:len], [abs(osT[i][2]) for i in 1:len], [abs(osT[i][1]) for i in 1:len], [abs(osT[i][4]) for i in 1:len]]
+    using Plots
+    plot(E, T[1], dpi=300)
+    for i in 2:4
+        plot!(E, T[i])
+    end
+    # ylims!(0, 1e5)
+    savefig("onshellT.png")
 end
 
 if "--testSchrodinger" in ARGS

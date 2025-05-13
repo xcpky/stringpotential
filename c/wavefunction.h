@@ -13,16 +13,18 @@
 
 typedef struct {
   uint64_t l;
-  double Lambda;
-  uint64_t Ngauss;
+  double rLambda;
+  uint64_t rNgauss;
   double *xi;
   double *wi;
   gsl_integration_glfixed_table *table;
   gsl_matrix *c_solution;
   gsl_vector *E_solution;
+  // double complex **psi_mat;
+  // double complex *psi_raw;
 } WaveFunction;
 
-WaveFunction *WFnew(uint64_t l, double Lambda, uint64_t Ngauss);
+WaveFunction *WFnew(uint64_t l, double rLambda, uint64_t rNgauss);
 void WFfree(WaveFunction *self);
 void build(WaveFunction *self);
 void WF_get_c_solution_dims(WaveFunction *self, size_t *rows, size_t *cols);
@@ -32,7 +34,8 @@ size_t WF_get_E_solution_length(WaveFunction *self);
 double *WF_get_E_solution_data(WaveFunction *self);
 complex double psi_n(WaveFunction *self, double r, uint64_t n, double theta);
 complex double psi_n_ft(WaveFunction *self, double p, uint64_t n);
-complex double psi_n_ftcomplex(WaveFunction *self, double complex p, uint64_t n);
+complex double psi_n_ftcomplex(WaveFunction *self, double complex p,
+                               uint64_t n);
 void psi_n_batch(WaveFunction *self, const double *r_values,
                  double complex *results, size_t num_points, uint64_t n,
                  double theta);
@@ -109,15 +112,27 @@ static inline double V_r_n_n_prime_tilde(int n, int n_prime, int l) {
          N_n_n_prime_tilde(n, n_prime, l);
 }
 
-static inline complex double integrand_complex(double r, double complex p, int n, int l) {
+static inline complex double integrand_complex(double r, double complex p,
+                                               int n, int l) {
   if (l == 0) {
-    return csin(r*p)/p*r*exp(-nu_n(n));
+    return csin(r * p) / p * r * exp(-nu_n(n) * r * r);
   } else {
-    return (csin(r*p)/p/p - ccos(r*p)*r/p)*r*exp(-nu_n(n));
+    return (csin(r * p) / p / p - ccos(r * p) * r / p) * r *
+           exp(-nu_n(n) * r * r);
   }
 }
 
-static inline complex double integrand(double r, double p, int n, int l) {
-  return gsl_sf_bessel_jl(l, p * r) * pow(r, l+2) * exp(-nu_n(n));
+static inline complex double integrand(double r, double p,
+                                               int n, int l) {
+  if (l == 0) {
+    return sin(r * p) / p * r * exp(-nu_n(n) * r * r);
+  } else {
+    return (sin(r * p) / p / p - cos(r * p) * r / p) * r *
+           exp(-nu_n(n) * r * r);
+  }
 }
+
+// static inline complex double integrand(double r, double p, int n, int l) {
+//   return gsl_sf_bessel_jl(l, p * r) * pow(r, l + 2) * exp(-nu_n(n));
+// }
 #endif // !WAVEFUNCTION_H

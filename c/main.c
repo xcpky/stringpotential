@@ -1,102 +1,57 @@
-#include <stdint.h>
-#include <stdio.h>
-#include <sys/types.h>
-#define HAVE_INLINE
+#include "autofree.h"
 #include "lse.h"
 #include "wavefunction.h"
 #include <gsl/gsl_eigen.h>
+#include <gsl/gsl_matrix_double.h>
+#include <stddef.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/types.h>
 
 void testwf() {
-  // WaveFunction *wf = WFnew(1, 20, RNGAUSS);
-  // double complex **psi_n_mat =
-  //     (double complex **)malloc(sizeof(double complex *) * N_MAX);
-  // for (uint64_t i = 0; i < PNGAUSS; i += 1) {
-  //   psi_n_mat[i] = (double complex *)malloc(sizeof(double complex) * PNGAUSS);
-  // }
-  // double *pi = (double *)malloc(sizeof(double) * PNGAUSS);
-  // double *wi = (double *)malloc(sizeof(double) * PNGAUSS);
-  // gsl_integration_glfixed_table *table =
-  //     gsl_integration_glfixed_table_alloc(PNGAUSS);
-  // for (uint64_t i = 0; i < PNGAUSS; i += 1) {
-  //   gsl_integration_glfixed_point(0, 4, i, &pi[i], &wi[i], table);
-  // }
-  // for (uint64_t i = 0; i < N_MAX; i += 1) {
-  //   psi_n_ft_batch(wf, pi, psi_n_mat[i], PNGAUSS, i + 1);
-  // }
-  // for (uint64_t i = 0; i < PNGAUSS; i += 1) {
-  //   printf("%.3e + Im %.3e\n", creal(psi_n_mat[0][i]), cimag(psi_n_mat[0][i]));
-  // }
-  // printf("Eigenvalues:\n");
-  // for (int i = 0; i < N_MAX; i++) {
-  //   printf("%d: %f\n", i, gsl_vector_get(wf->E_solution, i));
-  // }
-  // printf("c_solutions:\n");
-  // for (uint64_t i = 0; i < N_MAX; i+=1) {
-  //   printf("%.3e\n", gsl_matrix_get(wf->c_solution, i, 0));
-  // }
-  // double complex psi = psi_n(wf, 1, 1, 0);
-  // printf("%f + Im%f\n", GSL_REAL(psi), GSL_IMAG(psi));
-  // double r = 0;
-  // while (1) {
-  //   scanf("%lf", &r);
-  //   if (r < 0)
-  //     break;
-  //   psi = psi_n(wf, r, 1, 0);
-  //   printf("%f + Im%f\n", GSL_REAL(psi), GSL_IMAG(psi));
-  // }
-  // free(pi);
-  // free(wi);
-  // gsl_integration_glfixed_table_free(table);
-  // WFfree(wf);
-  LSE *lse = lse_malloc(10, 4, 1e-7);
-  if (!lse) {
-    fprintf(stderr, "Failed to create LSE solver\n");
-    exit(1);
+  WaveFunction *wf __attribute__((cleanup(auto_wffree))) = WFnew(0, 20, 64);
+  for (size_t i = 0; i < N_MAX; i += 1) {
+    for (size_t j = 0; j < N_MAX; j += 1) {
+      const size_t idx = i * wf->c_solution->tda + j;
+      printf("%.4e\t", wf->c_solution->data[idx]);
+    }
+    puts("");
   }
-  lse_refresh(lse, -0.2);
-  for (uint64_t i = 0; i < 10; i += 1) {
-    printf("i %lu: %.3e + Im%.3e\n", i, creal(lse->psi_raw[i]), cimag(lse->psi_raw[i]));
+}
+
+void printmat(matrix *m) {
+  __auto_type row = m->size1;
+  __auto_type col = m->size2;
+  for (uint i = 0; i < row; i += 1) {
+    for (uint j = 0; j < col; j += 1) {
+      __auto_type val = matrix_get(m, i, j);
+      printf("(%.2e) + Im(%.2e) ", creal(val), cimag(val));
+    }
+    puts("");
   }
-  lse_free(lse);
 }
 
 void testlse() {
-  LSE *lse = lse_malloc(10, 4, 1e-7);
+  const size_t Ngauss = 2;
+  LSE *lse __attribute__((cleanup(auto_lsefree))) = lse_malloc(Ngauss, 4, 1e-9);
   if (!lse) {
     fprintf(stderr, "Failed to create LSE solver\n");
     exit(1);
   }
-  lse_compute(lse, 0.2);
+  lse_compute(lse, 0.2, 1);
   // lse_gmat(lse);
   // lse_vmat(lse);
-  uint64_t dim = 2 * (lse->Ngauss + 1);
-  puts("G matrix");
-  for (uint64_t i = 0; i < dim; i += 1) {
-    for (uint64_t j = 0; j < dim; j += 1) {
-      uint64_t pos = i * dim + j;
-      printf("%.2e + Im%.2e   ", lse->G->data[2 * pos],
-             lse->G->data[2 * pos + 1]);
-    }
-    printf("\n");
-  }
+  // puts("G matrix");
+  // gsl_matrix_complex_fprintf(stdout, lse->G, "%.2e");
   puts("V matrix");
-  for (uint64_t i = 0; i < dim; i += 1) {
-    for (uint64_t j = 0; j < dim; j += 1) {
-      uint64_t pos = i * dim + j;
-      printf("%.2e + Im%.2e   ", lse->V->data[2 * pos],
-             lse->V->data[2 * pos + 1]);
-    }
-    printf("\n");
-  }
+  printmat(lse->V);
   puts("T matrix");
-  for (uint64_t i = 0; i < dim; i += 1) {
-    for (uint64_t j = 0; j < dim; j += 1) {
-      uint64_t pos = i * dim + j;
-      printf("%.2e + Im%.2e   ", lse->T->data[2 * pos],
-             lse->T->data[2 * pos + 1]);
-    }
-    printf("\n");
-  }
+  printmat(lse->T);
+  // gsl_matrix_complex_fprintf(stdout, lse->T, "%.2e");
+  // puts("I - VG matrix");
+  // gsl_matrix_complex_fprintf(stdout, lse->iIVG, "%.2e");
   // int result = lse_run(lse);
   // if (result != 0) {
   //   fprintf(stderr, "LSE solver failed with error code %d\n", result);
@@ -105,13 +60,55 @@ void testlse() {
   // }
   //
   // printf("LSE solver ran successfully\n");
-
-  // Clean up
-  lse_free(lse);
 }
 
-int main() {
-  // testlse();
-  testwf();
-  return 0;
+void testonshell() {
+  const size_t Ngauss = 2;
+  LSE *lse __attribute__((cleanup(auto_lsefree))) = lse_malloc(Ngauss, 4, 1e-9);
+  if (!lse) {
+    fprintf(stderr, "Failed to create LSE solver\n");
+    exit(1);
+  }
+  lse_refresh(lse, -0.578802970, 1);
+  __auto_type q = lse->x0[0];
+  printf("(%.12e) + Im(%.12e)\n", creal(q), cimag(q));
+  q = lse->x0[1];
+  printf("(%.12e) + Im(%.12e)\n", creal(q), cimag(q));
+  lse_vmat(lse);
+  __auto_type onshellV = matrix_get(lse->V, Ngauss, Ngauss);
+  printf("(%.12e) + Im(%.12e)\n", creal(onshellV), cimag(onshellV));
+  lse_refresh(lse, -0.578802965, 1);
+  lse_vmat(lse);
+  q = lse->x0[0];
+  printf("(%.12e) + Im(%.12e)\n", creal(q), cimag(q));
+  q = lse->x0[1];
+  printf("(%.12e) + Im(%.12e)\n", creal(q), cimag(q));
+  onshellV = matrix_get(lse->V, Ngauss, Ngauss);
+  printf("(%.12e) + Im(%.12e)\n", creal(onshellV), cimag(onshellV));
+}
+
+void unitest() {
+  double re;
+  double im;
+  while (scanf("%lf %lf", &re, &im) != 0) {
+    __auto_type val = O_00(0.3, re + im * I, 1, m_B);
+    printf("E(%.2e): (%.2e) + Im(%.2e)\n", re, creal(val), cimag(val));
+  }
+}
+
+int main(int argc, char *argv[]) {
+  if (argc == 1) {
+    puts("what do you want?");
+    return EXIT_SUCCESS;
+  }
+  if (strcmp(argv[1], "lse") == 0) {
+    testlse();
+  } else if (strcmp(argv[1], "wf") == 0) {
+    testwf();
+  } else if (strcmp(argv[1], "unit") == 0) {
+    unitest();
+  } else if (strcmp(argv[1], "onshell") == 0) {
+    testonshell();
+  }
+  return EXIT_SUCCESS;
 }

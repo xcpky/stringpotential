@@ -1,13 +1,11 @@
 import numpy as np
 
-from Libary.constants import *
+from constants import *
 
-from Libary.assistantFunc import *
 
 #----------------------------------------------------------------------
 #use Time Ordered Perturbation Theory (TOPT) to calculate OME potential
 #----------------------------------------------------------------------
-@njit
 def omega(p,k,i,j):
     if i==1 and j==1:
         return 2*m11+(p**2+k**2)/(2*m11)
@@ -20,7 +18,6 @@ def omega(p,k,i,j):
     else:
         print('Wrong channel indices!')
 
-@njit
 def omega_prime(p,k,i,j):
     if i==1 and j==1:
         return 2*m12+(p**2+k**2)/(2*m12)
@@ -33,7 +30,6 @@ def omega_prime(p,k,i,j):
     else:
         print('Wrong channel indices!')
 
-@njit
 def curlO_TOPT(E,p,k,m,i,j):
     if abs(p)<=1e-8:
         p+=1e-6
@@ -43,37 +39,34 @@ def curlO_TOPT(E,p,k,m,i,j):
 
 #def function for OME potentials in TOPT
 ##def function for V_{11}:
-@njit
 def V_11_OME_TOPT(E,p,k):
     V_11 = (-3)*(3*curlO_TOPT(E,p,k,m_pi,1,1)+1/3*curlO_TOPT(E,p,k,m_eta,1,1)) #-3 factor to enforce I=0 - comes only in non strange channel
     return V_11
 ##def function for V_{21}:
-@njit
 def V_21_OME_TOPT(E,p,k):
     V_21 = 2**(3/2)*curlO_TOPT(E,p,k,m_K,2,1)
     return V_21
 ##def function for V_{12}:
-@njit
 def V_12_OME_TOPT(E,p,k):
     V_12 = 2**(3/2)*curlO_TOPT(E,p,k,m_K,1,2)
     return V_12
 ##def function for V_{22}:
-@njit
 def V_22_OME_TOPT(E,p,k):
     V_22 = 2/3*curlO_TOPT(E,p,k,m_eta,2,2)
     return V_22
 
+def oV(E):
+    dE = E - Delta + 0j
+    q0 = np.sqrt(2*mu[0]*dE[0])
+    return V_11_OME_TOPT(E, q0, q0)
 #----------------------------------------------------------------------
 #define functions for contact term
 #----------------------------------------------------------------------
-@njit
 def ContactTerm_11(g_C):
     return (-3)*2*g_C
 
-@njit
 def ContactTerm_12(g_C):
     return (1/2)**(3/2)*4*g_C
 
-@njit
 def ContactTerm_22(g_C):
     return g_C

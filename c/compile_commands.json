@@ -1,10 +1,12 @@
 [
   {
     "arguments": [
-      "/sbin/gcc",
+      "/sbin/clang",
       "-Wall",
       "-Wextra",
       "-O2",
+      "-DHAVE_INLINE",
+      "-fgnuc-version=7",
       "-c",
       "-o",
       "main.o",
@@ -16,17 +18,107 @@
   },
   {
     "arguments": [
-      "/sbin/gcc",
+      "/sbin/clang",
       "-Wall",
       "-Wextra",
       "-O2",
+      "-DHAVE_INLINE",
+      "-fgnuc-version=7",
       "-c",
       "-o",
-      "functions.o",
-      "functions.c"
+      "wavefunction.o",
+      "wavefunction.c"
     ],
     "directory": "/home/choros/code/stringpotential/c",
-    "file": "/home/choros/code/stringpotential/c/functions.c",
-    "output": "/home/choros/code/stringpotential/c/functions.o"
+    "file": "/home/choros/code/stringpotential/c/wavefunction.c",
+    "output": "/home/choros/code/stringpotential/c/wavefunction.o"
+  },
+  {
+    "arguments": [
+      "/sbin/clang",
+      "-Wall",
+      "-Wextra",
+      "-O2",
+      "-DHAVE_INLINE",
+      "-fgnuc-version=7",
+      "-c",
+      "-o",
+      "constants.o",
+      "constants.c"
+    ],
+    "directory": "/home/choros/code/stringpotential/c",
+    "file": "/home/choros/code/stringpotential/c/constants.c",
+    "output": "/home/choros/code/stringpotential/c/constants.o"
+  },
+  {
+    "arguments": [
+      "/sbin/clang",
+      "-Wall",
+      "-Wextra",
+      "-O2",
+      "-DHAVE_INLINE",
+      "-fgnuc-version=7",
+      "-c",
+      "-o",
+      "lse.o",
+      "lse.c"
+    ],
+    "directory": "/home/choros/code/stringpotential/c",
+    "file": "/home/choros/code/stringpotential/c/lse.c",
+    "output": "/home/choros/code/stringpotential/c/lse.o"
+  },
+  {
+    "arguments": [
+      "/sbin/clang",
+      "-Wall",
+      "-Wextra",
+      "-O2",
+      "-DHAVE_INLINE",
+      "-fgnuc-version=7",
+      "-fPIC",
+      "-c",
+      "-o",
+      "wavefunction.pic.o",
+      "wavefunction.c"
+    ],
+    "directory": "/home/choros/code/stringpotential/c",
+    "file": "/home/choros/code/stringpotential/c/wavefunction.c",
+    "output": "/home/choros/code/stringpotential/c/wavefunction.pic.o"
+  },
+  {
+    "arguments": [
+      "/sbin/clang",
+      "-Wall",
+      "-Wextra",
+      "-O2",
+      "-DHAVE_INLINE",
+      "-fgnuc-version=7",
+      "-fPIC",
+      "-c",
+      "-o",
+      "constants.pic.o",
+      "constants.c"
+    ],
+    "directory": "/home/choros/code/stringpotential/c",
+    "file": "/home/choros/code/stringpotential/c/constants.c",
+    "output": "/home/choros/code/stringpotential/c/constants.pic.o"
+  },
+  {
+    "arguments": [
+      "/sbin/clang",
+      "-Wall",
+      "-Wextra",
+      "-O2",
+      "-DHAVE_INLINE",
+      "-fgnuc-version=7",
+      "-fPIC",
+      "-c",
+      "-o",
+      "lse.pic.o",
+      "lse.c"
+    ],
+    "directory": "/home/choros/code/stringpotential/c",
+    "file": "/home/choros/code/stringpotential/c/lse.c",
+    "output": "/home/choros/code/stringpotential/c/lse.pic.o"
   }
 ]

@@ -68,8 +68,8 @@ NtowerUsed = 1
 #introduce width of energy poles of tower
 E_width=0.01j #GeV
 #load solution of generalized eigenvalue problem
-E_solution = np.loadtxt('E_solution_GaussBasis_Cornell_chib1_fit.txt')+E_width
-c_solution = np.loadtxt('c_solution_GaussBasis_Cornell_chib1_fit.txt')
+# E_solution = np.loadtxt('E_solution_GaussBasis_Cornell_chib1_fit.txt')+E_width
+# c_solution = np.loadtxt('c_solution_GaussBasis_Cornell_chib1_fit.txt')
 #E_solution = np.loadtxt('E_solution_GaussBasis_Cornell_30_V0_04.txt')
 #c_solution = np.loadtxt('c_solution_GaussBasis_Cornell_30_V0_04.txt')
 
@@ -99,6 +99,6 @@ E_grid_real = np.linspace(E_lowerBound_real,E_upperBound_real,E_grid_size_real) 
 E_grid_imag = np.linspace(E_lowerBound_imag,E_upperBound_imag-np.abs(E_upperBound_imag-E_lowerBound_imag)/(E_grid_size_imag),E_grid_size_imag) #GeV
 #--------------------------------------------------------------------
 #contact term
-g_C=1.0
+g_C=-0.25
 #constant potential for test
 V_const_test=1.0

@@ -1,11 +1,11 @@
 #ifndef CONSTANTS_H
 #define CONSTANTS_H
-#define PNGAUSS 40
-#define RNGAUSS 40
+#define PNGAUSS 64
+#define RNGAUSS 64
 #define RLAMBDA 20
 #define f_pi (0.092) 
 #define g_pi (0.5704) 
-#define g_c 1
+#define g_c (-1./4.)
 
 #define m_pi (0.138039407) 
 #define m_K (0.498) 
@@ -28,15 +28,16 @@
 
 #define a_l (0.06426*5.068) 
 #define g (0.898794378386677/a_l)
-#define g1 (g*0.014926616931653945)
-#define g2 (g*0.006467550544943349)
+#define g0 (g*0.014926616931653945)
+#define g1 (g*0.006467550544943349)
 #define delta0 0
 #define delta1 (m21 + m22 - m11 - m12)
 #define mu0 (m11 * m12 / (m11 + m12))
 #define mu1 (m21 * m22 / (m21 + m22))
 #define m_c 1.85
 #define a_Cornell 1.95
-#define g_qm 1
+#define g_qm (1)
+#define partialwave 1
 
 extern const double delta[2];
 extern const double mu[2];

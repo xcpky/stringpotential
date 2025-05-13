@@ -1,25 +1,29 @@
 CC = gcc
-CFLAGS = -Wall -Wextra -O2
+CFLAGS = -Wall -Wextra -O2 -DHAVE_INLINE
+CFLAGS += $(EXTRA)
 LDFLAGS = -lgsl -lgslcblas -lm
 SRCS = main.c wavefunction.c constants.c lse.c
+HEADERS = wavefunction.h constants.h lse.h
 OBJS = $(SRCS:.c=.o)
 TARGET = GaussianVariation
 
 # Shared library settings
 WFSRCS = wavefunction.c constants.c
+WFHEADERS = $(WFSRCS:.c=.h)
 WFOBJS = $(WFSRCS:.c=.pic.o)
 WFTARGET = libwavefunction.so
 
 # LSE shared library - add constants.c as a dependency
 LSESRCS = lse.c constants.c wavefunction.c
+LSEHEADERS = $(LSESRCS:.c=.h)
 LSEOBJS = $(LSESRCS:.c=.pic.o)
 LSETARGET = liblse.so
 
-all: $(TARGET)
+all: $(TARGET) $(WFTARGET) $(LSETARGET)
 
 # Original executable target
-$(TARGET): $(OBJS)
-	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
+$(TARGET): $(OBJS) $(HEADERS)
+	$(CC) $(CFLAGS) $(EXTRA) -o $@ $^ $(LDFLAGS)
 
 %.o: %.c
 	$(CC) $(CFLAGS) -c $< -o $@
@@ -27,7 +31,7 @@ $(TARGET): $(OBJS)
 # New shared library target
 wf: $(WFTARGET)
 
-$(WFTARGET): $(WFOBJS)
+$(WFTARGET): $(WFOBJS) $(WFHEADERS)
 	$(CC) -shared -o $@ $^ $(LDFLAGS)
 
 %.pic.o: %.c
@@ -35,7 +39,7 @@ $(WFTARGET): $(WFOBJS)
 
 lseso: $(LSETARGET)
 
-$(LSETARGET): $(LSEOBJS)
+$(LSETARGET): $(LSEOBJS) $(LSEHEADERS)
 	$(CC) -shared -o $@ $^ $(LDFLAGS)
 
 clean:
