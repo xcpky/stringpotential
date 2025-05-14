@@ -10,9 +10,10 @@ using StatsPlots
 using Measures
 using StatsBase
 using Serialization
+using LaTeXStrings
 Ngauss = 200
 eps = 1e-7
-E = -2.5:0.01:0.5
+E = -2.5:0.01:3.5
 Λ = 4
 xi, wi = gauss(Ngauss, 0, Λ)
 function OnshellT(lse::Ptr{LSE}, E::ComplexF64, rs::Int)
@@ -203,12 +204,14 @@ if "--onshellT" in ARGS
     oT12 = [abs(oT[i][2]) for i in eachindex(E)]
     oT21 = [abs(oT[i][3]) for i in eachindex(E)]
     oT22 = [abs(oT[i][4]) for i in eachindex(E)]
-    plot(E, oT11, dpi=300, label="alpha 1 beta 1")
+    plot(E, oT11, dpi=300, label=L"$\alpha=1,\beta=1$")
     # xlims!(-3, -2)
     # ylims!(0, 20)
-    plot!(E, oT12, label="alpha 1 beta 2")
-    plot!(E, oT21, label="alpha 2 beta 1")
-    plot!(E, oT22, label="alpha 2 beta 2")
+    plot!(E, oT12, label=L"$\alpha=1,\beta=2$")
+    plot!(E, oT21, label=L"$\alpha=2,\beta=1$")
+    plot!(E, oT22, label=L"$\alpha=2,\beta=2$")
+    xlabel!("E/GeV")
+    ylabel!(L"$|T_{\alpha\beta}|GeV^{-2}$")
     savefig("onshellT.png")
 end
 

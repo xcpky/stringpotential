@@ -1,5 +1,5 @@
 CC = gcc
-CFLAGS = -Wall -Wextra -O2 -DHAVE_INLINE
+CFLAGS = -Wall -Wextra -O2 -DHAVE_INLINE -std=gnu2y
 CFLAGS += $(EXTRA)
 LDFLAGS = -lgsl -lgslcblas -lm
 SRCS = main.c wavefunction.c constants.c lse.c
@@ -22,7 +22,7 @@ LSETARGET = liblse.so
 all: $(TARGET) $(WFTARGET) $(LSETARGET)
 
 # Original executable target
-$(TARGET): $(OBJS) $(HEADERS)
+$(TARGET): $(OBJS) 
 	$(CC) $(CFLAGS) $(EXTRA) -o $@ $^ $(LDFLAGS)
 
 %.o: %.c
@@ -31,7 +31,7 @@ $(TARGET): $(OBJS) $(HEADERS)
 # New shared library target
 wf: $(WFTARGET)
 
-$(WFTARGET): $(WFOBJS) $(WFHEADERS)
+$(WFTARGET): $(WFOBJS) 
 	$(CC) -shared -o $@ $^ $(LDFLAGS)
 
 %.pic.o: %.c
@@ -39,7 +39,7 @@ $(WFTARGET): $(WFOBJS) $(WFHEADERS)
 
 lseso: $(LSETARGET)
 
-$(LSETARGET): $(LSEOBJS) $(LSEHEADERS)
+$(LSETARGET): $(LSEOBJS) 
 	$(CC) -shared -o $@ $^ $(LDFLAGS)
 
 clean:

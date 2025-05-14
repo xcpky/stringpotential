@@ -196,7 +196,8 @@ double complex V_QM_11(LSE *self, uint64_t p, uint64_t pprime);
   static inline gsl_complex V##suffix(LSE *self, double complex p,             \
                                       double complex pprime) {                 \
     __auto_type E = self->E;                                                   \
-    return V_QM_##suffix(self, p, pprime);                                     \
+    return V_QM_##suffix(self, p, pprime) + V_OME_##suffix(E, p, pprime) +     \
+           Ctct_##suffix(g_c);                                                 \
   }
 
 DEFINE_V_FUNCTION(00);
@@ -207,12 +208,12 @@ DEFINE_V_FUNCTION(11);
 #define DEFINE_VQM(alpha, beta)                                                \
   double complex V_QM_##alpha##beta(LSE *self, uint64_t p, uint64_t pprime) {  \
     double complex res = 0 + 0I;                                               \
-    __auto_type E = self->E;                                                          \
+    __auto_type E = self->E;                                                   \
     for (size_t i = 0; i < N_MAX; i++) {                                       \
-      res -= /* self->psi_n_mat[i][p] * conj(self->psi_n_mat[i][pprime]) */1 /        \
+      res -= self->psi_n_mat[i][p] * conj(self->psi_n_mat[i][pprime]) /        \
              (E - self->E_vec[i] + self->epsilon * I);                         \
     }                                                                          \
-    return res * g##alpha * g##beta * 1000;                                           \
+    return res * g##alpha * g##beta;                                           \
   }
 
 double complex noninline_O_00(double E, double complex p, double complex pprime,

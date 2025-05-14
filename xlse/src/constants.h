@@ -37,7 +37,7 @@
 #define m_c 1.85
 #define a_Cornell 1.95
 #define g_qm (1)
-#define partialwave 0
+#define partialwave 1
 
 extern const double delta[2];
 extern const double mu[2];
