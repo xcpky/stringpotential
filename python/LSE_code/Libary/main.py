@@ -141,9 +141,17 @@ def onshellG(E):
     G=Gmat(N_q, Lam, E)
     return G[Nq, Nq], G[2*Nq+1, 2*Nq+1]
 
+def onshellT(E):
+    T = T_matrix(N_q, Lam, E, 0, g_C)[0]
+    return T[Nq, Nq], T[2*Nq+1, 2*Nq+1]
+
 E = np.linspace(-2.5, 0.4, 2900)
 e = 0.2
-V = Vmat(N_q, Lam, e, 0, g_C)
-# oT = [onshellG(e)[1] for e in E]
+# V = Vmat(N_q, Lam, e, 0, g_C)
+# oT = [onshellT(e) for e in E]
+# oT11 = [oT[i][0] for i in range(len(E))]
+# oT22 = [oT[i][1] for i in range(len(E))]
 # plt.plot(E, np.abs(oT))
 # plt.ylim(0,1e5)
+# plt.savefig("ot.png",dpi=300)
+detV = [np.linalg.det(Vmat(N_q, Lam, e, 0, g_C)) for e in E]

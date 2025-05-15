@@ -13,14 +13,21 @@ using Serialization
 using LaTeXStrings
 Ngauss = 200
 eps = 1e-7
-E = -2.5:0.01:3.5
+E = -2.5:0.01:0.85
 Λ = 4
 xi, wi = gauss(Ngauss, 0, Λ)
+function trOnshellT(lse::Ptr{LSE}, E::ComplexF64, rs::Int)
+    lse_compute(lse, E, rs)
+    T = lse_get_t_data(lse)
+    return tr(T[1:Ngauss+1, 1:Ngauss+1]), tr(T[1:Ngauss+1, Ngauss+2:end]), tr(T[Ngauss+2:end, 1:Ngauss+1]), tr(T[Ngauss+2:end, Ngauss+2:end])
+end
+
 function OnshellT(lse::Ptr{LSE}, E::ComplexF64, rs::Int)
     lse_compute(lse, E, rs)
     T = lse_get_t_data(lse)
-    return T[Ngauss+1, Ngauss+1], T[Ngauss+1, end], T[end, Ngauss+1], T[end]
+    return T[Ngauss+1, Ngauss+1], T[Ngauss+1, end], T[end, Ngauss+1], T[end, end]
 end
+
 function OnshellG(lse::Ptr{LSE}, E::ComplexF64, rs::Int)
     lse_refresh(lse, E, rs)
     lse_gmat(lse)
@@ -112,9 +119,13 @@ end
 # e_vector = get_e_solution_vector(wf)
 # println("C solution matrix: ", c_matrix)
 lse = lse_malloc(Ngauss, Λ, eps)
-@time lse_compute(lse, -0.7841889 + 0im, 1)
+@time lse_compute(lse, -0.2 + 0im, 1)
 # E = -0.578802975:0.0000000001:-0.57880295
 # E = -3:0.0003:-2
+
+if "--testV" in ARGS
+    v = copy(lse_get_v_data(lse))
+end
 
 if "--testWF" in ARGS
     wf = wf_new(1, 20, 64)
@@ -204,11 +215,13 @@ if "--onshellT" in ARGS
     oT12 = [abs(oT[i][2]) for i in eachindex(E)]
     oT21 = [abs(oT[i][3]) for i in eachindex(E)]
     oT22 = [abs(oT[i][4]) for i in eachindex(E)]
+    h = max(maximum(oT11), maximum(oT12), maximum(oT21), maximum(oT22))
     plot(E, oT11, dpi=300, label=L"$\alpha=1,\beta=1$")
     # xlims!(-3, -2)
-    # ylims!(0, 20)
+    ylims!(0, 1e5)
+    # ylims!(0, 0.75*h)
     plot!(E, oT12, label=L"$\alpha=1,\beta=2$")
-    plot!(E, oT21, label=L"$\alpha=2,\beta=1$")
+    # plot!(E, oT21, label=L"$\alpha=2,\beta=1$")
     plot!(E, oT22, label=L"$\alpha=2,\beta=2$")
     xlabel!("E/GeV")
     ylabel!(L"$|T_{\alpha\beta}|GeV^{-2}$")

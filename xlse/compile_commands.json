@@ -1,12 +1,12 @@
 [
 {
   "directory": "/home/choros/code/stringpotential/xlse",
-  "arguments": ["/sbin/clang", "-c", "-Qunused-arguments", "-m64", "-fvisibility=hidden", "-O3", "-std=gnu23", "-Ibuild/.gens/xlse/linux/x86_64/release/platform/windows/idl", "-Ibuild/.gens/lse/linux/x86_64/release/platform/windows/idl", "-Ibuild/.gens/wavefunction/linux/x86_64/release/platform/windows/idl", "-Wall", "-Wextra", "-O2", "-DHAVE_INLINE", "-fgnuc-version=8", "-DNDEBUG", "-o", "build/.objs/./xlse/linux/x86_64/release/src/main.c.o", "src/main.c"],
-  "file": "src/main.c"
+  "arguments": ["/sbin/clang", "-c", "-Qunused-arguments", "-m64", "-fPIC", "-O3", "-std=gnu23", "-Ibuild/.gens/wavefunction/linux/x86_64/release/platform/windows/idl", "-Wall", "-Wextra", "-O2", "-DHAVE_INLINE", "-fgnuc-version=8", "-DNDEBUG", "-o", "build/.objs/wavefunction/linux/x86_64/release/src/wavefunction.c.o", "src/wavefunction.c"],
+  "file": "src/wavefunction.c"
 },
 {
   "directory": "/home/choros/code/stringpotential/xlse",
-  "arguments": ["/sbin/clang", "-c", "-Qunused-arguments", "-m64", "-fvisibility=hidden", "-O3", "-std=gnu23", "-Ibuild/.gens/xlse/linux/x86_64/release/platform/windows/idl", "-Ibuild/.gens/lse/linux/x86_64/release/platform/windows/idl", "-Ibuild/.gens/wavefunction/linux/x86_64/release/platform/windows/idl", "-Wall", "-Wextra", "-O2", "-DHAVE_INLINE", "-fgnuc-version=8", "-DNDEBUG", "-o", "build/.objs/./xlse/linux/x86_64/release/src/constants.c.o", "src/constants.c"],
+  "arguments": ["/sbin/clang", "-c", "-Qunused-arguments", "-m64", "-fPIC", "-O3", "-std=gnu23", "-Ibuild/.gens/wavefunction/linux/x86_64/release/platform/windows/idl", "-Wall", "-Wextra", "-O2", "-DHAVE_INLINE", "-fgnuc-version=8", "-DNDEBUG", "-o", "build/.objs/wavefunction/linux/x86_64/release/src/constants.c.o", "src/constants.c"],
   "file": "src/constants.c"
 },
 {
@@ -26,11 +26,11 @@
 },
 {
   "directory": "/home/choros/code/stringpotential/xlse",
-  "arguments": ["/sbin/clang", "-c", "-Qunused-arguments", "-m64", "-fPIC", "-O3", "-std=gnu23", "-Ibuild/.gens/wavefunction/linux/x86_64/release/platform/windows/idl", "-Wall", "-Wextra", "-O2", "-DHAVE_INLINE", "-fgnuc-version=8", "-DNDEBUG", "-o", "build/.objs/wavefunction/linux/x86_64/release/src/wavefunction.c.o", "src/wavefunction.c"],
-  "file": "src/wavefunction.c"
+  "arguments": ["/sbin/clang", "-c", "-Qunused-arguments", "-m64", "-fvisibility=hidden", "-O3", "-std=gnu23", "-Ibuild/.gens/xlse/linux/x86_64/release/platform/windows/idl", "-Ibuild/.gens/lse/linux/x86_64/release/platform/windows/idl", "-Ibuild/.gens/wavefunction/linux/x86_64/release/platform/windows/idl", "-Wall", "-Wextra", "-O2", "-DHAVE_INLINE", "-fgnuc-version=8", "-DNDEBUG", "-o", "build/.objs/./xlse/linux/x86_64/release/src/main.c.o", "src/main.c"],
+  "file": "src/main.c"
 },
 {
   "directory": "/home/choros/code/stringpotential/xlse",
-  "arguments": ["/sbin/clang", "-c", "-Qunused-arguments", "-m64", "-fPIC", "-O3", "-std=gnu23", "-Ibuild/.gens/wavefunction/linux/x86_64/release/platform/windows/idl", "-Wall", "-Wextra", "-O2", "-DHAVE_INLINE", "-fgnuc-version=8", "-DNDEBUG", "-o", "build/.objs/wavefunction/linux/x86_64/release/src/constants.c.o", "src/constants.c"],
+  "arguments": ["/sbin/clang", "-c", "-Qunused-arguments", "-m64", "-fvisibility=hidden", "-O3", "-std=gnu23", "-Ibuild/.gens/xlse/linux/x86_64/release/platform/windows/idl", "-Ibuild/.gens/lse/linux/x86_64/release/platform/windows/idl", "-Ibuild/.gens/wavefunction/linux/x86_64/release/platform/windows/idl", "-Wall", "-Wextra", "-O2", "-DHAVE_INLINE", "-fgnuc-version=8", "-DNDEBUG", "-o", "build/.objs/./xlse/linux/x86_64/release/src/constants.c.o", "src/constants.c"],
   "file": "src/constants.c"
 }]

@@ -81,7 +81,7 @@ function lse_get_iivg_data(lse_ptr::Ptr{LSE})
     )
     
     # Convert to Julia array
-    return unsafe_wrap(Array, data_ptr, (rows[], cols[]), own=false)
+    return transpose(unsafe_wrap(Array, data_ptr, (rows[], cols[]), own=false))
 end
 
 # Functions to get matrix data
@@ -104,7 +104,7 @@ function lse_get_t_data(lse_ptr::Ptr{LSE})
     )
     
     # Convert to Julia array
-    return unsafe_wrap(Array, data_ptr, (rows[], cols[]), own=false)
+    return transpose(unsafe_wrap(Array, data_ptr, (rows[], cols[]), own=false))
 end
 
 function lse_get_g_data(lse_ptr::Ptr{LSE})
@@ -126,7 +126,7 @@ function lse_get_g_data(lse_ptr::Ptr{LSE})
     )
     
     # Convert to Julia array
-    return unsafe_wrap(Array, data_ptr, (rows[], cols[]), own=false)
+    return transpose(unsafe_wrap(Array, data_ptr, (rows[], cols[]), own=false))
 end
 
 function lse_gmat(lse_ptr::Ptr{LSE})
@@ -175,7 +175,7 @@ function lse_get_v_data(lse_ptr::Ptr{LSE})
     )
     
     # Convert to Julia array
-    return unsafe_wrap(Array, data_ptr, (rows[], cols[]), own=false)
+    return transpose(unsafe_wrap(Array, data_ptr, (rows[], cols[]), own=false))
 end
 
 function lse_get_ivg_data(lse_ptr::Ptr{LSE})
@@ -197,7 +197,7 @@ function lse_get_ivg_data(lse_ptr::Ptr{LSE})
     )
     
     # Convert to Julia array
-    return unsafe_wrap(Array, data_ptr, (rows[], cols[]), own=false)
+    return transpose(unsafe_wrap(Array, data_ptr, (rows[], cols[]), own=false))
 end
 
 function lse_detImVG(lse_ptr::Ptr{LSE}, E::ComplexF64)
