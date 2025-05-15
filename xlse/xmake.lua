@@ -1,8 +1,9 @@
 add_rules("mode.debug", "mode.release")
 set_languages("gnu23")
-add_cflags("-Wall", "-Wextra", "-O2", "-DHAVE_INLINE", "-fgnuc-version=8")
+add_cflags("-Wall", "-Wextra", "-DHAVE_INLINE", "-fgnuc-version=8")
 set_toolchains("clang")
 add_requires("gsl")
+add_requires("matplotplusplus")
 add_rules("plugin.compile_commands.autoupdate")
 
 target("wavefunction")
@@ -18,14 +19,22 @@ target("lse")
     add_packages("gsl")
     add_links("m")
 
-target("./xlse")
+target("xlse")
     set_kind("binary")
     add_deps("lse")
     add_deps("wavefunction")
-    -- add_headerfiles("src/wavefunction.h", "src/constants.h", "src/lse.h", "src/autofree.h")
     add_packages("gsl")
     add_links("m")
     add_files("src/main.c", "src/constants.c")
+
+target("xlsepp")
+    set_kind("binary")
+    add_deps("lse")
+    add_deps("wavefunction")
+    add_packages("matplotplusplus")
+    add_packages("gsl")
+    add_links("m")
+    add_files("src/main.cpp", "src/constants.c")
 
 --
 -- If you want to known more usage about xmake, please see https://xmake.io

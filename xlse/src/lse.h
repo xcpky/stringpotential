@@ -233,7 +233,7 @@ static inline double complex V_curlOME_11(double complex E, double complex p,
   static inline gsl_complex V##suffix(LSE *self, double complex p,             \
                                       double complex pprime) {                 \
     __auto_type E = self->E;                                                   \
-    return V_curlOME_##suffix(E, p, pprime) + Ctct_##suffix(g_c);                                             \
+    return V_OME_##suffix(E, p, pprime) + Ctct_##suffix(g_c);                                             \
   }
 
 DEFINE_V_FUNCTION(00);
