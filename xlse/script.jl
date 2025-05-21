@@ -1,5 +1,4 @@
 using Plots: Legend
-# Load the shared library
 include("lse.jl")
 using Plots
 using Base.Threads
@@ -218,7 +217,7 @@ if "--onshellT" in ARGS
     h = max(maximum(oT11), maximum(oT12), maximum(oT21), maximum(oT22))
     plot(E, oT11, dpi=300, label=L"$\alpha=1,\beta=1$")
     # xlims!(-3, -2)
-    # ylims!(0, 1e5)
+    ylims!(0, 1e4)
     # ylims!(0, 0.75*h)
     plot!(E, oT12, label=L"$\alpha=1,\beta=2$")
     # plot!(E, oT21, label=L"$\alpha=2,\beta=1$")
