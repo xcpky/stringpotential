@@ -415,7 +415,7 @@ double complex *lse_get_iivg_data(LSE *self) {
 }
 
 double complex lse_detImVG(LSE *self, double complex E) {
-  lse_refresh(self, E, 1);
+  lse_refresh(self, E, -1);
   lse_gmat(self);
   lse_vmat(self);
   const size_t n = 2 * (self->Ngauss + 1);
@@ -445,7 +445,7 @@ double complex lse_detImVG(LSE *self, double complex E) {
 
   // Add identity matrix: I_minus_VG = I - VG
   gsl_matrix_complex_add_diagonal(I_minus_VG, 1 + 0I);
-  gsl_matrix_complex_memcpy(self->reg, I_minus_VG);
+  // gsl_matrix_complex_memcpy(self->reg, I_minus_VG);
 
   // Step 3: Invert (I - VG) using LU decomposition
   gsl_permutation *perm __attribute__((cleanup(auto_permfree))) =

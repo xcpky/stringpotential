@@ -1,7 +1,7 @@
 #ifndef SCRIPT_H
 #define SCRIPT_H
 
-#define NTHREADS 16
+#define NTHREADS 32
 
 #include "complex.h"
 #include "lse.h"
@@ -17,19 +17,23 @@ typedef struct {
 
 // Declare the function with void* to avoid complex.h dependency in C++
 double complex *onshellT(double *E, size_t len, size_t pNgauss);
+double complex *Det(double *E, size_t len, size_t pNgauss);
 void Free(void* ptr);
 
 void ose_free(onshellElements ose);
 typedef struct {
-  LSE *lse;
+  size_t pNgauss;
+  double Lambda;
+  double epsilon;
   size_t start;
   size_t len;
   double *E;
-  onshellElements *res;
+  void *res;
   int64_t rs;
   size_t id;
 } argstruct;
 
 int oT(void *arg);
+int det(void *arg);
 
 #endif // !SCRIPT_H

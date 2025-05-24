@@ -143,7 +143,7 @@ static inline double complex omegaprime_11(double complex p,
     if (cabs(pprime) <= 1e-8) {                                                \
       pprime += 1e-6;                                                          \
     }                                                                          \
-    return square(g_pi) / square(f_pi) * -1. / 4. / p / pprime *           \
+    return square(g_pi) / square(f_pi) * -1. / 4. / p / pprime *               \
            (clog((E - (m + csquare(p - pprime) / 2 / m) -                      \
                   omega_##suffix(p, pprime)) /                                 \
                  (E - (m + csquare(p + pprime) / 2 / m) -                      \
@@ -184,13 +184,25 @@ double complex V_QM_01(LSE *self, uint64_t p, uint64_t pprime);
 double complex V_QM_10(LSE *self, uint64_t p, uint64_t pprime);
 double complex V_QM_11(LSE *self, uint64_t p, uint64_t pprime);
 
+#define DEFINE_VQMTEST(alpha, beta)                                            \
+  static inline double complex V_QM_TEST_##alpha##beta(LSE *self, uint64_t p,  \
+                                                       uint64_t pprime) {      \
+    return 0.001/(self->E - 0.9);                                                 \
+  }
+
+DEFINE_VQMTEST(0, 0)
+DEFINE_VQMTEST(0, 1)
+DEFINE_VQMTEST(1, 0)
+DEFINE_VQMTEST(1, 1)
+
 #define DEFINE_VQM(alpha, beta)                                                \
   double complex V_QM_##alpha##beta(LSE *self, uint64_t p, uint64_t pprime) {  \
     double complex res = 0 + 0I;                                               \
     __auto_type E = self->E;                                                   \
     for (size_t i = 0; i < N_MAX; i++) {                                       \
-      res -= self->psi_n_mat[i][p] * conj(self->psi_n_mat[i][pprime]) /        \
-             (E - self->E_vec[i] + self->epsilon * I);                         \
+      res -=                                                                   \
+          /* self->psi_n_mat[i][p] * conj(self->psi_n_mat[i][pprime]) */ 1 /   \
+          (E - self->E_vec[i] + self->epsilon * I);                            \
     }                                                                          \
     return res * g##alpha * g##beta;                                           \
   }
@@ -233,7 +245,7 @@ static inline double complex V_curlOME_11(double complex E, double complex p,
   static inline gsl_complex V##suffix(LSE *self, double complex p,             \
                                       double complex pprime) {                 \
     __auto_type E = self->E;                                                   \
-    return V_OME_##suffix(E, p, pprime) + Ctct_##suffix(g_c);                                             \
+    return V_QM_TEST_##suffix(self, p, pprime);                                         \
   }
 
 DEFINE_V_FUNCTION(00);

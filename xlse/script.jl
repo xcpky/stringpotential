@@ -10,7 +10,7 @@ using Measures
 using StatsBase
 using Serialization
 using LaTeXStrings
-Ngauss = 200
+Ngauss = 400
 eps = 1e-7
 E = -2.5:0.01:0.85
 Λ = 4
@@ -172,8 +172,10 @@ if "--onshellG" in ARGS
     # plot!(E, imag.(g11))
     # plot!(E, real.(g22))
     # plot!(E, imag.(g22))
-    plot(E, abs.(g11), dpi=300)
-    plot!(E, abs.(g22))
+    plot(E, real.(g11), dpi=300)
+    plot!(E, imag.(g11), dpi=300)
+    plot!(E, real.(g22))
+    plot!(E, imag.(g22))
     savefig("onshellG.png")
 end
 
