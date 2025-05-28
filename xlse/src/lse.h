@@ -26,12 +26,12 @@ typedef gsl_matrix_complex matrix;
 #define matrix_get gsl_matrix_complex_get
 
 typedef struct {
-  size_t Ngauss;
+  size_t pNgauss;
   double Lambda;
   double epsilon;
   double complex E;
-  matrix *T;
-  matrix *V;
+  matrix *TOME;
+  matrix *VOME;
   matrix *G;
   matrix *reg;
   double *xi;
@@ -41,7 +41,13 @@ typedef struct {
   WaveFunction *wf;
   double complex **psi_n_mat;
   double complex *psi_raw;
+  void *psi_n_mat_tp;
   double *E_vec;
+  double complex **Xin[2][2];
+  double complex *Xin_raw;
+  double complex **Xout[2][2];
+  double complex *Xout_raw;
+  void* XtX;
 } LSE;
 
 LSE *lse_malloc(size_t pNgauss, double Lambda, double epsilon);
@@ -69,6 +75,8 @@ int lse_vmat(LSE *self);
 int lse_tmat(LSE *self);
 double complex lse_detImVG(LSE *self, double complex E);
 void lse_refresh(LSE *self, double complex E, int64_t rs);
+void lse_X(LSE *self);
+void lse_XtX(LSE *self);
 
 // Complex square root function
 static inline double complex xsqrt(double complex x) {
@@ -187,7 +195,7 @@ double complex V_QM_11(LSE *self, uint64_t p, uint64_t pprime);
 #define DEFINE_VQMTEST(alpha, beta)                                            \
   static inline double complex V_QM_TEST_##alpha##beta(LSE *self, uint64_t p,  \
                                                        uint64_t pprime) {      \
-    return 0.001/(self->E - 0.9);                                                 \
+    return (-1 / (self->E + 0.5) - 1 / (self->E + 1))*g##alpha*g##beta;                       \
   }
 
 DEFINE_VQMTEST(0, 0)
@@ -202,7 +210,7 @@ DEFINE_VQMTEST(1, 1)
     for (size_t i = 0; i < N_MAX; i++) {                                       \
       res -=                                                                   \
           /* self->psi_n_mat[i][p] * conj(self->psi_n_mat[i][pprime]) */ 1 /   \
-          (E - self->E_vec[i] + self->epsilon * I);                            \
+          (E - self->E_vec[i]);                                                \
     }                                                                          \
     return res * g##alpha * g##beta;                                           \
   }
@@ -245,12 +253,20 @@ static inline double complex V_curlOME_11(double complex E, double complex p,
   static inline gsl_complex V##suffix(LSE *self, double complex p,             \
                                       double complex pprime) {                 \
     __auto_type E = self->E;                                                   \
-    return V_QM_TEST_##suffix(self, p, pprime);                                         \
+    return V_QM_TEST_##suffix(self, p, pprime);                                \
   }
 
 DEFINE_V_FUNCTION(00);
 DEFINE_V_FUNCTION(01);
 DEFINE_V_FUNCTION(10);
 DEFINE_V_FUNCTION(11);
+
+#define Xmalloc(suffix) {\
+  self->X##suffix##_raw = (double complex*)malloc(sizeof(double complex)*N_MAX*(pNgauss+2));\
+  self->X##suffix= (double complex**)malloc(sizeof(double complex)*N_MAX);\
+  for (size_t i = 0; i < N_MAX; i+=1) {\
+    self->X##suffix[i] = &self->X##suffix##_raw[i*(pNgauss + 2)];\
+  }\
+}
 
 #endif // !LSE_H

@@ -18,4 +18,6 @@ static inline void auto_wffree(WaveFunction **wf) { WFfree(*wf); }
 
 static inline void auto_fclose(FILE **fp) { fclose(*fp); }
 
+static inline void auto_ptrfree(double complex **ptr) { free(*ptr); }
+
 #endif // AUTOFREE_H

@@ -93,16 +93,16 @@ int oT(void *arg) {
     lse_compute(lse, foo.E[i], foo.rs);
     // printf("%f\n", foo.E[i]);
     size_t idx = ngauss * 2 * (ngauss + 1) + ngauss;
-    ose00[i] = lse->T->data[2 * idx] + lse->T->data[2 * idx + 1] * I;
+    ose00[i] = lse->TOME->data[2 * idx] + lse->TOME->data[2 * idx + 1] * I;
     // ose00[i] = gsl_matrix_complex_get(lse->T, ngauss, ngauss);
     idx += ngauss + 1;
-    ose01[i] = lse->T->data[2 * idx] + lse->T->data[2 * idx + 1] * I;
+    ose01[i] = lse->TOME->data[2 * idx] + lse->TOME->data[2 * idx + 1] * I;
     // ose01[i] = matrix_get(lse->T, ngauss, 2 * ngauss + 1);
     idx = (2 * ngauss + 1) * 2 * (ngauss + 1) + ngauss;
-    ose10[i] = lse->T->data[2 * idx] + lse->T->data[2 * idx + 1] * I;
+    ose10[i] = lse->TOME->data[2 * idx] + lse->TOME->data[2 * idx + 1] * I;
     // ose10[i] = matrix_get(lse->T, 2 * ngauss + 1, ngauss);
     idx += ngauss + 1;
-    ose11[i] = lse->T->data[2 * idx] + lse->T->data[2 * idx + 1] * I;
+    ose11[i] = lse->TOME->data[2 * idx] + lse->TOME->data[2 * idx + 1] * I;
     // ose11[i] = matrix_get(lse->T, 2 * ngauss + 1, 2 * ngauss + 1);
   }
   return 0;

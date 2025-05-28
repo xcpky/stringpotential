@@ -39,7 +39,21 @@
 #define g_qm (1)
 #define partialwave 1
 
+// wavefunction constants
+#define N_MAX 30
+#define R_1 (0.02 * 5.068)   // GeV^-1
+#define R_N_MAX (30 * 5.068) // GeV^-1
+#define C_T ((-1) * 0.19732 * 0.19732 / (0.5 * 4.18) * 5.068)
+#define PI 3.14159265358979323846
+#define V0FIT 0.4
+#define SIGMA_L 0.0199179973550142
+#define SIGMA (SIGMA_L / a_l / a_l)
+#define ALPHA 0.476814032326273
+
+
 extern const double delta[2];
 extern const double mu[2];
+extern const double Delta[2][2];
+extern const double gab[2];
 
 #endif // !DEBUG

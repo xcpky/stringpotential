@@ -31,7 +31,7 @@ function cfree(ptr::Ptr{Cvoid})
 end
 
 # E = 0.499:0.000013:0.5035
-E = 0.89:0.000001:0.91
+E = -3:0.00001:0.5
 # println("in julia")
 # println(collect(E))
 ot = conshellT(collect(E), length(E), 64)

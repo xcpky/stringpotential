@@ -51,9 +51,9 @@ void testlse() {
   // puts("G matrix");
   // gsl_matrix_complex_fprintf(stdout, lse->G, "%.2e");
   puts("V matrix");
-  printmat(lse->V);
+  printmat(lse->VOME);
   puts("T matrix");
-  printmat(lse->T);
+  printmat(lse->TOME);
   // gsl_matrix_complex_fprintf(stdout, lse->T, "%.2e");
   // puts("I - VG matrix");
   // gsl_matrix_complex_fprintf(stdout, lse->iIVG, "%.2e");
@@ -80,7 +80,7 @@ void testonshell() {
   q = lse->x0[1];
   printf("(%.12e) + Im(%.12e)\n", creal(q), cimag(q));
   lse_vmat(lse);
-  __auto_type onshellV = matrix_get(lse->V, Ngauss, Ngauss);
+  __auto_type onshellV = matrix_get(lse->VOME, Ngauss, Ngauss);
   printf("(%.12e) + Im(%.12e)\n", creal(onshellV), cimag(onshellV));
   lse_refresh(lse, -0.578802965, 1);
   lse_vmat(lse);
@@ -88,7 +88,7 @@ void testonshell() {
   printf("(%.12e) + Im(%.12e)\n", creal(q), cimag(q));
   q = lse->x0[1];
   printf("(%.12e) + Im(%.12e)\n", creal(q), cimag(q));
-  onshellV = matrix_get(lse->V, Ngauss, Ngauss);
+  onshellV = matrix_get(lse->VOME, Ngauss, Ngauss);
   printf("(%.12e) + Im(%.12e)\n", creal(onshellV), cimag(onshellV));
 }
 

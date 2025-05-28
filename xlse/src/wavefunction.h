@@ -42,17 +42,6 @@ void psi_n_batch(WaveFunction *self, const double *r_values,
 void psi_n_ft_batch(WaveFunction *self, const double *p_values,
                     double complex *results, size_t num_points, uint64_t n);
 
-// Constants
-#define N_MAX 30
-#define R_1 (0.02 * 5.068)   // GeV^-1
-#define R_N_MAX (30 * 5.068) // GeV^-1
-#define C_T ((-1) * 0.19732 * 0.19732 / (0.5 * 4.18) * 5.068)
-#define PI 3.14159265358979323846
-#define V0FIT 0.4
-#define SIGMA_L 0.0199179973550142
-#define SIGMA (SIGMA_L / a_l / a_l)
-#define ALPHA 0.476814032326273
-
 static inline double doublefactorial(int n) {
   if (n == 0 || n == 1)
     return 1.0;

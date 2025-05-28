@@ -19,7 +19,7 @@ double *linspace(double start, double end, size_t len) {
 }
 
 WaveFunction *WFnew(uint64_t l, double rLambda, uint64_t rNgauss) {
-  WaveFunction *self = (WaveFunction *)malloc(sizeof(WaveFunction));
+  WaveFunction *self = malloc(sizeof(WaveFunction));
   if (!self) {
     return NULL;
   }
@@ -27,8 +27,8 @@ WaveFunction *WFnew(uint64_t l, double rLambda, uint64_t rNgauss) {
   self->rLambda = rLambda;
   self->rNgauss = rNgauss;
   self->table = gsl_integration_glfixed_table_alloc(rNgauss);
-  self->xi = (double *)malloc(sizeof(double) * rNgauss);
-  self->wi = (double *)malloc(sizeof(double) * rNgauss);
+  self->xi = malloc(sizeof(double) * rNgauss);
+  self->wi = malloc(sizeof(double) * rNgauss);
   for (uint64_t i = 0; i < rNgauss; i += 1) {
     gsl_integration_glfixed_point(0, rLambda, i, &self->xi[i], &self->wi[i],
                                   self->table);
