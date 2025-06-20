@@ -25,55 +25,60 @@ typedef gsl_matrix_complex matrix;
 #define matrix_scale gsl_matrix_complex_scale
 #define matrix_get gsl_matrix_complex_get
 
+#define TPO
+
+#define vlarray(ptr, ...) ((double complex(*) __VA_ARGS__)(ptr))
+
 typedef struct {
   size_t pNgauss;
   double Lambda;
   double epsilon;
   double complex E;
+  double complex det;
   matrix *TOME;
   matrix *VOME;
   matrix *G;
   matrix *reg;
-  double *xi;
-  double *wi;
   double complex x0[2];
   gsl_integration_glfixed_table *table;
   WaveFunction *wf;
-  double complex **psi_n_mat;
-  double complex *psi_raw;
-  void *psi_n_mat_tp;
+  double *xi;
+  double *wi;
+  void *psi_n_mat;
   double *E_vec;
-  double complex **Xin[2][2];
-  double complex *Xin_raw;
-  double complex **Xout[2][2];
-  double complex *Xout_raw;
-  void* XtX;
+  void *Xin;
+  void *Xout;
+  double complex onshellT[2][2];
+  void *v;
+  void *sigmat;
 } LSE;
 
 LSE *lse_malloc(size_t pNgauss, double Lambda, double epsilon);
-int lse_compute(LSE *app, double complex E, int64_t rs);
-void lse_free(LSE *app);
-double complex *lse_get_g_data(LSE *app);
-void lse_get_g_size(LSE *app, unsigned int *rows, unsigned int *cols);
-double complex *lse_get_v_data(LSE *app);
-void lse_get_v_size(LSE *app, unsigned int *rows, unsigned int *cols);
-double complex *lse_get_t_data(LSE *app);
-void lse_get_t_size(LSE *app, unsigned int *rows, unsigned int *cols);
-double complex *lse_get_ivg_data(LSE *app);
-void lse_get_ivg_size(LSE *app, unsigned int *rows, unsigned int *cols);
-double complex *lse_get_iivg_data(LSE *app);
-void lse_get_iivg_size(LSE *app, unsigned int *rows, unsigned int *cols);
+int lse_compute(LSE *self, double complex E, int64_t rs);
+void lse_free(LSE *self);
+double complex *lse_get_g_data(LSE *self);
+void lse_get_g_size(LSE *self, unsigned int *rows, unsigned int *cols);
+double complex *lse_get_v_data(LSE *self);
+void lse_get_v_size(LSE *self, unsigned int *rows, unsigned int *cols);
+double complex *lse_get_t_data(LSE *self);
+void lse_get_t_size(LSE *self, unsigned int *rows, unsigned int *cols);
+double complex *lse_get_ivg_data(LSE *self);
+void lse_get_ivg_size(LSE *self, unsigned int *rows, unsigned int *cols);
+double complex *lse_get_iivg_data(LSE *self);
+void lse_get_iivg_size(LSE *self, unsigned int *rows, unsigned int *cols);
 double complex *lse_get_psi(LSE *self);
 void lse_get_psi_size(LSE *self, unsigned int *rows, unsigned int *cols);
 double *lse_get_E(LSE *self);
 void lse_get_E_size(unsigned int *levels);
-void lse_get_M_size(LSE *app, unsigned int *rows, unsigned int *cols);
+void lse_get_M_size(LSE *self, unsigned int *rows, unsigned int *cols);
+double complex *lse_get_onshellT(LSE *self);
 
 // LSE methods
 int lse_gmat(LSE *self);
 int lse_vmat(LSE *self);
 int lse_tmat(LSE *self);
 double complex lse_detImVG(LSE *self, double complex E);
+double complex lse_detVG(LSE *self, double complex E);
 void lse_refresh(LSE *self, double complex E, int64_t rs);
 void lse_X(LSE *self);
 void lse_XtX(LSE *self);
@@ -187,15 +192,20 @@ static inline double complex V_OME_11(double complex E, double complex p,
   return 2. / 3 * O_11(E, p, pprime, m_eta);
 }
 
-double complex V_QM_00(LSE *self, uint64_t p, uint64_t pprime);
-double complex V_QM_01(LSE *self, uint64_t p, uint64_t pprime);
-double complex V_QM_10(LSE *self, uint64_t p, uint64_t pprime);
-double complex V_QM_11(LSE *self, uint64_t p, uint64_t pprime);
+double complex V_QM_00(LSE *self, size_t p, size_t pprime);
+double complex V_QM_01(LSE *self, size_t p, size_t pprime);
+double complex V_QM_10(LSE *self, size_t p, size_t pprime);
+double complex V_QM_11(LSE *self, size_t p, size_t pprime);
 
 #define DEFINE_VQMTEST(alpha, beta)                                            \
-  static inline double complex V_QM_TEST_##alpha##beta(LSE *self, uint64_t p,  \
-                                                       uint64_t pprime) {      \
-    return (-1 / (self->E + 0.5) - 1 / (self->E + 1))*g##alpha*g##beta;                       \
+  static inline double complex V_QM_TEST_##alpha##beta(LSE *self, size_t p,    \
+                                                       size_t pprime) {        \
+    double E[3] = {-0.2, 0.8, 1.2};                                             \
+    double complex res = 0;                                                    \
+    for (size_t i = 0; i < N_MAX; i += 1) {                                        \
+      res -= 1 / (self->E - self->E_vec[i]);                                             \
+    }                                                                          \
+    return res * g##alpha * g##beta;                                           \
   }
 
 DEFINE_VQMTEST(0, 0)
@@ -204,13 +214,17 @@ DEFINE_VQMTEST(1, 0)
 DEFINE_VQMTEST(1, 1)
 
 #define DEFINE_VQM(alpha, beta)                                                \
-  double complex V_QM_##alpha##beta(LSE *self, uint64_t p, uint64_t pprime) {  \
+  double complex V_QM_##alpha##beta(LSE *self, size_t p, size_t pprime) {      \
     double complex res = 0 + 0I;                                               \
-    __auto_type E = self->E;                                                   \
+    auto E = self->E;                                                          \
+    size_t pNgauss = self->pNgauss;                                            \
+    auto psi = (double complex(*)[N_MAX + 1][pNgauss + 1]) self->psi_n_mat;    \
+    size_t chan0 = p / (pNgauss + 1);                                          \
+    size_t chan1 = pprime / (pNgauss + 1);                                     \
     for (size_t i = 0; i < N_MAX; i++) {                                       \
-      res -=                                                                   \
-          /* self->psi_n_mat[i][p] * conj(self->psi_n_mat[i][pprime]) */ 1 /   \
-          (E - self->E_vec[i]);                                                \
+      res -= psi[chan0][i][p % (pNgauss + 1)] *                                \
+             conj(psi[chan1][i][pprime % (pNgauss + 1)]) /                     \
+             (E - self->E_vec[i]);                                             \
     }                                                                          \
     return res * g##alpha * g##beta;                                           \
   }
@@ -251,22 +265,15 @@ static inline double complex V_curlOME_11(double complex E, double complex p,
 
 #define DEFINE_V_FUNCTION(suffix)                                              \
   static inline gsl_complex V##suffix(LSE *self, double complex p,             \
-                                      double complex pprime) {                 \
+                                      double complex pprime, size_t pi,        \
+                                      size_t ppi) {                            \
     __auto_type E = self->E;                                                   \
-    return V_QM_TEST_##suffix(self, p, pprime);                                \
+    return V_QM_TEST_##suffix(self, pi, ppi);                                  \
   }
 
 DEFINE_V_FUNCTION(00);
 DEFINE_V_FUNCTION(01);
 DEFINE_V_FUNCTION(10);
 DEFINE_V_FUNCTION(11);
-
-#define Xmalloc(suffix) {\
-  self->X##suffix##_raw = (double complex*)malloc(sizeof(double complex)*N_MAX*(pNgauss+2));\
-  self->X##suffix= (double complex**)malloc(sizeof(double complex)*N_MAX);\
-  for (size_t i = 0; i < N_MAX; i+=1) {\
-    self->X##suffix[i] = &self->X##suffix##_raw[i*(pNgauss + 2)];\
-  }\
-}
 
 #endif // !LSE_H

@@ -127,14 +127,14 @@ if "--testV" in ARGS
 end
 
 if "--testWF" in ARGS
-    wf = wf_new(1, 20, 64)
+    wf = wf_new(0, 20, 64)
     r = collect(range(0, 7, 1000))
     psi = psi_n_batch(wf, xi, UInt(4), 0.0)
     plot(r, imag.(psi_n_ft_batch(wf, r, UInt(1))), dpi=300)
     plot!(r, imag.(psi_n_ft_batch(wf, r, UInt(2))), dpi=300)
-    plot!(r, imag.(psi_n_ft_batch(wf, r, UInt(3))), dpi=300)
+    plot!(r, -imag.(psi_n_ft_batch(wf, r, UInt(3))), dpi=300)
     plot!(r, imag.(psi_n_ft_batch(wf, r, UInt(4))), dpi=300)
-    plot!(r, imag.(psi_n_ft_batch(wf, r, UInt(5))), dpi=300)
+    plot!(r, -imag.(psi_n_ft_batch(wf, r, UInt(5))), dpi=300)
     savefig("psi.png")
 end
 

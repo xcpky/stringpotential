@@ -111,14 +111,17 @@ static inline complex double integrand_complex(double r, double complex p,
   }
 }
 
-static inline complex double integrand(double r, double p,
-                                               int n, int l) {
+static inline complex double integrand(double r, double p, int n, int l) {
   if (l == 0) {
     return sin(r * p) / p * r * exp(-nu_n(n) * r * r);
   } else {
     return (sin(r * p) / p / p - cos(r * p) * r / p) * r *
            exp(-nu_n(n) * r * r);
   }
+}
+
+static inline double complex psi_test(double complex p) {
+  return I * p * cexp(-p * p / 4 / M_PI);
 }
 
 // static inline complex double integrand(double r, double p, int n, int l) {

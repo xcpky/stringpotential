@@ -1,7 +1,7 @@
 #ifndef CONSTANTS_H
 #define CONSTANTS_H
 #define PNGAUSS 64
-#define RNGAUSS 64
+#define RNGAUSS 256
 #define RLAMBDA 20
 #define f_pi (0.092) 
 #define g_pi (0.5704) 
@@ -37,10 +37,10 @@
 #define m_c 1.85
 #define a_Cornell 1.95
 #define g_qm (1)
-#define partialwave 1
+#define partialwave 0
 
 // wavefunction constants
-#define N_MAX 30
+#define N_MAX 64
 #define R_1 (0.02 * 5.068)   // GeV^-1
 #define R_N_MAX (30 * 5.068) // GeV^-1
 #define C_T ((-1) * 0.19732 * 0.19732 / (0.5 * 4.18) * 5.068)

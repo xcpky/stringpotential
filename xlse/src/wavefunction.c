@@ -36,7 +36,6 @@ WaveFunction *WFnew(uint64_t l, double rLambda, uint64_t rNgauss) {
   self->c_solution = gsl_matrix_alloc(N_MAX, N_MAX);
   self->E_solution = gsl_vector_alloc(N_MAX);
   build(self);
-  double *rsamples = linspace(0, 7, rsample);
   return self;
 };
 void WFfree(WaveFunction *self) {
@@ -45,6 +44,7 @@ void WFfree(WaveFunction *self) {
   gsl_vector_free(self->E_solution);
   free(self->xi);
   free(self->wi);
+  free(self);
 };
 
 void build(WaveFunction *self) {
@@ -157,7 +157,7 @@ double complex psi_n_ftcomplex(WaveFunction *self, double complex p,
   for (size_t nidx = 0; nidx < N_MAX; nidx += 1) {
     double complex quad = 0 + 0 * I;
     for (size_t i = 0; i < Ngauss; i += 1) {
-      quad += integrand(xi[i], p, nidx + 1, l) * wi[i];
+      quad += integrand_complex(xi[i], p, nidx + 1, l) * wi[i];
     }
     psi += gsl_matrix_get(self->c_solution, nidx, n - 1) * N_nl(nidx + 1, l) *
            quad;

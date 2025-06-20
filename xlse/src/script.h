@@ -16,8 +16,10 @@ typedef struct {
 } onshellElements;
 
 // Declare the function with void* to avoid complex.h dependency in C++
-double complex *onshellT(double *E, size_t len, size_t pNgauss);
-double complex *Det(double *E, size_t len, size_t pNgauss);
+double complex *onshellT(double *E, size_t len, size_t pNgauss, double Lambda, double epsilon);
+double complex *Det(double *E, size_t len, size_t pNgauss, double Lambda, double epsilon);
+double complex *Both(double *E, size_t len, size_t pNgauss, double Lambda, double epsilon);
+double *Evec(size_t pNgauss, double Lambda, double epsilon);
 void Free(void* ptr);
 
 void ose_free(onshellElements ose);
@@ -35,5 +37,6 @@ typedef struct {
 
 int oT(void *arg);
 int det(void *arg);
+int both(void *arg);
 
 #endif // !SCRIPT_H

@@ -10,10 +10,11 @@
 #include <stdlib.h>
 #include <string.h>
 
-// double complex V_QM(LSE *self, uint64_t p, uint64_t pprime) {
+// #define CONSTQM
+// double complex V_QM(LSE *self, size_t p, size_t pprime) {
 //   double complex res = 0 + 0 * I;
 //   __auto_type E = self->E;
-//   for (uint64_t i = 0; i < N_MAX; i += 1) {
+//   for (size_t i = 0; i < N_MAX; i += 1) {
 //     // res += self->psi_n_mat[i][p] * conj(self->psi_n_mat[i][pprime]) /
 //     //        (E - self->E_vec[i]);
 //     res -= 1 / (E - self->E_vec[i] + self->epsilon*I);
@@ -81,46 +82,48 @@ LSE *lse_malloc(size_t pNgauss, double Lambda, double epsilon) {
                                   self->table);
   }
 
-  self->psi_raw = malloc(sizeof(double complex) * N_MAX * (pNgauss + 2));
-  self->psi_n_mat = malloc(sizeof(double complex *) * N_MAX);
-  self->psi_n_mat_tp = malloc(sizeof(double complex) * (N_MAX + 1) * pNgauss);
-  for (uint64_t i = 0; i < N_MAX; i += 1) {
-    self->psi_n_mat[i] = &self->psi_raw[i * (pNgauss + 2)];
-    psi_n_ft_batch(self->wf, self->xi, self->psi_n_mat[i], pNgauss, i + 1);
-  }
-  double complex(*psi)[pNgauss] = self->psi_n_mat_tp;
+  self->psi_n_mat =
+      malloc(sizeof(double complex) * 2 * (N_MAX + 1) * (pNgauss + 1));
+  double complex(*psi)[N_MAX + 1][pNgauss + 1] = self->psi_n_mat;
+#ifdef TESTQM
   for (size_t i = 0; i < N_MAX; i += 1) {
-    memcpy(psi[i], self->psi_n_mat[i], sizeof(double complex) * pNgauss);
+    for (size_t pi = 0; pi < pNgauss; pi += 1) {
+      psi[0][i][pi] = psi_test(self->xi[pi]);
+    }
+    memcpy(psi[1][i], psi[0][i], sizeof(double complex) * pNgauss);
   }
-  for (size_t pi = 0; pi < pNgauss; pi += 1) {
-    psi[N_MAX][pi] = 1;
+#elifdef CONSTQM
+  for (size_t i = 0; i < N_MAX; i += 1) {
+    for (size_t pi = 0; pi < pNgauss; pi += 1) {
+      psi[0][i][pi] = 1;
+    }
+    memcpy(psi[1][i], psi[0][i], sizeof(double complex) * pNgauss);
+  }
+#else
+  for (size_t i = 0; i < N_MAX; i += 1) {
+    psi_n_ft_batch(self->wf, self->xi, psi[0][i], pNgauss, i + 1);
+    memcpy(psi[1][i], psi[0][i], sizeof(double complex) * pNgauss);
+  }
+#endif
+  for (size_t ch = 0; ch < 2; ch += 1) {
+    for (size_t pi = 0; pi < pNgauss + 1; pi += 1) {
+      psi[ch][N_MAX][pi] = 1;
+    }
   }
   self->E_vec = malloc(sizeof(double) * N_MAX);
   memcpy(self->E_vec, self->wf->E_solution->data, N_MAX * sizeof(double));
 
   size_t ntp = N_MAX + 1;
-  self->Xin_raw = malloc(sizeof(double complex) * 4 * ntp * (pNgauss + 1));
-  self->Xout_raw = malloc(sizeof(double complex) * 4 * ntp * (pNgauss + 1));
-  for (size_t alpha = 0; alpha < 2; alpha += 1) {
-    for (size_t beta = 0; beta < 2; beta += 1) {
-      self->Xin[alpha][beta] = malloc(sizeof(double complex *) * ntp);
-      self->Xout[alpha][beta] = malloc(sizeof(double complex *) * ntp);
+  self->Xin = malloc(sizeof(double complex) * 4 * ntp * (pNgauss + 1));
+  self->Xout = malloc(sizeof(double complex) * 4 * ntp * (pNgauss + 1));
+  self->v = malloc(sizeof(double complex) * 4 * ntp);
 
-      for (size_t i = 0; i < ntp; i += 1) {
-        self->Xin[alpha][beta][i] =
-            &self->Xin_raw[(alpha * 2 + beta) * ntp * (pNgauss + 1) +
-                           i * (pNgauss + 1)];
-      }
-
-      for (size_t i = 0; i < ntp; i += 1) {
-        self->Xout[alpha][beta][i] =
-            &self->Xout_raw[(alpha * 2 + beta) * ntp * (pNgauss + 1) +
-                            i * (pNgauss + 1)];
-      }
-    }
-  }
-
-  self->XtX = malloc(4 * ntp * ntp * sizeof(double complex));
+  double complex(*v)[2][ntp] = self->v;
+  v[0][0][N_MAX] = 0;
+  v[0][1][N_MAX] = 0;
+  v[1][0][N_MAX] = 0;
+  v[1][1][N_MAX] = 0;
+  self->sigmat = malloc(4 * (N_MAX + 1) * (N_MAX + 1) * sizeof(double complex));
 
   // Initialize x0
   // for (int i = 0; i < 2; i++) {
@@ -138,14 +141,28 @@ void lse_refresh(LSE *self, double complex E, int64_t rs) {
   // self->Lambda = Lambda;
   self->E = E;
 
+  double complex(*psi)[N_MAX + 1][self->pNgauss + 1] = self->psi_n_mat;
+  double complex(*v)[2][N_MAX + 1] = self->v;
+  for (size_t alpha = 0; alpha < 2; alpha += 1) {
+    for (size_t beta = 0; beta < 2; beta += 1) {
+      for (size_t i = 0; i < N_MAX; i += 1) {
+        v[alpha][beta][i] = gab[alpha] * gab[beta] / (E - self->E_vec[i]);
+      }
+    }
+  }
   for (int i = 0; i < 2; i++) {
     const double complex dE = E - delta[i];
     const double mU = mu[i];
     const double complex tmp = xsqrt(2 * mU * dE);
     self->x0[i] = rs * tmp;
-    for (uint64_t j = 0; j < N_MAX; j += 1) {
-      self->psi_n_mat[j][self->pNgauss + i] =
-          psi_n_ftcomplex(self->wf, rs * tmp, j + 1);
+    for (size_t j = 0; j < N_MAX; j += 1) {
+#ifdef TESTQM
+      psi[i][j][self->pNgauss] = psi_test(rs * tmp);
+#elifdef CONSTQM
+      psi[i][j][self->pNgauss] = 1;
+#else
+      psi[i][j][self->pNgauss] = psi_n_ftcomplex(self->wf, rs * tmp, j + 1);
+#endif
     }
   }
 }
@@ -158,23 +175,17 @@ void lse_free(LSE *self) {
   matrix_free(self->TOME);
   matrix_free(self->VOME);
   matrix_free(self->G);
+  matrix_free(self->reg);
   gsl_integration_glfixed_table_free(self->table);
   WFfree(self->wf);
   free(self->xi);
   free(self->wi);
-  free(self->E_vec);
-  free(self->psi_raw);
   free(self->psi_n_mat);
-  free(self->psi_n_mat_tp);
-  free(self->Xin_raw);
-  free(self->Xout_raw);
-  for (size_t i = 0; i < 2; i += 1) {
-    for (size_t j = 0; j < 2; j += 1) {
-      free(self->Xin[i][j]);
-      free(self->Xout[i][j]);
-    }
-  }
-  free(self->XtX);
+  free(self->E_vec);
+  free(self->Xin);
+  free(self->Xout);
+  free(self->v);
+  free(self->sigmat);
   free(self);
 }
 
@@ -219,6 +230,7 @@ int lse_gmat(LSE *self) {
 
 // Calculate V matrix
 int lse_vmat(LSE *self) {
+  size_t pNgauss = self->pNgauss;
   matrix_set_zero(self->VOME);
 
   for (size_t idx = 0; idx < self->pNgauss; idx++) {
@@ -237,13 +249,13 @@ int lse_vmat(LSE *self) {
       size_t j11 = jdx + 1 * (self->pNgauss + 1);
 
       // Set matrix elements for regular cases
-      matrix_set(self->VOME, i00, j00, V00(self, p, pprime));
+      matrix_set(self->VOME, i00, j00, V00(self, p, pprime, idx, jdx));
 
-      matrix_set(self->VOME, i01, j01, V01(self, p, pprime));
+      matrix_set(self->VOME, i01, j01, V01(self, p, pprime, idx, jdx));
 
-      matrix_set(self->VOME, i10, j10, V10(self, p, pprime));
+      matrix_set(self->VOME, i10, j10, V10(self, p, pprime, idx, jdx));
 
-      matrix_set(self->VOME, i11, j11, V11(self, p, pprime));
+      matrix_set(self->VOME, i11, j11, V11(self, p, pprime, idx, jdx));
     }
   }
 
@@ -266,13 +278,17 @@ int lse_vmat(LSE *self) {
     size_t j11 = jdx + 1 * (self->pNgauss + 1);
 
     // Set matrix elements for edge cases
-    matrix_set(self->VOME, i00, j00, V00(self, self->x0[0], pprime));
+    matrix_set(self->VOME, i00, j00,
+               V00(self, self->x0[0], pprime, pNgauss, jdx));
 
-    matrix_set(self->VOME, i01, j01, V01(self, self->x0[0], pprime));
+    matrix_set(self->VOME, i01, j01,
+               V01(self, self->x0[0], pprime, pNgauss, jdx));
 
-    matrix_set(self->VOME, i10, j10, V10(self, self->x0[1], pprime));
+    matrix_set(self->VOME, i10, j10,
+               V10(self, self->x0[1], pprime, 2 * pNgauss + 1, jdx));
 
-    matrix_set(self->VOME, i11, j11, V11(self, self->x0[1], pprime));
+    matrix_set(self->VOME, i11, j11,
+               V11(self, self->x0[1], pprime, 2 * pNgauss + 1, jdx));
   }
 
   // Case 2: jdx = Ngauss (special x0 value for second dimension)
@@ -292,12 +308,14 @@ int lse_vmat(LSE *self) {
     size_t j11 = jdx + 1 * (self->pNgauss + 1);
 
     // Set matrix elements for edge cases
-    matrix_set(self->VOME, i00, j00, V00(self, p, self->x0[0]));
-    matrix_set(self->VOME, i01, j01, V01(self, p, self->x0[1]));
+    matrix_set(self->VOME, i00, j00, V00(self, p, self->x0[0], idx, pNgauss));
+    matrix_set(self->VOME, i01, j01,
+               V01(self, p, self->x0[1], idx, 2 * pNgauss + 1));
 
-    matrix_set(self->VOME, i10, j10, V10(self, p, self->x0[0]));
+    matrix_set(self->VOME, i10, j10, V10(self, p, self->x0[0], idx, pNgauss));
 
-    matrix_set(self->VOME, i11, j11, V11(self, p, self->x0[1]));
+    matrix_set(self->VOME, i11, j11,
+               V11(self, p, self->x0[1], idx, 2 * pNgauss + 1));
   }
 
   // Case 3: Both idx = Ngauss and jdx = Ngauss (special x0 values for both
@@ -316,13 +334,18 @@ int lse_vmat(LSE *self) {
   size_t j11 = jdx + 1 * (self->pNgauss + 1);
 
   // Set matrix elements for the corner case
-  matrix_set(self->VOME, i00, j00, V00(self, self->x0[0], self->x0[0]));
+  matrix_set(self->VOME, i00, j00,
+             V00(self, self->x0[0], self->x0[0], pNgauss, pNgauss));
 
-  matrix_set(self->VOME, i01, j01, V01(self, self->x0[0], self->x0[1]));
+  matrix_set(self->VOME, i01, j01,
+             V01(self, self->x0[0], self->x0[1], pNgauss, 2 * pNgauss + 1));
 
-  matrix_set(self->VOME, i10, j10, V10(self, self->x0[1], self->x0[0]));
+  matrix_set(self->VOME, i10, j10,
+             V10(self, self->x0[1], self->x0[0], 2 * pNgauss + 1, pNgauss));
 
-  matrix_set(self->VOME, i11, j11, V11(self, self->x0[1], self->x0[1]));
+  matrix_set(
+      self->VOME, i11, j11,
+      V11(self, self->x0[1], self->x0[1], 2 * pNgauss + 1, 2 * pNgauss + 1));
 #ifdef DEBUG
   __auto_type val = V00(self, self->x0[0], self->x0[0]);
   printf("(%f) + Im(%f)\n", creal(val), cimag(val));
@@ -336,20 +359,19 @@ int lse_tmat(LSE *self) {
   const size_t n = 2 * (self->pNgauss + 1);
 
   // Step 1: Compute VG = V * G
-  gsl_matrix_complex *VG __attribute__((cleanup(auto_matfree))) =
+  gsl_matrix_complex *VG [[gnu::cleanup(matfree)]] =
       gsl_matrix_complex_alloc(n, n);
   if (!VG)
     return -1;
   gsl_matrix_complex_set_zero(VG);
 
-  // Use GSL BLAS wrapper for matrix multiplication: VG = V * G
   gsl_complex alpha = gsl_complex_rect(1.0, 0.0);
   gsl_complex beta = gsl_complex_rect(0.0, 0.0);
   gsl_blas_zgemm(CblasNoTrans, CblasNoTrans, alpha, self->VOME, self->G, beta,
                  VG);
 
   // Step 2: Compute I - VG
-  gsl_matrix_complex *I_minus_VG __attribute__((cleanup(auto_matfree))) =
+  gsl_matrix_complex *I_minus_VG [[gnu::cleanup(matfree)]] =
       gsl_matrix_complex_alloc(n, n);
   if (!I_minus_VG) {
     return -1;
@@ -361,7 +383,7 @@ int lse_tmat(LSE *self) {
 
   // Add identity matrix: I_minus_VG = I - VG
   gsl_matrix_complex_add_diagonal(I_minus_VG, 1 + 0I);
-  gsl_matrix_complex_memcpy(self->reg, I_minus_VG);
+  // gsl_matrix_complex_memcpy(self->reg, I_minus_VG);
   // for (size_t i = 0; i < n; i++) {
   //   gsl_complex diag = gsl_matrix_complex_get(I_minus_VG, i, i);
   //   gsl_complex one = gsl_complex_rect(1.0, 0.0);
@@ -369,8 +391,7 @@ int lse_tmat(LSE *self) {
   // }
 
   // Step 3: Invert (I - VG) using LU decomposition
-  gsl_permutation *perm __attribute__((cleanup(auto_permfree))) =
-      gsl_permutation_alloc(n);
+  gsl_permutation *perm [[gnu::cleanup(permfree)]] = gsl_permutation_alloc(n);
   if (!perm) {
     return -1;
   }
@@ -380,7 +401,8 @@ int lse_tmat(LSE *self) {
     return -1;
   }
 
-  gsl_matrix_complex *inv_I_minus_VG __attribute__((cleanup(auto_matfree))) =
+  self->det = gsl_linalg_complex_LU_det(I_minus_VG, signum);
+  gsl_matrix_complex *inv_I_minus_VG [[gnu::cleanup(matfree)]] =
       gsl_matrix_complex_alloc(n, n);
   if (!inv_I_minus_VG) {
     return -1;
@@ -390,7 +412,6 @@ int lse_tmat(LSE *self) {
       GSL_SUCCESS) {
     return -1;
   }
-  // Step 4: Compute T = inv(I - VG) * V using GSL BLAS wrapper
   gsl_blas_zgemm(CblasNoTrans, CblasNoTrans, alpha, inv_I_minus_VG, self->VOME,
                  beta, self->TOME);
 
@@ -400,32 +421,48 @@ int lse_tmat(LSE *self) {
 
 void lse_X(LSE *self) {
   size_t pNgauss = self->pNgauss;
-  double complex(*psi)[pNgauss] = self->psi_n_mat_tp;
+  double complex(*psi)[N_MAX + 1][pNgauss + 1] = self->psi_n_mat;
+  double complex(*Xin)[2][N_MAX + 1][pNgauss + 1] = self->Xin;
+  double complex(*Xout)[2][N_MAX + 1][pNgauss + 1] = self->Xout;
   for (size_t alpha = 0; alpha < 2; alpha += 1) {
     for (size_t beta = 0; beta < 2; beta += 1) {
-      double complex **xin = self->Xin[alpha][beta];
-      double complex **xout = self->Xout[alpha][beta];
-      for (size_t i = 0; i <= N_MAX; i += 1) {
+      auto xin = Xin[alpha][beta];
+      auto xout = Xout[alpha][beta];
+      for (size_t i = 0; i < N_MAX + 1; i += 1) {
         for (size_t pi = 0; pi < pNgauss + 1; pi += 1) {
           xin[i][pi] = 0;
           xout[i][pi] = 0;
-          for (size_t ki = 0; ki < pNgauss; ki += 1) {
+          for (size_t ki = 0; ki < pNgauss + 1; ki += 1) {
             double complex G = matrix_get(self->G, ki + alpha * (pNgauss + 1),
                                           ki + alpha * (pNgauss + 1));
             double complex T =
                 matrix_get(self->TOME, ki + alpha * (pNgauss + 1),
                            pi + beta * (pNgauss + 1));
-            xin[i][pi] -= psi[i][ki] * G * T * self->wi[ki];
+            xin[i][pi] += psi[alpha][i][ki] * G * T;
             G = matrix_get(self->G, ki + beta * (pNgauss + 1),
                            ki + beta * (pNgauss + 1));
             T = matrix_get(self->TOME, pi + alpha * (pNgauss + 1),
                            ki + beta * (pNgauss + 1));
-            xout[i][pi] -= T * G * psi[i][ki] * self->wi[ki];
+            xout[i][pi] += T * G * psi[beta][i][ki];
           }
-          xin[i][pi] /= 8 * M_PI * M_PI * M_PI;
-          xin[i][pi] += psi[i][pi] * Delta[alpha][beta];
-          xout[i][pi] /= 8 * M_PI * M_PI * M_PI;
-          xout[i][pi] += psi[i][pi] * Delta[alpha][beta];
+          xin[i][pi] += psi[beta][i][pi] * Delta[alpha][beta];
+          xout[i][pi] += psi[alpha][i][pi] * Delta[alpha][beta];
+        }
+      }
+    }
+  }
+  double complex(*sigma)[2][N_MAX + 1][N_MAX + 1] = self->sigmat;
+  for (size_t alpha = 0; alpha < 2; alpha += 1) {
+    for (size_t beta = 0; beta < 2; beta += 1) {
+      for (size_t i = 0; i < N_MAX + 1; i += 1) {
+        for (size_t j = 0; j < N_MAX + 1; j += 1) {
+          sigma[alpha][beta][i][j] = 0;
+          for (size_t ki = 0; ki < pNgauss + 1; ki += 1) {
+            double complex G = matrix_get(self->G, ki + alpha * (pNgauss + 1),
+                                          ki + alpha * (pNgauss + 1));
+            sigma[alpha][beta][i][j] +=
+                psi[alpha][i][ki] * G * Xout[alpha][beta][j][ki];
+          }
         }
       }
     }
@@ -433,79 +470,72 @@ void lse_X(LSE *self) {
 }
 
 void lse_XtX(LSE *self) {
+  constexpr size_t n = N_MAX + 1;
   size_t pNgauss = self->pNgauss;
-  double complex(*sigma)[2][N_MAX][N_MAX] = malloc(2 * sizeof(*sigma));
+  double complex(*sigma)[2][n][n] = self->sigmat;
+  double complex(*Xout)[2][n][pNgauss + 1] = self->Xout;
+  double complex(*Xin)[2][n][pNgauss + 1] = self->Xin;
+  matrix *M [[gnu::cleanup(matfree)]] = matrix_alloc(2 * n, 2 * n);
+  matrix_set_zero(M);
+  double complex(*mat)[2 * n] = (double complex(*)[2 * n]) M->data;
+  double complex(*v)[2][n] = self->v;
   for (size_t alpha = 0; alpha < 2; alpha += 1) {
     for (size_t beta = 0; beta < 2; beta += 1) {
-      for (size_t i = 0; i < N_MAX; i += 1) {
-        for (size_t j = 0; j < N_MAX; j += 1) {
-          sigma[alpha][beta][i][j] = 0;
-          for (size_t ki = 0; ki < pNgauss; ki += 1) {
-            double complex G = matrix_get(self->G, ki + alpha * (pNgauss + 1),
-                                          ki + alpha * (pNgauss + 1));
-            sigma[alpha][beta][i][j] += self->psi_n_mat[i][ki] * G *
-                                        self->Xout[alpha][beta][j][ki] *
-                                        self->wi[ki];
+      for (size_t gamma = 0; gamma < 2; gamma += 1) {
+        for (size_t i = 0; i < n; i += 1) {
+          for (size_t j = 0; j < n; j += 1) {
+            mat[i + alpha * n][j + beta * n] -=
+                v[alpha][gamma][i] * sigma[gamma][beta][i][j];
           }
         }
       }
     }
   }
-  matrix *M[2][2] = {{matrix_alloc(N_MAX, N_MAX), matrix_alloc(N_MAX, N_MAX)},
-                     {matrix_alloc(N_MAX, N_MAX), matrix_alloc(N_MAX, N_MAX)}};
+  gsl_matrix_complex_add_diagonal(M, 1);
+  matrix *invM [[gnu::cleanup(matfree)]] = matrix_alloc(2 * n, 2 * n);
+  gsl_permutation *perm [[gnu::cleanup(permfree)]] =
+      gsl_permutation_alloc(2 * n);
+  int signum;
+  gsl_linalg_complex_LU_decomp(M, perm, &signum);
+  gsl_linalg_complex_LU_invert(M, perm, invM);
+  double complex(*invmat)[2 * n] = (double complex(*)[2 * n]) invM->data;
+  double complex(*invMv)[2][n][n] =
+      malloc(2 * sizeof(*invMv));
+  memset(invMv, 0, 2 * sizeof(*invMv));
   for (size_t alpha = 0; alpha < 2; alpha += 1) {
     for (size_t beta = 0; beta < 2; beta += 1) {
-      double complex tmp = 0;
-      for (size_t i = 0; i <= N_MAX; i += 1) {
-        for (size_t j = 0; j <= N_MAX; j += 1) {
-          for (size_t gamma = 0; gamma < 2; gamma += 1) {
-            tmp += gab[alpha] * gab[gamma] / (self->E - self->E_vec[i]) *
-                   sigma[gamma][beta][i][j];
-          }
-          matrix_set(M[alpha][beta], i, j, tmp);
-        }
-      }
-    }
-    gsl_matrix_complex_add_diagonal(M[alpha][alpha], 1);
-  }
-  matrix *invM[2][2];
-  double complex(*XtX)[2][N_MAX][N_MAX] = self->XtX;
-  for (size_t alpha = 0; alpha < 2; alpha += 1) {
-    for (size_t beta = 0; beta < 2; beta += 1) {
-      invM[alpha][beta] = matrix_alloc(N_MAX, N_MAX);
-      gsl_permutation *perm __attribute__((cleanup(auto_permfree))) =
-          gsl_permutation_alloc(N_MAX);
-      int signum;
-      if (gsl_linalg_complex_LU_decomp(M[alpha][beta], perm, &signum) !=
-          GSL_SUCCESS) {
-        exit(-1);
-      }
-      if (gsl_linalg_complex_LU_invert(M[alpha][beta], perm,
-                                       invM[alpha][beta]) != GSL_SUCCESS) {
-        exit(-1);
-      }
-    }
-  }
-  for (size_t alpha = 0; alpha < 2; alpha += 1) {
-    for (size_t beta = 0; beta < 2; beta += 1) {
-      for (size_t i = 0; i < N_MAX; i += 1) {
-        for (size_t j = 0; j < N_MAX; j += 1) {
-          XtX[alpha][beta][i][j] = 0;
-          for (size_t gamma = 0; gamma < 2; gamma += 1) {
-            XtX[alpha][beta][i][j] += matrix_get(invM[alpha][gamma], i, j) *
-                                      gab[gamma] * gab[beta] /
-                                      (self->E - self->E_vec[j]);
+      for (size_t gamma = 0; gamma < 2; gamma += 1) {
+        for (size_t i = 0; i < N_MAX + 1; i += 1) {
+          for (size_t j = 0; j < N_MAX + 1; j += 1) {
+            invMv[alpha][beta][i][j] +=
+                invmat[i + alpha * n][j + gamma * n] * v[gamma][beta][j];
           }
         }
       }
     }
   }
-  free(sigma);
+  auto T = self->onshellT;
   for (size_t alpha = 0; alpha < 2; alpha += 1) {
     for (size_t beta = 0; beta < 2; beta += 1) {
-      matrix_free(invM[alpha][beta]);
+      T[alpha][beta] = 0;
     }
   }
+  for (size_t alpha = 0; alpha < 2; alpha += 1) {
+    for (size_t beta = 0; beta < 2; beta += 1) {
+      for (size_t gamma = 0; gamma < 2; gamma += 1) {
+        for (size_t delta = 0; delta < 2; delta += 1) {
+          for (size_t i = 0; i < N_MAX + 1; i += 1) {
+            for (size_t j = 0; j < N_MAX + 1; j += 1) {
+              T[alpha][beta] += Xout[alpha][gamma][i][pNgauss] *
+                                invMv[gamma][delta][i][j] *
+                                (Xout[delta][beta][j][pNgauss]);
+            }
+          }
+        }
+      }
+    }
+  }
+  free(invMv);
 }
 
 double complex *lse_get_iivg_data(LSE *self) {
@@ -513,7 +543,7 @@ double complex *lse_get_iivg_data(LSE *self) {
   lse_vmat(self);
   const size_t n = 2 * (self->pNgauss + 1);
   // Step 1: Compute VG = V * G
-  gsl_matrix_complex *VG __attribute__((cleanup(auto_matfree))) =
+  gsl_matrix_complex *VG [[gnu::cleanup(matfree)]] =
       gsl_matrix_complex_alloc(n, n);
   if (!VG)
     exit(-1);
@@ -526,7 +556,7 @@ double complex *lse_get_iivg_data(LSE *self) {
                  VG);
 
   // Step 2: Compute I - VG
-  gsl_matrix_complex *I_minus_VG __attribute__((cleanup(auto_matfree))) =
+  gsl_matrix_complex *I_minus_VG [[gnu::cleanup(matfree)]] =
       gsl_matrix_complex_alloc(n, n);
   if (!I_minus_VG) {
     exit(-1);
@@ -546,8 +576,7 @@ double complex *lse_get_iivg_data(LSE *self) {
   // }
 
   // Step 3: Invert (I - VG) using LU decomposition
-  gsl_permutation *perm __attribute__((cleanup(auto_permfree))) =
-      gsl_permutation_alloc(n);
+  gsl_permutation *perm [[gnu::cleanup(permfree)]] = gsl_permutation_alloc(n);
   if (!perm) {
     exit(-1);
   }
@@ -557,7 +586,7 @@ double complex *lse_get_iivg_data(LSE *self) {
     exit(-1);
   }
 
-  gsl_matrix_complex *inv_I_minus_VG __attribute__((cleanup(auto_matfree))) =
+  gsl_matrix_complex *inv_I_minus_VG [[gnu::cleanup(matfree)]] =
       gsl_matrix_complex_alloc(n, n);
   if (!inv_I_minus_VG) {
     exit(-1);
@@ -578,7 +607,7 @@ double complex lse_detImVG(LSE *self, double complex E) {
   const size_t n = 2 * (self->pNgauss + 1);
 
   // Step 1: Compute VG = V * G
-  gsl_matrix_complex *VG __attribute__((cleanup(auto_matfree))) =
+  gsl_matrix_complex *VG [[gnu::cleanup(matfree)]] =
       gsl_matrix_complex_alloc(n, n);
   if (!VG)
     return -1;
@@ -591,7 +620,7 @@ double complex lse_detImVG(LSE *self, double complex E) {
                  VG);
 
   // Step 2: Compute I - VG
-  gsl_matrix_complex *I_minus_VG __attribute__((cleanup(auto_matfree))) =
+  gsl_matrix_complex *I_minus_VG [[gnu::cleanup(matfree)]] =
       gsl_matrix_complex_alloc(n, n);
   if (!I_minus_VG) {
     return -1;
@@ -606,8 +635,7 @@ double complex lse_detImVG(LSE *self, double complex E) {
   // gsl_matrix_complex_memcpy(self->reg, I_minus_VG);
 
   // Step 3: Invert (I - VG) using LU decomposition
-  gsl_permutation *perm __attribute__((cleanup(auto_permfree))) =
-      gsl_permutation_alloc(n);
+  gsl_permutation *perm [[gnu::cleanup(permfree)]] = gsl_permutation_alloc(n);
   if (!perm) {
     return -1;
   }
@@ -619,75 +647,111 @@ double complex lse_detImVG(LSE *self, double complex E) {
   return gsl_linalg_complex_LU_det(I_minus_VG, signum);
 }
 
+double complex lse_detVG(LSE *self, double complex E) {
+  lse_refresh(self, E, -1);
+  lse_gmat(self);
+  lse_vmat(self);
+  const size_t n = 2 * (self->pNgauss + 1);
+
+  // Step 1: Compute VG = V * G
+  gsl_matrix_complex *VG [[gnu::cleanup(matfree)]] =
+      gsl_matrix_complex_alloc(n, n);
+  if (!VG)
+    return -1;
+  gsl_matrix_complex_set_zero(VG);
+
+  // Use GSL BLAS wrapper for matrix multiplication: VG = V * G
+  gsl_complex alpha = gsl_complex_rect(1.0, 0.0);
+  gsl_complex beta = gsl_complex_rect(0.0, 0.0);
+  gsl_blas_zgemm(CblasNoTrans, CblasNoTrans, alpha, self->VOME, self->G, beta,
+                 VG);
+
+  // Step 3: Invert (I - VG) using LU decomposition
+  gsl_permutation *perm [[gnu::cleanup(permfree)]] = gsl_permutation_alloc(n);
+  if (!perm) {
+    return -1;
+  }
+
+  int signum;
+  if (gsl_linalg_complex_LU_decomp(VG, perm, &signum) != GSL_SUCCESS) {
+    return -1;
+  }
+  return gsl_linalg_complex_LU_det(VG, signum);
+}
+
 // Run the LSE solver
-int lse_compute(LSE *app, double complex E, int64_t rs) {
-  lse_refresh(app, E, rs);
-  if (lse_gmat(app) != 0)
+int lse_compute(LSE *self, double complex E, int64_t rs) {
+  lse_refresh(self, E, rs);
+  if (lse_gmat(self) != 0)
     return -1;
-  if (lse_vmat(app) != 0)
+  if (lse_vmat(self) != 0)
     return -1;
-  if (lse_tmat(app) != 0)
+  if (lse_tmat(self) != 0)
     return -1;
   return 0;
 }
 
-double complex *lse_get_g_data(LSE *app) {
-  return (double complex *)app->G->data;
+double complex *lse_get_g_data(LSE *self) {
+  return (double complex *)self->G->data;
 }
 
-void lse_get_g_size(LSE *app, unsigned int *rows, unsigned int *cols) {
-  *rows = (unsigned int)app->G->size1;
-  *cols = (unsigned int)app->G->size2;
+void lse_get_g_size(LSE *self, unsigned int *rows, unsigned int *cols) {
+  *rows = (unsigned int)self->G->size1;
+  *cols = (unsigned int)self->G->size2;
 }
 
-double complex *lse_get_v_data(LSE *app) {
-  return (double complex *)app->VOME->data;
+double complex *lse_get_v_data(LSE *self) {
+  return (double complex *)self->VOME->data;
 }
 
-void lse_get_v_size(LSE *app, unsigned int *rows, unsigned int *cols) {
-  *rows = (unsigned int)app->VOME->size1;
-  *cols = (unsigned int)app->VOME->size2;
+void lse_get_v_size(LSE *self, unsigned int *rows, unsigned int *cols) {
+  *rows = (unsigned int)self->VOME->size1;
+  *cols = (unsigned int)self->VOME->size2;
 }
 
-double complex *lse_get_t_data(LSE *app) {
-  return (double complex *)app->TOME->data;
+double complex *lse_get_t_data(LSE *self) {
+  return (double complex *)self->TOME->data;
 }
 
-void lse_get_t_size(LSE *app, unsigned int *rows, unsigned int *cols) {
-  *rows = (unsigned int)app->TOME->size1;
-  *cols = (unsigned int)app->TOME->size2;
+void lse_get_t_size(LSE *self, unsigned int *rows, unsigned int *cols) {
+  *rows = (unsigned int)self->TOME->size1;
+  *cols = (unsigned int)self->TOME->size2;
 }
 
-double complex *lse_get_ivg_data(LSE *app) {
-  return (double complex *)app->reg->data;
+double complex *lse_get_ivg_data(LSE *self) {
+  return (double complex *)self->reg->data;
 }
 
-void lse_get_ivg_size(LSE *app, unsigned int *rows, unsigned int *cols) {
-  *rows = (unsigned int)app->reg->size1;
-  *cols = (unsigned int)app->reg->size2;
+void lse_get_ivg_size(LSE *self, unsigned int *rows, unsigned int *cols) {
+  *rows = (unsigned int)self->reg->size1;
+  *cols = (unsigned int)self->reg->size2;
 }
 
-void lse_get_iivg_size(LSE *app, unsigned int *rows, unsigned int *cols) {
-  *rows = (unsigned int)app->VOME->size1;
-  *cols = (unsigned int)app->VOME->size2;
+void lse_get_iivg_size(LSE *self, unsigned int *rows, unsigned int *cols) {
+  *rows = (unsigned int)self->VOME->size1;
+  *cols = (unsigned int)self->VOME->size2;
 }
 
-void lse_get_m_size(LSE *app, unsigned int *rows, unsigned int *cols) {
-  *rows = (unsigned int)2 * (app->pNgauss + 1);
-  *cols = (unsigned int)2 * (app->pNgauss + 1);
+void lse_get_M_size(LSE *self, unsigned int *rows, unsigned int *cols) {
+  *rows = (unsigned int)2 * (self->pNgauss + 1);
+  *cols = (unsigned int)2 * (self->pNgauss + 1);
 }
 
-double complex *lse_get_psi(LSE *self) { return self->psi_raw; }
+double complex *lse_get_onshellT(LSE *self) {
+  return (double complex *)self->onshellT;
+};
+
+double complex *lse_get_psi(LSE *self) { return self->psi_n_mat; }
 
 void lse_get_psi_size(LSE *self, unsigned int *rows, unsigned int *cols) {
   *rows = (unsigned int)N_MAX;
-  *cols = (unsigned int)(self->pNgauss + 2);
+  *cols = (unsigned int)(self->pNgauss + 1);
 }
 
 double *lse_get_E(LSE *self) { return self->E_vec; }
 void lse_get_E_size(unsigned int *levels) { *levels = (unsigned int)N_MAX; }
 
-// complex double V(uint64_t alpha, uint64_t beta, double E, double complex p,
+// complex double V(size_t alpha, size_t beta, double E, double complex p,
 //                  double complex pprime) {
 //   if (alpha + beta == 0) {
 //     return V00(E, p, pprime);
