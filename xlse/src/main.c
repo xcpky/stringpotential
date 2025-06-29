@@ -3,6 +3,7 @@
 #include "script.h"
 #include "wavefunction.h"
 #include <gsl/gsl_eigen.h>
+#include <gsl/gsl_integration.h>
 #include <gsl/gsl_matrix_double.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -10,6 +11,37 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/types.h>
+
+void testconvergence() {
+  size_t Ngauss = 512;
+  double Lambda;
+  WaveFunction *wf [[gnu::cleanup(wffree)]] = WFnew(partialwave, 4, Ngauss);
+  auto self = wf;
+  double complex p = 1.3 * I;
+  size_t n = 1;
+  do {
+    scanf("%lf", &Lambda);
+    wf_refresh(wf, Lambda);
+    const uint64_t Ngauss = self->rNgauss;
+    const uint64_t l = self->l;
+    double *xi = self->xi;
+    double *wi = self->wi;
+    double complex psi = 0.0;
+    auto nidx = 40;
+      double complex quad = 0 + 0 * I;
+      printf("nu: %10.6e\n", nu_n(nidx + 1));
+      for (size_t i = 0; i < Ngauss; i += 1) {
+        quad += integrand_complex(xi[i], p, nidx + 1, l) * wi[i];
+      }
+      printf("%10.6e%+10.6eim  ", creal(quad), cimag(quad));
+      if (((nidx + 1) % 8) == 0) {
+        puts("");
+      }
+      psi += gsl_matrix_get(self->c_solution, nidx, n - 1) * N_nl(nidx + 1, l) *
+             quad;
+    printf("%10.4e%+10.4eim\n", creal(psi), cimag(psi));
+  } while (true);
+}
 
 double *linspace(double start, double end, size_t len) {
   double *res = (double *)malloc(sizeof(double) * len);
@@ -19,6 +51,7 @@ double *linspace(double start, double end, size_t len) {
   }
   return res;
 }
+
 void testwf() {
   // WaveFunction *wf __attribute__((cleanup(auto_wffree))) = WFnew(0, 20, 64);
   // for (size_t i = 0; i < N_MAX; i += 1) {
@@ -31,6 +64,7 @@ void testwf() {
   size_t pNgauss = 64;
   LSE *lse [[gnu::cleanup(lsefree)]] = lse_malloc(pNgauss, 4, 1e-6);
   double complex(*psi)[N_MAX + 1][pNgauss + 1] = lse->psi_n_mat;
+  lse_refresh(lse, -0.3, PP);
   // printf("%25s %28s\n", "Column 1", "Column 2");
   // char delim[55];
   // for (size_t i = 0; i < 54; i += 1) {
@@ -41,21 +75,21 @@ void testwf() {
   const int width = 11;    // Field width for each number
   const int precision = 4; // Decimal places
 
-  // for (size_t i = 0; i < N_MAX + 1; i += 1) {
-  //   auto x = psi[0][i][pNgauss];
-  //   auto y = psi[1][i][pNgauss];
-  //   printf("(%*.*e %*.*ei)   ", width, precision, creal(x), width, precision,
-  //          cimag(x));
-  //
-  //   // Format second complex number
-  //   printf("(%*.*e %*.*ei)\n", width, precision, creal(y), width, precision,
-  //          cimag(y));
-  // }
-  puts("energy");
-  for (size_t i = 0; i < N_MAX; i += 1) {
-    auto e = lse->E_vec[i];
-    printf("%*.*e\n", width, precision, e);
+  for (size_t i = 0; i < N_MAX + 1; i += 1) {
+    auto x = psi[0][i][pNgauss];
+    auto y = psi[1][i][pNgauss];
+    printf("(%*.*e %*.*ei)   ", width, precision, creal(x), width, precision,
+           cimag(x));
+
+    // Format second complex number
+    printf("(%*.*e %*.*ei)\n", width, precision, creal(y), width, precision,
+           cimag(y));
   }
+  // puts("energy");
+  // for (size_t i = 0; i < N_MAX; i += 1) {
+  //   auto e = lse->E_vec[i];
+  //   printf("%*.*e\n", width, precision, e);
+  // }
 }
 
 void printmat(matrix *m) {
@@ -227,12 +261,9 @@ void testonshell() {
 }
 
 void unitest() {
-  double re;
-  double im;
-  while (scanf("%lf %lf", &re, &im) != 0) {
-    __auto_type val = O_00(0.3, re + im * I, 1, m_B);
-    printf("E(%.2e): (%.2e) + Im(%.2e)\n", re, creal(val), cimag(val));
-  }
+  LSE *lse [[gnu::cleanup(lsefree)]] = lse_malloc(64, 4, 1e-6);
+  lse_refresh(lse, 0.1, PP);
+  lse_gmat(lse);
 }
 void ptrfree(double **ptr) { free(*ptr); }
 void testscript() {
@@ -253,8 +284,13 @@ void testscript() {
   free(level);
 }
 
+void testpole() {
+  double Er[3] = {-1, 0, 1};
+  double Ei[3] = {-1, 0, 1};
+  free(Poles(Er, 3, Ei, 3, 64, 4, 1e-6));
+}
+
 int main(int argc, char *argv[]) {
-  printf("%12.8f, %12.8f, %12.8f\n", g0, g1, g0 * g1);
   if (argc == 1) {
     puts("what do you want?");
     return EXIT_SUCCESS;
@@ -273,6 +309,10 @@ int main(int argc, char *argv[]) {
     testwopotential();
   } else if (strcmp(argv[1], "onshellpsi") == 0) {
     testonshellpsi();
+  } else if (strcmp(argv[1], "testpole") == 0) {
+    testpole();
+  } else if (strcmp(argv[1], "convergence") == 0) {
+    testconvergence();
   }
   return EXIT_SUCCESS;
 }

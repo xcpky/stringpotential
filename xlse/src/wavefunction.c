@@ -131,6 +131,14 @@ size_t WF_get_c_solution_tda(WaveFunction *self) {
   return self->c_solution->tda;
 }
 
+void wf_refresh(WaveFunction *self, double rLambda) {
+  self->rLambda = rLambda;
+  for (size_t i = 0; i < self->rNgauss; i += 1) {
+    gsl_integration_glfixed_point(0, rLambda, i, &self->xi[i], &self->wi[i],
+                                  self->table);
+  }
+}
+
 // Wavefunction definition
 double complex psi_n(WaveFunction *self, double r, uint64_t n, double theta) {
   double complex psi = 0.0;

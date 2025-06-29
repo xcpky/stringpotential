@@ -32,6 +32,7 @@ double *WF_get_c_solution_data(WaveFunction *self);
 size_t WF_get_c_solution_tda(WaveFunction *self);
 size_t WF_get_E_solution_length(WaveFunction *self);
 double *WF_get_E_solution_data(WaveFunction *self);
+void wf_refresh(WaveFunction*, double);
 complex double psi_n(WaveFunction *self, double r, uint64_t n, double theta);
 complex double psi_n_ft(WaveFunction *self, double p, uint64_t n);
 complex double psi_n_ftcomplex(WaveFunction *self, double complex p,
@@ -107,7 +108,7 @@ static inline complex double integrand_complex(double r, double complex p,
     return csin(r * p) / p * r * exp(-nu_n(n) * r * r);
   } else {
     return (csin(r * p) / p / p - ccos(r * p) * r / p) * r *
-           exp(-nu_n(n) * r * r);
+           exp(-nu_n(n) * r * r - 3*r);
   }
 }
 

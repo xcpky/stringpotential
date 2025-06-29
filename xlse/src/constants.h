@@ -37,12 +37,13 @@
 #define m_c 1.85
 #define a_Cornell 1.95
 #define g_qm (1)
-#define partialwave 0
+#define partialwave 1
 
 // wavefunction constants
 #define N_MAX 64
+#define N_TOWER 24
 #define R_1 (0.02 * 5.068)   // GeV^-1
-#define R_N_MAX (30 * 5.068) // GeV^-1
+#define R_N_MAX (N_MAX * 5.068) // GeV^-1
 #define C_T ((-1) * 0.19732 * 0.19732 / (0.5 * 4.18) * 5.068)
 #define PI 3.14159265358979323846
 #define V0FIT 0.4

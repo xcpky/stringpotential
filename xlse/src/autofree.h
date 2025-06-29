@@ -22,4 +22,6 @@ static inline void auto_ptrfree(double complex **ptr) { free(*ptr); }
 
 static inline void autofree(void **ptr) { free(*ptr); }
 
+static inline void close(FILE **ptr) { fclose(*ptr); }
+
 #endif // AUTOFREE_H
