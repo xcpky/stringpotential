@@ -20,3 +20,4 @@ papers
 *.so
 *.ipynb_checkpoints*
 *.dat
+*.pdf

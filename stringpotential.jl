@@ -48,20 +48,20 @@ const ωprime = (
 function debug_O(::Val{α}, ::Val{β}, E, p, pprime, m) where {α,β}
     p_c = complex(p)
     pprime_c = complex(pprime)
-    
+
     term1_num = E - (m + (p_c - pprime_c)^2 / 2 / m) - ω[α][β](p_c, pprime_c)
     term1_den = E - (m + (p_c + pprime_c)^2 / 2 / m) - ω[α][β](p_c, pprime_c)
     term1 = term1_num / term1_den
-    
+
     term2_num = E - (m + (p_c - pprime_c)^2 / 2 / m) - ωprime[α][β](p_c, pprime_c)
     term2_den = E - (m + (p_c + pprime_c)^2 / 2 / m) - ωprime[α][β](p_c, pprime_c)
     term2 = term2_num / term2_den
-    
+
     println("term1 = $term1")
     println("term2 = $term2")
     println("log(term1) = $(log(term1))")
     println("log(term2) = $(log(term2))")
-    
+
     result = -1 / 4 / p_c / pprime_c * (log(term1) + log(term2)) * g_pi^2 / f_pi^2
     println("result = $result")
     return result

@@ -51,6 +51,11 @@ typedef struct {
   double complex onshellT[2][2];
   void *v;
   void *sigmat;
+  double V0;
+  double C00;
+  double C01;
+  double C10;
+  double C11;
 } LSE;
 
 typedef enum {
@@ -61,7 +66,7 @@ typedef enum {
 } RS;
 
 LSE *lse_malloc(size_t pNgauss, double Lambda, double epsilon);
-int lse_compute(LSE *self, double complex E, RS rs);
+int lse_compute(LSE *self, double complex E, double C[4], RS rs);
 void lse_free(LSE *self);
 double complex *lse_get_g_data(LSE *self);
 void lse_get_g_size(LSE *self, unsigned int *rows, unsigned int *cols);
@@ -79,17 +84,24 @@ double *lse_get_E(LSE *self);
 void lse_get_E_size(unsigned int *levels);
 void lse_get_M_size(LSE *self, unsigned int *rows, unsigned int *cols);
 double complex *lse_get_onshellT(LSE *self);
-double complex pole(LSE *lse, double complex E, RS rs);
+double complex pole(LSE *lse, double complex E, double C[4], RS rs);
+double cost(const gsl_vector *x, void *params);
+double *minimize(LSE *lse, double C[4]);
 
 // LSE methods
 int lse_gmat(LSE *self);
 int lse_vmat(LSE *self);
 int lse_tmat(LSE *self);
-double complex lse_detImVG(LSE *self, double complex E, RS rs);
-double complex lse_detVG(LSE *self, double complex E);
-void lse_refresh(LSE *self, double complex E, RS rs);
+double complex lse_detImVG(LSE *self, double complex E, double C[4], RS rs);
+double complex lse_detVG(LSE *self, double complex E, double C[4], RS rs);
+double lse_cost(LSE *self, double C[4], RS rs);
+void lse_refresh(LSE *self, double complex E, double C[4], RS rs);
 void lse_X(LSE *self);
 void lse_XtX(LSE *self);
+
+static inline double min(double x, double y) { return x > y ? y : x; }
+
+static inline double max(double x, double y) { return x > y ? x : y; }
 
 // Complex square root function
 static inline double complex xsqrt(double complex x) {
@@ -164,15 +176,15 @@ static inline double complex omegaprime_11(double complex p,
     if (cabs(pprime) <= 1e-8) {                                                \
       pprime += 1e-6;                                                          \
     }                                                                          \
-    return square(g_pi) / square(f_pi) * -1. / 4. / p / pprime *               \
+    return 4 * square(g_pi) / square(f_pi) * -1. / 4. / p / pprime *           \
            (clog((E - (m + csquare(p - pprime) / 2 / m) -                      \
                   omega_##suffix(p, pprime)) /                                 \
                  (E - (m + csquare(p + pprime) / 2 / m) -                      \
-                  omega_##suffix(p, pprime) + 0 * I)) +                        \
+                  omega_##suffix(p, pprime))) +                                \
             clog((E - (m + csquare(p - pprime) / 2 / m) -                      \
                   omegaprime_##suffix(p, pprime)) /                            \
                  (E - (m + csquare(p + pprime) / 2 / m) -                      \
-                  omegaprime_##suffix(p, pprime) + 0 * I)));                   \
+                  omegaprime_##suffix(p, pprime))));                           \
   }
 
 DEFINE_O_FUNCTION(00);
@@ -235,15 +247,15 @@ DEFINE_V_TEST(1, 1)
 #define DEFINE_VQM(alpha, beta)                                                \
   double complex V_QM_##alpha##beta(LSE *self, size_t p, size_t pprime) {      \
     double complex res = 0 + 0I;                                               \
-    auto E = self->E;                                                          \
+    auto E = self->E + m11 + m12;                                              \
     size_t pNgauss = self->pNgauss;                                            \
     auto psi = (double complex(*)[N_MAX + 1][pNgauss + 1]) self->psi_n_mat;    \
     size_t chan0 = p / (pNgauss + 1);                                          \
     size_t chan1 = pprime / (pNgauss + 1);                                     \
-    for (size_t i = 0; i < N_MAX; i++) {                                       \
+    for (size_t i = 0; i < N_TOWER; i++) {                                     \
       res += psi[chan0][i][p % (pNgauss + 1)] *                                \
              conj(psi[chan1][i][pprime % (pNgauss + 1)]) /                     \
-             (E - self->E_vec[i]);                                             \
+             (E - self->E_vec[i] - self->V0);                                  \
     }                                                                          \
     return res * g##alpha * g##beta;                                           \
   }
@@ -286,8 +298,8 @@ static inline double complex V_curlOME_11(double complex E, double complex p,
   static inline gsl_complex V##suffix(LSE *self, double complex p,             \
                                       double complex pprime, size_t pi,        \
                                       size_t ppi) {                            \
-    auto E = self->E;                                                   \
-    return V_QM_##suffix(self, pi, ppi);                                       \
+    auto E = self->E;                                                          \
+    return V_OME_##suffix(E, p, pprime);                                       \
   }
 
 DEFINE_V_FUNCTION(00);

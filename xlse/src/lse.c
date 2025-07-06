@@ -4,14 +4,16 @@
 #include "wavefunction.h"
 #include <gsl/gsl_linalg.h>
 #include <gsl/gsl_matrix_complex_double.h>
+#include <gsl/gsl_multimin.h>
 #include <gsl/gsl_multiroots.h>
 #include <gsl/gsl_permutation.h>
+#include <gsl/gsl_vector_double.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 
-// #define TESTQM
+#define CONSTQM
 // double complex V_QM(LSE *self, size_t p, size_t pprime) {
 //   double complex res = 0 + 0 * I;
 //   __auto_type E = self->E;
@@ -113,9 +115,6 @@ LSE *lse_malloc(size_t pNgauss, double Lambda, double epsilon) {
   }
   self->E_vec = malloc(sizeof(double) * N_MAX);
   memcpy(self->E_vec, self->wf->E_solution->data, N_MAX * sizeof(double));
-  for (size_t i = 0; i < N_MAX; i += 1) {
-    self->E_vec[i] -= 1.2;
-  }
 
   size_t ntp = N_MAX + 1;
   self->Xin = malloc(sizeof(double complex) * 4 * ntp * (pNgauss + 1));
@@ -141,27 +140,38 @@ LSE *lse_malloc(size_t pNgauss, double Lambda, double epsilon) {
 }
 
 // Refresh LSE parameters
-void lse_refresh(LSE *self, double complex E, RS rs) {
+void lse_refresh(LSE *self, double complex E, double C[4], RS rs) {
   // self->Lambda = Lambda;
   self->E = E;
+  self->V0 = C[0];
+  self->C00 = C[1];
+  self->C01 = C[2];
+  self->C10 = C[2];
+  self->C11 = C[3];
 
   double complex(*psi)[N_MAX + 1][self->pNgauss + 1] = self->psi_n_mat;
+#ifdef TPO
+
   double complex(*v)[2][N_MAX + 1] = self->v;
   for (size_t alpha = 0; alpha < 2; alpha += 1) {
     for (size_t beta = 0; beta < 2; beta += 1) {
       for (size_t i = 0; i < N_MAX; i += 1) {
-        v[alpha][beta][i] = gab[alpha] * gab[beta] / (E - self->E_vec[i]);
+        v[alpha][beta][i] =
+            gab[alpha] * gab[beta] / (E - self->E_vec[i] - self->V0);
       }
     }
   }
+#endif /* ifdef TPO                                                              \
+                                                                               \ \
+   */
   for (int i = 0; i < 2; i++) {
     const double complex dE = E - delta[i];
     const double mU = mu[i];
     const double complex tmp = csqrt(2 * mU * dE);
     if (((rs >> i) & 1) == 1) {
-      self->x0[i] = cabs(tmp);
+      self->x0[i] = tmp;
     } else {
-      self->x0[i] = conj(tmp);
+      self->x0[i] = -(tmp);
     }
     for (size_t j = 0; j < N_MAX; j += 1) {
 #ifdef TESTQM
@@ -169,7 +179,12 @@ void lse_refresh(LSE *self, double complex E, RS rs) {
 #elifdef CONSTQM
       psi[i][j][self->pNgauss] = 1;
 #else
-      psi[i][j][self->pNgauss] = psi_n_ftcomplex(self->wf, self->x0[i], j + 1);
+      if (creal(dE) < 0) {
+        psi[i][j][self->pNgauss] = psi_n_ftcomplex(self->wf, 1e-2, j + 1);
+      } else {
+        psi[i][j][self->pNgauss] =
+            psi_n_ftcomplex(self->wf, self->x0[i], j + 1);
+      }
 #endif
     }
   }
@@ -613,8 +628,8 @@ double complex *lse_get_iivg_data(LSE *self) {
   return (double complex *)self->reg->data;
 }
 
-double complex lse_detImVG(LSE *self, double complex E, RS rs) {
-  lse_refresh(self, E, rs);
+double complex lse_detImVG(LSE *self, double complex E, double C[4], RS rs) {
+  lse_refresh(self, E, C, rs);
   lse_gmat(self);
   lse_vmat(self);
   const size_t n = 2 * (self->pNgauss + 1);
@@ -657,11 +672,12 @@ double complex lse_detImVG(LSE *self, double complex E, RS rs) {
   if (gsl_linalg_complex_LU_decomp(I_minus_VG, perm, &signum) != GSL_SUCCESS) {
     return -1;
   }
+  // printf("det: %.9f\n", cabs(gsl_linalg_complex_LU_det(I_minus_VG, signum)));
   return gsl_linalg_complex_LU_det(I_minus_VG, signum);
 }
 
-double complex lse_detVG(LSE *self, double complex E) {
-  lse_refresh(self, E, 1);
+double complex lse_detVG(LSE *self, double complex E, double C[4], RS rs) {
+  lse_refresh(self, E, C, rs);
   lse_gmat(self);
   lse_vmat(self);
   const size_t n = 2 * (self->pNgauss + 1);
@@ -692,9 +708,16 @@ double complex lse_detVG(LSE *self, double complex E) {
   return gsl_linalg_complex_LU_det(VG, signum);
 }
 
+double lse_cost(LSE *self, double C[4], RS rs) {
+  double res = cabs(lse_detImVG(self, m_Xb11P, C, rs));
+  res += cabs(lse_detImVG(self, m_Xb12P, C, rs));
+  res += cabs(lse_detImVG(self, m_Xb13P, C, rs));
+  return res;
+}
+
 // Run the LSE solver
-int lse_compute(LSE *self, double complex E, RS rs) {
-  lse_refresh(self, E, rs);
+int lse_compute(LSE *self, double complex E, double C[4], RS rs) {
+  lse_refresh(self, E, C, rs);
   if (lse_gmat(self) != 0)
     return -1;
   if (lse_vmat(self) != 0)
@@ -766,21 +789,23 @@ void lse_get_E_size(unsigned int *levels) { *levels = (unsigned int)N_MAX; }
 
 struct detparams {
   LSE *lse;
+  double C[4];
   RS rs;
 };
 int detImVG(const gsl_vector *x, void *params, gsl_vector *f) {
   struct detparams *detp = params;
   double complex E = gsl_vector_get(x, 0) + gsl_vector_get(x, 1) * I;
-  auto det = lse_detImVG(detp->lse, E, detp->rs);
+  auto det = lse_detImVG(detp->lse, E, detp->C, detp->rs);
   gsl_vector_set(f, 0, creal(det));
   gsl_vector_set(f, 1, cimag(det));
   return GSL_SUCCESS;
 }
 
-double complex pole(LSE *lse, double complex E, RS rs) {
+double complex pole(LSE *lse, double complex E, double C[4], RS rs) {
   const gsl_multiroot_fsolver_type *T = gsl_multiroot_fsolver_hybrid;
   struct detparams detp = {
       .lse = lse,
+      .C = {C[0], C[1], C[2], C[3]},
       .rs = rs,
   };
   gsl_multiroot_function F = {&detImVG, 2, &detp};
@@ -797,7 +822,7 @@ double complex pole(LSE *lse, double complex E, RS rs) {
     status = gsl_multiroot_fsolver_iterate(s);
     if (status)
       break;
-    status = gsl_multiroot_test_residual(s->f, 1e-8);
+    status = gsl_multiroot_test_residual(s->f, 1e-4);
   } while (status == GSL_CONTINUE && iter < max_iter);
   double complex res = NAN * NAN * I;
   if (status == GSL_SUCCESS) {
@@ -812,6 +837,68 @@ double complex pole(LSE *lse, double complex E, RS rs) {
   return res;
 }
 
+double cost(const gsl_vector *x, void *params) {
+  LSE *lse = params;
+  double C[4];
+  for (size_t i = 0; i < 4; i += 1) {
+    C[i] = gsl_vector_get(x, i);
+  }
+  // C[0] = -1.6 + (-0.9 + 1.6)/(1 + exp(-C[0]));
+  // res = max(res, cabs(lse_detImVG(lse, m_Xb11P, C, PP)));
+  // res = max(res, cabs(lse_detImVG(lse, m_Xb12P, C, PP)));
+  // res = max(res, cabs(lse_detImVG(lse, m_Xb13P, C, PP)));
+  return lse_cost(lse, C, PP);
+}
+
+double *minimize(LSE *lse, double C[4]) {
+  gsl_vector *x = gsl_vector_alloc(4);
+  for (size_t i = 0; i < 4; i += 1) {
+    gsl_vector_set(x, i, C[i]);
+  }
+  const gsl_multimin_fminimizer_type *T = gsl_multimin_fminimizer_nmsimplex;
+  gsl_multimin_function func;
+  func.n = 4;
+  func.f = cost;
+  func.params = lse;
+  gsl_multimin_fminimizer *s = gsl_multimin_fminimizer_alloc(T, 4);
+  gsl_vector *step = gsl_vector_alloc(4);
+  gsl_vector_set_all(step, 0.8);
+  gsl_multimin_fminimizer_set(s, &func, x, step);
+  int status;
+  int iter = 0;
+  int max_iter = 4000;
+  double tolerance = 1e-4;
+  double size;
+  do {
+    iter++;
+    status = gsl_multimin_fminimizer_iterate(s);
+    if (status) {
+      break;
+    }
+    size = gsl_multimin_fminimizer_size(s);
+    status = gsl_multimin_test_size(size, tolerance);
+  } while (status == GSL_CONTINUE && iter < max_iter);
+  if (status == GSL_SUCCESS) {
+    puts("minimization successed");
+  } else {
+    puts("minimization failed");
+  }
+  printf("iteration: %d\n", iter);
+  printf("fcn: %12.6e\n", s->fval);
+  static double res[4];
+  for (size_t i = 0; i < 4; i += 1) {
+    res[i] = gsl_vector_get(s->x, i);
+  }
+  // res[0] = -1.6 + (-0.9 + 1.6)/(1 + exp(-res[0]));
+  puts("res:");
+  for (size_t i = 0; i < 4; i += 1) {
+    printf("  %12.6e\n", res[i]);
+  }
+  gsl_vector_free(x);
+  gsl_vector_free(step);
+  gsl_multimin_fminimizer_free(s);
+  return res;
+}
 // complex double V(size_t alpha, size_t beta, double E, double complex p,
 //                  double complex pprime) {
 //   if (alpha + beta == 0) {

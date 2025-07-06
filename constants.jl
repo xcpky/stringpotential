@@ -13,6 +13,8 @@ const m_B = 5.27934 #GeV
 const m_B_star = 5.32471 #GeV
 const m_B_s = 5.36692 #GeV
 const m_B_star_s = 5.4154 #GeV
+const gamma_B_star = 4e-7
+const gamma_B_star_s = 4e-7
 
 #asign masses to channels
 const m11 = m_B

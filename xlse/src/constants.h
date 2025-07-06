@@ -27,9 +27,9 @@
 #define m_Xb11P (9.89278-(m11+m12))
 
 #define a_l (0.06426*5.068) 
-#define g (0.898794378386677/a_l)
-#define g0 (g*0.014926616931653945)
-#define g1 (g*0.006467550544943349)
+#define gcoupling (0.898794378386677/a_l)
+#define g0 (gcoupling*0.014926616931653945)
+#define g1 (gcoupling*0.006467550544943349)
 #define delta0 0
 #define delta1 (m21 + m22 - m11 - m12)
 #define mu0 (m11 * m12 / (m11 + m12))
@@ -41,7 +41,7 @@
 
 // wavefunction constants
 #define N_MAX 64
-#define N_TOWER 24
+#define N_TOWER 3
 #define R_1 (0.02 * 5.068)   // GeV^-1
 #define R_N_MAX (N_MAX * 5.068) // GeV^-1
 #define C_T ((-1) * 0.19732 * 0.19732 / (0.5 * 4.18) * 5.068)
@@ -56,5 +56,6 @@ extern const double delta[2];
 extern const double mu[2];
 extern const double Delta[2][2];
 extern const double gab[2];
+extern const double mdiff[2];
 
 #endif // !DEBUG
