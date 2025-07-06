@@ -2,6 +2,7 @@
 #include "autofree.h"
 #include "constants.h"
 #include "wavefunction.h"
+#include <gsl/gsl_integration.h>
 #include <gsl/gsl_linalg.h>
 #include <gsl/gsl_matrix_complex_double.h>
 #include <gsl/gsl_multimin.h>
@@ -83,6 +84,24 @@ LSE *lse_malloc(size_t pNgauss, double Lambda, double epsilon) {
   for (size_t i = 0; i < pNgauss; i++) {
     gsl_integration_glfixed_point(0, Lambda, i, &self->xi[i], &self->wi[i],
                                   self->table);
+  }
+  gsl_integration_glfixed_table tableim [[gnu::cleanup(gsl_integration_glfixed_table_free)]] = *gsl_integration_glfixed_table_alloc(DIMIM);
+  gsl_integration_glfixed_table tablere [[gnu::cleanup(gsl_integration_glfixed_table_free)]] = *gsl_integration_glfixed_table_alloc(DIMRE);
+  for (size_t i = 0; i < DIMIM; i += 1) {
+    double im;
+    double wi;
+    gsl_integration_glfixed_point(0, ZI, i, &im, &wi, &tableim);
+    self->xxpiup[i] = -1 + im*I;
+    self->wwpiup[i] = ZI*I*wi;
+
+    self->xxpiup[i + DIMRE] = 1 + (ZI-im)*I;
+    self->wwpiup[i + DIMRE] = -ZI*I*wi;
+
+    self->xxpidn[i] = -1 - im*I;
+    self->wwpiup[i] = -ZI*I*wi;
+
+    self->xxpidn[i + DIMRE] = 1 + (im - ZI)*I;
+    self->wwpidn[i + DIMRE] = ZI*I*wi;
   }
 
   self->psi_n_mat =

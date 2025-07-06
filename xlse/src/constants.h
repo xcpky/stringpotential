@@ -3,6 +3,10 @@
 #define PNGAUSS 64
 #define RNGAUSS 256
 #define RLAMBDA 20
+#define DIMIM 16
+#define DIMRE 24
+#define ZI (0.3)
+
 #define f_pi (0.092) 
 #define g_pi (0.5704) 
 #define g_c (-1./4.)

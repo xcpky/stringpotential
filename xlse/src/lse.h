@@ -44,6 +44,14 @@ typedef struct {
   WaveFunction *wf;
   double *xi;
   double *wi;
+  double complex xxpiup[2*DIMIM + DIMRE];
+  double complex wwpiup[2*DIMIM + DIMRE];
+  double complex xxpidn[2*DIMIM + DIMRE];
+  double complex wwpidn[2*DIMIM + DIMRE];
+  double xxz[DIMRE];
+  double wwz[DIMRE];
+  double xx0ii[DIMRE];
+  double ww0ii[DIMRE];
   void *psi_n_mat;
   double *E_vec;
   void *Xin;
