@@ -3,9 +3,6 @@
 #define PNGAUSS 64
 #define RNGAUSS 256
 #define RLAMBDA 20
-#define DIMIM 16
-#define DIMRE 24
-#define ZI (0.3)
 
 #define f_pi (0.092) 
 #define g_pi (0.5704) 
@@ -14,11 +11,14 @@
 #define m_pi (0.138039407) 
 #define m_K (0.498) 
 #define m_eta (0.548) 
+#define m_eta_s (0.69)
 
 #define m_B (5.27934) 
 #define m_B_star (5.32471) 
 #define m_B_s (5.36692) 
 #define m_B_star_s (5.4154) 
+#define gamma_B_star (4e-7)
+#define gamma_B_star_s (4e-7)
 
 #define m11 (m_B)
 #define m12 (m_B_star)

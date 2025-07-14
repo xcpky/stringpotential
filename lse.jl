@@ -94,10 +94,10 @@ function quadgaussC(f, x, w)
     return res
 end
 
-facπ = g_pi^2 / f_pi^2 / 12
+facπ = g_pi^2 / f_pi^2 
 zi=0.3
-nn=16
-nn2=24
+nn=8
+nn2=12
 const xxpiup=[gaussC(nn,-1,-1+zi*im)[1] ;gaussC(nn2,-1+zi*im,1+zi*im)[1] ; gaussC(nn,1+zi*im,1)[1]];
 const wwpiup=[gaussC(nn,-1,-1+zi*im)[2] ;gaussC(nn2,-1+zi*im,1+zi*im)[2] ; gaussC(nn,1+zi*im,1)[2]];
 const xxpidown=[gaussC(nn,-1,-1-zi*im)[1] ;gaussC(nn2,-1-zi*im,1-zi*im)[1] ; gaussC(nn,1-zi*im,1)[1]];
@@ -152,10 +152,10 @@ function Vπu(E,p1,p2,m1,gam1,m2,gam2,m3,gam3,m4,gam4,m0,fac)  # this is only va
     end
 end
 
-V11(E, p, pprime) = Vπu(E, p, pprime, m_B_star, gamma_B_star, m_B, 0, m_B_star, gamma_B_star, m_B, 0, m_pi, 1)
-V12(E, p, pprime) = Vπu(E, p, pprime, m_B_star_s, gamma_B_star_s, m_B_s, 0, m_B_star, gamma_B_star, m_B, 0, m_pi, 1)
-V21(E, p, pprime) = Vπu(E, p, pprime, m_B_star, gamma_B_star, m_B, 0, m_B_star_s, gamma_B_star_s, m_B_s, 0, m_pi, 1)
-V22(E, p, pprime) = Vπu(E, p, pprime, m_B_star, gamma_B_star, m_B_s, 0, m_B_star_s, gamma_B_star_s, m_B_s, 0, m_pi, 1)
+V11(E, p, pprime) = Vπu(E, p, pprime, m_B_star, gamma_B_star, m_B, 0, m_B_star, gamma_B_star, m_B, 0, m_pi, -9) + Vπu(E, p, pprime, m_B_star, gamma_B_star, m_B, 0, m_B_star, gamma_B_star, m_B, 0, m_eta, -1)
+V12(E, p, pprime) = Vπu(E, p, pprime, m_B_star_s, gamma_B_star_s, m_B_s, 0, m_B_star, gamma_B_star, m_B, 0, m_K, 2^(3/2))
+V21(E, p, pprime) = Vπu(E, p, pprime, m_B_star, gamma_B_star, m_B, 0, m_B_star_s, gamma_B_star_s, m_B_s, 0, m_K, 2^(3/2))
+V22(E, p, pprime) = Vπu(E, p, pprime, m_B_star_s, gamma_B_star_s, m_B_s, 0, m_B_star_s, gamma_B_star_s, m_B_s, 0, m_eta, 2/3)
 
 function detImVG(Λ, E, Ngauss)
     G = gmat(Λ, E, Ngauss)

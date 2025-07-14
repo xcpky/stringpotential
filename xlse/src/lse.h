@@ -1,6 +1,7 @@
 #ifndef LSE_H
 #define LSE_H
 #include "constants.h"
+#include "ome.h"
 #include "wavefunction.h"
 #include <complex.h>
 #include <gsl/gsl_complex.h>
@@ -44,14 +45,7 @@ typedef struct {
   WaveFunction *wf;
   double *xi;
   double *wi;
-  double complex xxpiup[2*DIMIM + DIMRE];
-  double complex wwpiup[2*DIMIM + DIMRE];
-  double complex xxpidn[2*DIMIM + DIMRE];
-  double complex wwpidn[2*DIMIM + DIMRE];
-  double xxz[DIMRE];
-  double wwz[DIMRE];
-  double xx0ii[DIMRE];
-  double ww0ii[DIMRE];
+  struct OME ome;
   void *psi_n_mat;
   double *E_vec;
   void *Xin;
@@ -119,10 +113,6 @@ static inline double complex xsqrt(double complex x) {
     return -csqrt(x - 0 * I);
 }
 
-static inline double square(double x) { return x * x; }
-
-static inline double complex csquare(double complex x) { return x * x; }
-
 // Contact term functions
 static inline double Ctct_00(double g_C) { return -3 * 2 * g_C; }
 
@@ -184,7 +174,7 @@ static inline double complex omegaprime_11(double complex p,
     if (cabs(pprime) <= 1e-8) {                                                \
       pprime += 1e-6;                                                          \
     }                                                                          \
-    return 4 * square(g_pi) / square(f_pi) * -1. / 4. / p / pprime *           \
+    return 4 * fsquare(g_pi) / fsquare(f_pi) * -1. / 4. / p / pprime *         \
            (clog((E - (m + csquare(p - pprime) / 2 / m) -                      \
                   omega_##suffix(p, pprime)) /                                 \
                  (E - (m + csquare(p + pprime) / 2 / m) -                      \
@@ -255,7 +245,7 @@ DEFINE_V_TEST(1, 1)
 #define DEFINE_VQM(alpha, beta)                                                \
   double complex V_QM_##alpha##beta(LSE *self, size_t p, size_t pprime) {      \
     double complex res = 0 + 0I;                                               \
-    auto E = self->E + m11 + m12;                                              \
+    auto E = self->E;                                                          \
     size_t pNgauss = self->pNgauss;                                            \
     auto psi = (double complex(*)[N_MAX + 1][pNgauss + 1]) self->psi_n_mat;    \
     size_t chan0 = p / (pNgauss + 1);                                          \
@@ -274,12 +264,12 @@ static inline double complex curlO(double complex p, double complex pprime,
     p += 1e-6;
   if (cabs(pprime) < 1e-8)
     pprime += 1e-6;
-  return 4 * square(g_pi) / square(f_pi) *
-         (1 - square(m) / (4 * p * pprime) *
+  return 4 * fsquare(g_pi) / fsquare(f_pi) *
+         (1 - fsquare(m) / (4 * p * pprime) *
                   (clog((csquare(p) + csquare(pprime) + 2 * p * pprime +
-                         csquare(m))) -
+                         fsquare(m))) -
                    clog((csquare(p) + csquare(pprime) - 2 * p * pprime +
-                         csquare(m)))));
+                         fsquare(m)))));
 }
 
 static inline double complex V_curlOME_00(double complex E, double complex p,
@@ -307,7 +297,8 @@ static inline double complex V_curlOME_11(double complex E, double complex p,
                                       double complex pprime, size_t pi,        \
                                       size_t ppi) {                            \
     auto E = self->E;                                                          \
-    return V_OME_##suffix(E, p, pprime);                                       \
+    E += m11 + m12;                                                            \
+    return OME_##suffix(self->ome, E, p, pprime);                              \
   }
 
 DEFINE_V_FUNCTION(00);

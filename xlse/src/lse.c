@@ -1,6 +1,7 @@
 #include "lse.h"
 #include "autofree.h"
 #include "constants.h"
+#include "ome.h"
 #include "wavefunction.h"
 #include <gsl/gsl_integration.h>
 #include <gsl/gsl_linalg.h>
@@ -14,7 +15,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define CONSTQM
+// #define CONSTQM
 // double complex V_QM(LSE *self, size_t p, size_t pprime) {
 //   double complex res = 0 + 0 * I;
 //   __auto_type E = self->E;
@@ -38,6 +39,7 @@ LSE *lse_malloc(size_t pNgauss, double Lambda, double epsilon) {
 
   const size_t n = 2 * (pNgauss + 1);
 
+  ome_build(&self->ome);
   self->wf = WFnew(partialwave, RLAMBDA, RNGAUSS);
   self->pNgauss = pNgauss;
   self->Lambda = Lambda;
@@ -85,25 +87,6 @@ LSE *lse_malloc(size_t pNgauss, double Lambda, double epsilon) {
     gsl_integration_glfixed_point(0, Lambda, i, &self->xi[i], &self->wi[i],
                                   self->table);
   }
-  gsl_integration_glfixed_table tableim [[gnu::cleanup(gsl_integration_glfixed_table_free)]] = *gsl_integration_glfixed_table_alloc(DIMIM);
-  gsl_integration_glfixed_table tablere [[gnu::cleanup(gsl_integration_glfixed_table_free)]] = *gsl_integration_glfixed_table_alloc(DIMRE);
-  for (size_t i = 0; i < DIMIM; i += 1) {
-    double im;
-    double wi;
-    gsl_integration_glfixed_point(0, ZI, i, &im, &wi, &tableim);
-    self->xxpiup[i] = -1 + im*I;
-    self->wwpiup[i] = ZI*I*wi;
-
-    self->xxpiup[i + DIMRE] = 1 + (ZI-im)*I;
-    self->wwpiup[i + DIMRE] = -ZI*I*wi;
-
-    self->xxpidn[i] = -1 - im*I;
-    self->wwpiup[i] = -ZI*I*wi;
-
-    self->xxpidn[i + DIMRE] = 1 + (im - ZI)*I;
-    self->wwpidn[i + DIMRE] = ZI*I*wi;
-  }
-
   self->psi_n_mat =
       malloc(sizeof(double complex) * 2 * (N_MAX + 1) * (pNgauss + 1));
   double complex(*psi)[N_MAX + 1][pNgauss + 1] = self->psi_n_mat;
@@ -140,11 +123,6 @@ LSE *lse_malloc(size_t pNgauss, double Lambda, double epsilon) {
   self->Xout = malloc(sizeof(double complex) * 4 * ntp * (pNgauss + 1));
   self->v = malloc(sizeof(double complex) * 4 * ntp);
 
-  double complex(*v)[2][ntp] = self->v;
-  v[0][0][N_MAX] = 0;
-  v[0][1][N_MAX] = 0;
-  v[1][0][N_MAX] = 0;
-  v[1][1][N_MAX] = 0;
   self->sigmat = malloc(4 * (N_MAX + 1) * (N_MAX + 1) * sizeof(double complex));
 
   // Initialize x0
@@ -172,6 +150,10 @@ void lse_refresh(LSE *self, double complex E, double C[4], RS rs) {
 #ifdef TPO
 
   double complex(*v)[2][N_MAX + 1] = self->v;
+  v[0][0][N_MAX] = C[1];
+  v[0][1][N_MAX] = C[2];
+  v[1][0][N_MAX] = C[2];
+  v[1][1][N_MAX] = C[3];
   for (size_t alpha = 0; alpha < 2; alpha += 1) {
     for (size_t beta = 0; beta < 2; beta += 1) {
       for (size_t i = 0; i < N_MAX; i += 1) {
@@ -244,7 +226,7 @@ int lse_gmat(LSE *self) {
       double x = self->xi[j];
       double w = self->wi[j];
 
-      double complex denom = dE - square(x) / 2 / mU + self->epsilon * I;
+      double complex denom = dE - fsquare(x) / 2 / mU + self->epsilon * I;
       int_val += w / denom;
     }
 
@@ -259,14 +241,14 @@ int lse_gmat(LSE *self) {
     tmp = tmp - int_val * x0 * x0;
 
     const size_t ii = self->pNgauss + i * (self->pNgauss + 1);
-    matrix_set(self->G, ii, ii, tmp * (1 / square(M_PI) / 2));
+    matrix_set(self->G, ii, ii, tmp * (1 / fsquare(M_PI) / 2));
 
     for (size_t m = 0; m < self->pNgauss; m++) {
       const size_t pos = m + i * (self->pNgauss + 1);
       double complex denominator =
-          dE - square(self->xi[m]) / 2 / mU + self->epsilon * I;
+          dE - fsquare(self->xi[m]) / 2 / mU + self->epsilon * I;
       double complex ele =
-          square(self->xi[m]) * self->wi[m] / 2 / square(M_PI) / denominator;
+          fsquare(self->xi[m]) * self->wi[m] / 2 / fsquare(M_PI) / denominator;
 
       matrix_set(self->G, pos, pos, ele);
     }

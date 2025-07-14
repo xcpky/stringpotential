@@ -1,5 +1,6 @@
 #include "autofree.h"
 #include "lse.h"
+#include "ome.h"
 #include "script.h"
 #include "wavefunction.h"
 #include <gsl/gsl_eigen.h>
@@ -98,7 +99,7 @@ void printmat(matrix *m) {
   for (size_t i = 0; i < row; i += 1) {
     for (size_t j = 0; j < col; j += 1) {
       auto val = matrix_get(m, i, j);
-      printf("%+6.f%+6.fim  ", creal(val), cimag(val));
+      printf("%5.2e%+5.2eim  ", creal(val), cimag(val));
     }
     puts("");
   }
@@ -171,34 +172,53 @@ double complex qmhelp(LSE *lse, size_t pi, size_t ppi) {
   }
   return res;
 }
+
+void testome() {
+  struct OME *ome = malloc(sizeof(*ome));
+  ome_build(ome);
+  auto x = OME_01(*ome, 0.1, 0.3, 0.8);
+  printf("%f%+f\n", creal(x), cimag(x));
+}
+
 void testlse() {
-  const size_t Ngauss = 3;
+  const size_t Ngauss = 4;
   LSE *lse [[gnu::cleanup(lsefree)]] = lse_malloc(Ngauss, 4, 1e-9);
   if (!lse) {
     fprintf(stderr, "Failed to create LSE solver\n");
     exit(1);
   }
-  auto Espace = linspace(-2, -0.3, 8);
-  for (size_t Ei = 0; Ei < 1; Ei += 1) {
-    auto E = Espace[Ei];
-    lse_compute(lse, E, (double[]){1, 1, 1, 1}, 1);
-    // lse_gmat(lse);
-    // lse_vmat(lse);
-    // puts("G matrix");
-    // gsl_matrix_complex_fprintf(stdout, lse->G, "%.2e");
-    puts("V matrix");
-    printabsmat(lse->VOME);
-    puts("T matrix");
-    printabsmat(lse->TOME);
-    puts("onshell T");
-    for (size_t alpha = 0; alpha < 2; alpha += 1) {
-      for (size_t beta = 0; beta < 2; beta += 1) {
-        auto x = matrix_get(lse->TOME, Ngauss + alpha * (Ngauss + 1),
-                            Ngauss + beta * (Ngauss + 1));
-        printf("%lu%lu: %.3e %.3e(im)\n", alpha, beta, creal(x), cimag(x));
-      }
+  lse_compute(lse, 0.1, (double[]){0, 0, 0, 0}, 3);
+  auto row = Ngauss + 1;
+  auto col = Ngauss + 1;
+  auto m = lse->VOME;
+  for (size_t i = 0; i < row; i += 1) {
+    for (size_t j = 0; j < col; j += 1) {
+      auto val = matrix_get(m, i + Ngauss + 1, j );
+      printf("%5.2e%+5.2eim  ", creal(val), cimag(val));
     }
+    puts("");
   }
+  // auto Espace = linspace(-2, -0.3, 8);
+  // for (size_t Ei = 0; Ei < 1; Ei += 1) {
+  //   auto E = Espace[Ei];
+  //   lse_compute(lse, E, (double[]){1, 1, 1, 1}, 1);
+  //   // lse_gmat(lse);
+  //   // lse_vmat(lse);
+  //   // puts("G matrix");
+  //   // gsl_matrix_complex_fprintf(stdout, lse->G, "%.2e");
+  //   puts("V matrix");
+  //   printabsmat(lse->VOME);
+  //   puts("T matrix");
+  //   printabsmat(lse->TOME);
+  //   puts("onshell T");
+  //   for (size_t alpha = 0; alpha < 2; alpha += 1) {
+  //     for (size_t beta = 0; beta < 2; beta += 1) {
+  //       auto x = matrix_get(lse->TOME, Ngauss + alpha * (Ngauss + 1),
+  //                           Ngauss + beta * (Ngauss + 1));
+  //       printf("%lu%lu: %.3e %.3e(im)\n", alpha, beta, creal(x), cimag(x));
+  //     }
+  //   }
+  // }
   // puts("det");
   // auto x = lse_detImVG(lse, E);
   // printf("%f %f(im)\n", creal(x), cimag(x));
@@ -260,9 +280,10 @@ void testonshell() {
   printf("(%.12e) + Im(%.12e)\n", creal(onshellV), cimag(onshellV));
 }
 
-double complex Ofunc(double complex E, double complex p, double complex pprime) {
+double complex Ofunc(double complex E, double complex p,
+                     double complex pprime) {
   auto m = m_pi;
-  return 4 * square(g_pi) / square(f_pi) * -1. / 4. / p / pprime *
+  return 4 * fsquare(g_pi) / fsquare(f_pi) * -1. / 4. / p / pprime *
          (clog((E - (m + csquare(p - pprime) / 2 / m) - omega_00(p, pprime)) /
                (E - (m + csquare(p + pprime) / 2 / m) - omega_00(p, pprime))) +
           clog((E - (m + csquare(p - pprime) / 2 / m) -
@@ -270,7 +291,6 @@ double complex Ofunc(double complex E, double complex p, double complex pprime) 
                (E - (m + csquare(p + pprime) / 2 / m) -
                 omegaprime_00(p, pprime))));
 }
-
 
 void unitest() {
   size_t pNgauss = 3;
@@ -298,15 +318,15 @@ void unitest() {
   printf("a2: %10.6f%+10.6fim\n", creal(a2), cimag(a2));
   printf("b2: %10.6f%+10.6fim\n", creal(b2), cimag(b2));
   printf("part2: %10.6f%+10.6fim\n", creal(part2), cimag(part2));
-  auto ooo = -square(g_pi) / square(f_pi) / p / pprime * (part1 + part2);
+  auto ooo = -fsquare(g_pi) / fsquare(f_pi) / p / pprime * (part1 + part2);
   printf("ooo: %10.6f%+10.6fim\n", creal(ooo), cimag(ooo));
   auto ofunc = Ofunc(E, p, pprime);
-      // 4 * square(g_pi) / square(f_pi) * -1 / 4 / p / pprime *
-      // (clog((E - (m + csquare(p - pprime) / 2 / m) - omega_00(p, pprime)) /
-      //       (E - (m + csquare(p + pprime) / 2 / m) - omega_00(p, pprime))) +
-      //  clog(
-      //      (E - (m + csquare(p - pprime) / 2 / m) - omegaprime_00(p, pprime)) /
-      //      (E - (m + csquare(p + pprime) / 2 / m) - omegaprime_00(p, pprime))));
+  // 4 * square(g_pi) / square(f_pi) * -1 / 4 / p / pprime *
+  // (clog((E - (m + csquare(p - pprime) / 2 / m) - omega_00(p, pprime)) /
+  //       (E - (m + csquare(p + pprime) / 2 / m) - omega_00(p, pprime))) +
+  //  clog(
+  //      (E - (m + csquare(p - pprime) / 2 / m) - omegaprime_00(p, pprime)) /
+  //      (E - (m + csquare(p + pprime) / 2 / m) - omegaprime_00(p, pprime))));
   printf("OFUNC: %10.6f%+10.6fim\n", creal(ofunc), cimag(ofunc));
   auto V = V_OME_00(E, p, pprime);
   printf("V: %.6f%+.6fim\n", creal(V), cimag(V));
@@ -354,6 +374,8 @@ int main(int argc, char *argv[]) {
     testpole();
   } else if (strcmp(argv[1], "convergence") == 0) {
     testconvergence();
+  } else if (strcmp(argv[1], "testome") == 0) {
+    testome();
   }
   return EXIT_SUCCESS;
 }

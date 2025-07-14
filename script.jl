@@ -2,7 +2,8 @@ include("lse.jl")
 
 Ngauss = 40
 # E = delta[1]-2:0.002001:delta[2]+0.5
-E = -1.5:0.00201:0.4
+E = LinRange(-0.9, delta[1], 500)
+# E = -1.5:0.00201:0.4
 
 function onshellG(matrix)
     return [tr(matrix[1:Ngauss+1, 1:Ngauss+1]), tr(matrix[Ngauss+2:2*Ngauss+2, Ngauss+2:2*Ngauss+2])]
@@ -36,7 +37,7 @@ if "--onshellT" in ARGS
         plot!(E, T[i])
     end
     vline!(delta, ls=:dash)
-    ylims!(0, 1e4)
+    # ylims!(0, 1e4)
     # ylims!(0, 1e5)
     savefig("onshellT.png")
 end

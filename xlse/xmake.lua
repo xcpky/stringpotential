@@ -15,7 +15,7 @@ target("wavefunction")
 target("lse")
     set_kind("shared")
     -- add_headerfiles("src/lse.h")
-    add_files("src/lse.c", "src/constants.c", "src/wavefunction.c")
+    add_files("src/lse.c", "src/constants.c", "src/wavefunction.c", "src/ome.c")
     add_packages("gsl")
     add_links("m")
 
@@ -30,7 +30,7 @@ target("xlse")
 
 target("script")
     set_kind("shared")
-    add_files("src/script.c", "src/constants.c", "src/wavefunction.c", "src/lse.c")
+    add_files("src/script.c", "src/constants.c", "src/wavefunction.c", "src/lse.c", "src/ome.c")
     add_packages("gsl")
     add_links("m")
 --
