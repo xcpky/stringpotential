@@ -8,10 +8,10 @@ extern "C" {
 #endif
 
 typedef struct {
-  void *ose00; // Using void* to avoid complex.h in C++ code
-  void *ose01;
-  void *ose10;
-  void *ose11;
+      void *ose00; // Using void* to avoid complex.h in C++ code
+      void *ose01;
+      void *ose10;
+      void *ose11;
 } onshellElements;
 
 // Declare the function with void* to avoid complex.h dependency in C++

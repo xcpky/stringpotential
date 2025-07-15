@@ -8,9 +8,7 @@
 
 static inline void matfree(matrix **mat) { matrix_free(*mat); }
 
-static inline void permfree(gsl_permutation **perm) {
-  gsl_permutation_free(*perm);
-}
+static inline void permfree(gsl_permutation **perm) { gsl_permutation_free(*perm); }
 
 static inline void lsefree(LSE **self) { lse_free(*self); }
 
