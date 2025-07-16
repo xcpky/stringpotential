@@ -120,7 +120,7 @@ function detImVG(E::Vector{Cdouble}, len, C::Vector{Cdouble}, pNgauss, Lambda, e
     # vline!([m_pi], s=:dash, label=L"m_\pi")
     plot!(E, abs.(Det), label=L"|det($1-VG$)|", dpi=300)
     xlims!(E[1], E[end])
-    ylims!(0, 3e3)
+    # ylims!(0, 3e3)
     xlabel!("E/GeV")
     # ylims!(0, 1e9)
     savefig("det.png")

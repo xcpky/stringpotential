@@ -5,7 +5,7 @@
 #define RLAMBDA 20
 
 #define f_pi (0.092)
-#define g_pi (0.5704)
+#define g_b (0.5704)
 #define g_c (-1. / 4.)
 
 #define m_pi (0.138039407)

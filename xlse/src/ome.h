@@ -7,7 +7,7 @@
 #define DIMIM (16)
 #define DIMRE (24)
 #define ZI (0.3)
-#define FACPI (g_pi * g_pi / f_pi / f_pi)
+#define FACPI (g_b * g_b / f_pi / f_pi)
 #include <complex.h>
 
 static inline double complex csquare(double complex x) { return x * x; }
@@ -115,8 +115,8 @@ static inline double complex quadii(struct OME ome, double complex E, double com
 
 static inline double complex OME_00(struct OME ome, double complex E, double complex p, double complex pprime)
 {
-      return Vpiu(ome, E, p, pprime, m_B_star, gamma_B_star, m_B, 0, m_B_star, gamma_B_star, m_B, 0, m_pi, -9) +
-	     Vpiu(ome, E, p, pprime, m_B_star, gamma_B_star, m_B, 0, m_B_star, gamma_B_star, m_B, 0, m_eta, -1);
+      return Vpiu(ome, E, p, pprime, m_B_star, gamma_B_star, m_B, 0, m_B_star, gamma_B_star, m_B, 0, m_pi, 1./24*3) +
+	     Vpiu(ome, E, p, pprime, m_B_star, gamma_B_star, m_B, 0, m_B_star, gamma_B_star, m_B, 0, m_eta, -1./24);
 }
 
 static inline double complex OME_01(struct OME ome, double complex E, double complex p, double complex pprime)

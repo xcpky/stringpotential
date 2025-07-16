@@ -240,12 +240,12 @@ int lse_gmat(LSE *self)
 	    tmp = tmp - int_val * x0 * x0;
 
 	    const size_t ii = self->pNgauss + i * (self->pNgauss + 1);
-	    matrix_set(self->G, ii, ii, tmp * (1 / fsquare(M_PI) / 4));
+	    matrix_set(self->G, ii, ii, tmp * (1 / fsquare(M_PI) / 2));
 
 	    for (size_t m = 0; m < self->pNgauss; m++) {
 		  const size_t pos = m + i * (self->pNgauss + 1);
 		  double complex denominator = dE - fsquare(self->xi[m]) / 2 / mU + self->epsilon * I;
-		  double complex ele = fsquare(self->xi[m]) * self->wi[m] / 4 / fsquare(M_PI) / denominator;
+		  double complex ele = fsquare(self->xi[m]) * self->wi[m] / 2 / fsquare(M_PI) / denominator;
 
 		  matrix_set(self->G, pos, pos, ele);
 	    }

@@ -291,7 +291,7 @@ void testonshell()
 double complex Ofunc(double complex E, double complex p, double complex pprime)
 {
       auto m = m_pi;
-      return 4 * fsquare(g_pi) / fsquare(f_pi) * -1. / 4. / p / pprime *
+      return 4 * fsquare(g_b) / fsquare(f_pi) * -1. / 4. / p / pprime *
 	     (clog((E - (m + csquare(p - pprime) / 2 / m) - omega_00(p, pprime)) /
 		   (E - (m + csquare(p + pprime) / 2 / m) - omega_00(p, pprime))) +
 	      clog((E - (m + csquare(p - pprime) / 2 / m) - omegaprime_00(p, pprime)) /
@@ -325,7 +325,7 @@ void unitest()
       printf("a2: %10.6f%+10.6fim\n", creal(a2), cimag(a2));
       printf("b2: %10.6f%+10.6fim\n", creal(b2), cimag(b2));
       printf("part2: %10.6f%+10.6fim\n", creal(part2), cimag(part2));
-      auto ooo = -fsquare(g_pi) / fsquare(f_pi) / p / pprime * (part1 + part2);
+      auto ooo = -fsquare(g_b) / fsquare(f_pi) / p / pprime * (part1 + part2);
       printf("ooo: %10.6f%+10.6fim\n", creal(ooo), cimag(ooo));
       auto ofunc = Ofunc(E, p, pprime);
       // 4 * square(g_pi) / square(f_pi) * -1 / 4 / p / pprime *

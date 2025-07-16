@@ -173,7 +173,7 @@ static inline double complex omegaprime_11(double complex p, double complex ppri
 	    if (cabs(pprime) <= 1e-8) {                                                                                        \
 		  pprime += 1e-6;                                                                                              \
 	    }                                                                                                                  \
-	    return 4 * fsquare(g_pi) / fsquare(f_pi) * -1. / 4. / p / pprime *                                                 \
+	    return 4 * fsquare(g_b) / fsquare(f_pi) * -1. / 4. / p / pprime *                                                 \
 		   (clog((E - (m + csquare(p - pprime) / 2 / m) - omega_##suffix(p, pprime)) /                                 \
 			 (E - (m + csquare(p + pprime) / 2 / m) - omega_##suffix(p, pprime))) +                                \
 		    clog((E - (m + csquare(p - pprime) / 2 / m) - omegaprime_##suffix(p, pprime)) /                            \
@@ -259,7 +259,7 @@ static inline double complex curlO(double complex p, double complex pprime, doub
 	    p += 1e-6;
       if (cabs(pprime) < 1e-8)
 	    pprime += 1e-6;
-      return 4 * fsquare(g_pi) / fsquare(f_pi) *
+      return 4 * fsquare(g_b) / fsquare(f_pi) *
 	     (1 - fsquare(m) / (4 * p * pprime) *
 		      (clog((csquare(p) + csquare(pprime) + 2 * p * pprime + fsquare(m))) -
 		       clog((csquare(p) + csquare(pprime) - 2 * p * pprime + fsquare(m)))));
@@ -290,7 +290,7 @@ static inline double complex V_curlOME_11(double complex E, double complex p, do
       {                                                                                                                        \
 	    auto E = self->E;                                                                                                  \
 	    E += m11 + m12;                                                                                                    \
-	    return OME_##suffix(self->ome, E, p, pprime) + V_QM_##suffix(self, pi, ppi);                                       \
+	    return OME_##suffix(self->ome, E, p, pprime) ;                                       \
       }
 
 DEFINE_V_FUNCTION(00);
