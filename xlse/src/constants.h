@@ -17,8 +17,8 @@
 #define m_B_star (5.32471)
 #define m_B_s (5.36692)
 #define m_B_star_s (5.4154)
-#define gamma_B_star (4e-7)
-#define gamma_B_star_s (4e-7)
+#define gamma_B_star (0)
+#define gamma_B_star_s (0)
 
 #define m11 (m_B)
 #define m12 (m_B_star)

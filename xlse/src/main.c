@@ -300,6 +300,7 @@ double complex Ofunc(double complex E, double complex p, double complex pprime)
 
 void unitest()
 {
+      printf("sigma: %f\n", SIGMA);
       size_t pNgauss = 3;
       double Lambda = 4;
       double epsilon = 1e-9;
