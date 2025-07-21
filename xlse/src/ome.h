@@ -3,15 +3,24 @@
 #include "constants.h"
 #include <math.h>
 #include <stddef.h>
+#define FSQUARE(F) (F) * (F)
 #define EPSILON (1e-9)
 #define DIMIM (16)
 #define DIMRE (24)
 #define ZI (0.3)
-#define FACPI (g_b * g_b / f_pi / f_pi / 24)
+#define FACPI (-3 * g_b * g_b / f_pi / f_pi / 24)
 #include <complex.h>
 
 static inline double complex csquare(double complex x) { return x * x; }
 static inline double fsquare(double x) { return x * x; }
+// constexpr double mupisquare00 = FSQUARE(m_pi) - FSQUARE(m_B_star - m_B);
+// constexpr double muetasquare00 = FSQUARE(m_eta) - FSQUARE(m_B_star - m_B);
+// constexpr double muKsquare01 = FSQUARE(m_K) - FSQUARE(m_B_star_s - m_B);
+// constexpr double muetasquare11 = FSQUARE(m_eta) - FSQUARE(m_B_star_s - m_B_s);
+constexpr double mupisquare00 = 1;
+constexpr double muetasquare00 = 1;
+constexpr double muKsquare01 = 1;
+constexpr double muetasquare11 = 1;
 
 struct OME {
       double complex xxpiup[2 * DIMIM + DIMRE];
@@ -115,22 +124,26 @@ static inline double complex quadii(struct OME ome, double complex E, double com
 
 static inline double complex OME_00(struct OME ome, double complex E, double complex p, double complex pprime)
 {
-      return Vpiu(ome, E, p, pprime, m_B_star, gamma_B_star, m_B, 0, m_B_star, gamma_B_star, m_B, 0, m_pi, 3) +
-	     Vpiu(ome, E, p, pprime, m_B_star, gamma_B_star, m_B, 0, m_B_star, gamma_B_star, m_B, 0, m_eta, 1. / 3);
+      return Vpiu(ome, E, p, pprime, m_B_star, gamma_B_star, m_B, 0, m_B_star, gamma_B_star, m_B, 0, m_pi, 3 * mupisquare00) +
+	     Vpiu(ome, E, p, pprime, m_B_star, gamma_B_star, m_B, 0, m_B_star, gamma_B_star, m_B, 0, m_eta,
+		  1. / 3 * muetasquare00);
 }
 
 static inline double complex OME_01(struct OME ome, double complex E, double complex p, double complex pprime)
 {
-      return Vpiu(ome, E, p, pprime, m_B_star_s, gamma_B_star_s, m_B_s, 0, m_B_star, gamma_B_star, m_B, 0, m_K, pow(2, 3. / 2));
+      return Vpiu(ome, E, p, pprime, m_B_star_s, gamma_B_star_s, m_B_s, 0, m_B_star, gamma_B_star, m_B, 0, m_K,
+		  pow(2, 3. / 2) * muKsquare01);
 }
 
 static inline double complex OME_10(struct OME ome, double complex E, double complex p, double complex pprime)
 {
-      return Vpiu(ome, E, p, pprime, m_B_star, gamma_B_star, m_B, 0, m_B_star_s, gamma_B_star_s, m_B_s, 0, m_K, pow(2, 3. / 2));
+      return Vpiu(ome, E, p, pprime, m_B_star, gamma_B_star, m_B, 0, m_B_star_s, gamma_B_star_s, m_B_s, 0, m_K,
+		  pow(2, 3. / 2) * muKsquare01);
 }
 
 static inline double complex OME_11(struct OME ome, double complex E, double complex p, double complex pprime)
 {
-      return Vpiu(ome, E, p, pprime, m_B_star_s, gamma_B_star_s, m_B_s, 0, m_B_star_s, gamma_B_star_s, m_B_s, 0, m_eta, 4. / 3);
+      return Vpiu(ome, E, p, pprime, m_B_star_s, gamma_B_star_s, m_B_s, 0, m_B_star_s, gamma_B_star_s, m_B_s, 0, m_eta,
+		  4. / 3 * muetasquare11);
 }
 #endif // OME_H

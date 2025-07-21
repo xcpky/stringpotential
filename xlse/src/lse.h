@@ -290,7 +290,7 @@ static inline double complex V_curlOME_11(double complex E, double complex p, do
       {                                                                                                                        \
 	    auto E = self->E;                                                                                                  \
 	    E += m11 + m12;                                                                                                    \
-	    return OME_##suffix(self->ome, E, p, pprime) + V_QM_##suffix(self, pi, ppi) ;                                       \
+	    return OME_##suffix(self->ome, E, p, pprime) ;                                       \
       }
 
 DEFINE_V_FUNCTION(00);

@@ -1,7 +1,7 @@
 #ifndef SCRIPT_H
 #define SCRIPT_H
 
-#define NTHREADS 32
+#define NTHREADS 16
 
 #include "complex.h"
 #include "lse.h"
