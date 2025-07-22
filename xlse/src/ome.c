@@ -47,7 +47,7 @@ void ome_free(struct OME *self) { free(self); }
 double complex Vpiu(struct OME ome, _Complex double E, _Complex double p1, _Complex double p2, double m1, double gam1,
 		    double m2, double gam2, double m3, double gam3, double m4, double gam4, double m0, double fac)
 {
-      double frame = 0.2;
+      double frame = 0.3;
       auto _z0 = z0(E, m1 - I * gam1 / 2, p1, p2, m0);
       auto _z0E = z0E(p1, p2, m0);
       // auto foo = m1 - I*gam1;

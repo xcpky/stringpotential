@@ -88,17 +88,17 @@ function conshellV(E::Vector{Cdouble}, len, C::Vector{Cdouble}, pNgauss, Lambda,
     ot = copy(transpose(unsafe_wrap(Array, otr, (len, 4), own=false)))
     level = getEvec(C[1])
     vls = filter(e -> e > E[1] && e < E[end], level)
-    vline(vls, s=:dash, c=:grey, label=L"$E_i$")
+    vline(vls, s=:dash, c=:grey, label=L"$E_i$", dpi=400)
     vline!(delta, s=:dash, label="thresholds", lw=0.8)
     vline!([m_Xb11P], s=:dash, label=L"\chi_{b1}(1P)")
     vline!([m_Xb12P], s=:dash, label=L"\chi_{b1}(2P)")
     vline!([m_Xb13P], s=:dash, label=L"\chi_{b1}(3P)")
     plot!(E, abs.(ot[1, :]), label=L"$V_{11}$", dpi=400)
     plot!(E, abs.(ot[3, :]), label=L"$V_{21}$")
-    plot!(E, abs.(ot[4, :]), label=L"$V_{22}$")
-    plot!(E, abs.(ot[2, :]), label=L"$V_{12}$", dpi=400)
+    # plot!(E, abs.(ot[4, :]), label=L"$V_{22}$")
+    # plot!(E, abs.(ot[2, :]), label=L"$V_{12}$", dpi=400)
     xlims!(E[1], E[end])
-    # ylims!(0, upper)
+    ylims!(0, 50)
     # ylims!(0, 5e3)
     savefig("onshellV.png")
     savefig("onshellV.pdf")
@@ -121,7 +121,7 @@ function detImVG(E::Vector{Cdouble}, len, C::Vector{Cdouble}, pNgauss, Lambda, e
     # vline!([m_pi], s=:dash, label=L"m_\pi")
     plot!(E, abs.(Det), label=L"|det($1-VG$)|", dpi=400)
     xlims!(E[1], E[end])
-    # ylims!(0, 3e3)
+    ylims!(0, 3e3)
     xlabel!("E/GeV")
     # ylims!(0, 1e9)
     savefig("det.png")
@@ -245,7 +245,7 @@ function cfree(ptr::Ptr{Cvoid})
     ccall(Libdl.dlsym(libscript, :Free), Cvoid, (Ptr{Cvoid},), ptr)
 end
 
-epsi = 1e-9
+epsi = 1e-6
 Lambda = 4
 pNgauss = 40
 data = Nothing
@@ -265,7 +265,7 @@ if "--poles" in ARGS
     # savefig("tmp.png")
 end
 onshellRange = LinRange(m_Xb11P - 0.3, delta[1], 3000)
-onshellRange = LinRange(-0.06902298635, -0.0690229863, 1000)
+onshellRange = LinRange(-0.0902298635, 0.690229863, 4000)
 
 if "--onshellT" in ARGS
     # E = 1.48:0.00001:1.499
@@ -371,4 +371,30 @@ if "--minimize" in ARGS
     c = minimize(C, pNgauss, Lambda, epsi)
     println(ccall(dlsym(libscript, :lse_cost), Cdouble, (Ptr{Cvoid}, Ptr{Cdouble}, UInt), lse, c, 3))
     conshellT(collect(onshellRange), length(onshellRange), c, pNgauss, Lambda, epsi)
+end
+
+z0(E, m, p1, p2, m0) = ((E - 2m - (p1^2 + p2^2) / (2m))^2 - m0^2 - p1^2 - p2^2) / (-2p2 * p1)
+z0E(p1, p2, m0) = (p1^2 + p2^2 + m0^2) / (2p2 * p1)
+if "--OME" in ARGS
+    ome = ccall(dlsym(libscript, :ome_malloc), Ptr{Cvoid}, ())
+    V(E, p, pprime) = ccall(dlsym(libscript, :V), ComplexF64, (Ptr{Cvoid}, Cdouble, Cdouble, Cdouble), ome, E, p, pprime)
+    Erange = LinRange(0.001, 0.298, 1000)
+    # Erange = LinRange(0.09266, 0.0929, 10000)
+    prange = LinRange(0.00001, 0.5, 1000)
+    p0 = 0.003525
+    pole1 = [z0(Erange[i] + m11 + m12, m_B_star, p0, p0, m_pi) for i in eachindex(Erange)]
+    vvec = [abs(V(Erange[i] + m11 + m12, 0.003525, 0.003525)) for i in eachindex(Erange)]
+    plot(Erange, vvec, dpi=400)
+    ylims!(0, 500)
+    # @time vvec = [abs(V(Erange[i] + m11 + m12, prange[j], 0.003525)) for i in eachindex(Erange), j in eachindex(prange)]
+    # p = surface(Erange, prange, vvec, dpi=400)
+    # xlabel!(p, "E")
+    # ylabel!(p, "p")
+    # zlims!(p, 0, 50)
+    savefig("surface.png")
+    plot(Erange, pole1, dpi=400)
+    plot!(Erange, vvec, dpi=400)
+    hline!([-0.3, 0.3], label="frame")
+    ylims!(-0.5, 0.5)
+    savefig("pole1.png")
 end

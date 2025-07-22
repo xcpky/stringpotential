@@ -15,7 +15,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-// #define CONSTQM
+#define CONSTQM
 // double complex V_QM(LSE *self, size_t p, size_t pprime) {
 //   double complex res = 0 + 0 * I;
 //   __auto_type E = self->E;

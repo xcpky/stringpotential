@@ -23,6 +23,8 @@ double complex *onshellTV(double *E, size_t len, double C[4], size_t pNgauss, do
 double complex *traceG(double *E, size_t len, double C[4], size_t pNgauss, double Lambda, double epsilon);
 double complex *Det(double *E, size_t len, double C[4], size_t pNgauss, double Lambda, double epsilon);
 double complex *Both(double *E, size_t len, double C[4], size_t pNgauss, double Lambda, double epsilon);
+double complex V(struct OME *ome, double E, double p, double pprime);
+struct OME* ome_malloc();
 void Evec(double *, double);
 void Ntower(size_t *);
 double complex *Poles(double *Er, size_t rlen, double *Ei, size_t ilen, double C[4], size_t pNgauss, double Lambda,

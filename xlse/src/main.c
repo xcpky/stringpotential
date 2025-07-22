@@ -300,8 +300,8 @@ double complex Ofunc(double complex E, double complex p, double complex pprime)
 
 void unitest()
 {
-      printf("sigma: %f\n", SIGMA);
-      size_t pNgauss = 3;
+      size_t pNgauss = 30;
+      scanf("%lu", &pNgauss);
       double Lambda = 4;
       double epsilon = 1e-9;
       double complex E = -0.3;
@@ -309,26 +309,7 @@ void unitest()
       lse_refresh(lse, E, (double[]) { 0, 0, 0, 0 }, PP);
       E += m11 + m12;
       lse_vmat(lse);
-      printf("p: %10.6f%+10.6f\n", creal(lse->x0[0]), cimag(lse->x0[0]));
-      auto p0 = lse->x0[0];
-      auto p = p0;
-      auto pprime = p0;
-      auto m = m_pi;
-      auto a1 = E - (m + csquare(p - pprime) / 2 / m) - omega_00(p, pprime);
-      auto b1 = E - (m + csquare(p + pprime) / 2 / m) - omega_00(p, pprime);
-      auto part1 = clog(a1 / b1);
-      auto a2 = E - (m + csquare(p - pprime) / 2 / m) - omegaprime_00(p, pprime);
-      auto b2 = E - (m + csquare(p + pprime) / 2 / m) - omegaprime_00(p, pprime);
-      auto part2 = clog(a2 / b2);
-      printf("a1: %10.6f%+10.6fim\n", creal(a1), cimag(a1));
-      printf("b1: %10.6f%+10.6fim\n", creal(b1), cimag(b1));
-      printf("part1: %10.6f%+10.6fim\n", creal(part1), cimag(part1));
-      printf("a2: %10.6f%+10.6fim\n", creal(a2), cimag(a2));
-      printf("b2: %10.6f%+10.6fim\n", creal(b2), cimag(b2));
-      printf("part2: %10.6f%+10.6fim\n", creal(part2), cimag(part2));
-      auto ooo = -fsquare(g_b) / fsquare(f_pi) / p / pprime * (part1 + part2);
-      printf("ooo: %10.6f%+10.6fim\n", creal(ooo), cimag(ooo));
-      auto ofunc = Ofunc(E, p, pprime);
+      printf("quad start: %f\n", lse->xi[0]);
       // 4 * square(g_pi) / square(f_pi) * -1 / 4 / p / pprime *
       // (clog((E - (m + csquare(p - pprime) / 2 / m) - omega_00(p, pprime)) /
       //       (E - (m + csquare(p + pprime) / 2 / m) - omega_00(p, pprime)))
@@ -337,10 +318,6 @@ void unitest()
       //      (E - (m + csquare(p - pprime) / 2 / m) - omegaprime_00(p,
       //      pprime)) / (E - (m + csquare(p + pprime) / 2 / m) -
       //      omegaprime_00(p, pprime))));
-      printf("OFUNC: %10.6f%+10.6fim\n", creal(ofunc), cimag(ofunc));
-      auto V = V_OME_00(E, p, pprime);
-      printf("V: %.6f%+.6fim\n", creal(V), cimag(V));
-      // printmat(lse->VOME);
 }
 void ptrfree(double **ptr) { free(*ptr); }
 void testscript()

@@ -1,6 +1,7 @@
 #include "script.h"
 #include "autofree.h"
 #include "lse.h"
+#include "ome.h"
 #include "wavefunction.h"
 #include <gsl/gsl_matrix_complex_double.h>
 #include <stdio.h>
@@ -173,6 +174,15 @@ double complex *onshellTV(double *E, size_t len, double C[4], size_t pNgauss, do
       }
       return res;
 }
+
+struct OME *ome_malloc()
+{
+      struct OME *ome = malloc(sizeof(*ome));
+      ome_build(ome);
+      return ome;
+}
+
+double complex V(struct OME *ome, double E, double p, double pprime) { return OME_00(*ome, E, p, pprime); }
 
 double complex *traceG(double *E, size_t len, double C[4], size_t pNgauss, double Lambda, double epsilon)
 {
@@ -447,20 +457,29 @@ int oV(void *arg)
       argstruct foo = *(argstruct *)arg;
       LSE *lse [[gnu::cleanup(lsefree)]] = lse_malloc(foo.pNgauss, foo.Lambda, foo.epsilon);
       size_t ngauss = foo.pNgauss;
+      if (foo.id == 0) {
+	    printf("%f\n", lse->xi[0]);
+      }
       onshellElements *res = (onshellElements *)foo.res;
       double complex *ose00 = (double complex *)res->ose00;
       double complex *ose01 = (double complex *)res->ose01;
       double complex *ose10 = (double complex *)res->ose10;
       double complex *ose11 = (double complex *)res->ose11;
+      int64_t xoffset = -ngauss;
+      int64_t yoffset = -ngauss;
       // printf("start: %lu, len: %lu\n", foo.start, foo.len);
       for (size_t i = foo.start; i < foo.start + foo.len; i += 1) {
-	    lse_refresh(lse, foo.E[i], foo.C, foo.rs);
-	    lse_vmat(lse);
-	    auto V = (double complex(*)[2 * ngauss + 2]) lse->VOME->data;
-	    ose00[i] = V[ngauss][ngauss];
-	    ose01[i] = V[ngauss][2 * ngauss + 1];
-	    ose10[i] = V[2 * ngauss + 1][ngauss];
-	    ose11[i] = V[2 * ngauss + 1][2 * ngauss + 1];
+	    // lse_refresh(lse, foo.E[i], foo.C, foo.rs);
+	    // lse_vmat(lse);
+	    // auto V = (double complex(*)[2 * ngauss + 2]) lse->VOME->data;
+	    // ose00[i] = V[ngauss + xoffset][ngauss + yoffset];
+	    // ose01[i] = V[ngauss + xoffset][2 * ngauss + 1 + yoffset];
+	    // ose10[i] = V[2 * ngauss + 1 + xoffset][ngauss + yoffset];
+	    // ose11[i] = V[2 * ngauss + 1 + xoffset][2 * ngauss + 1 + yoffset];
+	    ose00[i] = V(&lse->ome, foo.E[i] + m11 + m12, 0.003525, 0.003525);
+	    ose01[i] = V(&lse->ome, foo.E[i] + m11 + m12, 0.003525, 0.003525);
+	    ose10[i] = V(&lse->ome, foo.E[i] + m11 + m12, 0.003525, 0.003525);
+	    ose11[i] = V(&lse->ome, foo.E[i] + m11 + m12, 0.003525, 0.003525);
       }
       return 0;
 }
