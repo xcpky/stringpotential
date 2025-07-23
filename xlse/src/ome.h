@@ -4,10 +4,10 @@
 #include <math.h>
 #include <stddef.h>
 #define FSQUARE(F) (F) * (F)
-#define EPSILON (1e-9)
+#define EPSILON (1e-2)
 #define DIMIM (16)
 #define DIMRE (24)
-#define ZI (0.3)
+#define ZI (0.2)
 #define FACPI (-3 * g_b * g_b / f_pi / f_pi / 24)
 #include <complex.h>
 

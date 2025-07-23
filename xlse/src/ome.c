@@ -50,6 +50,11 @@ double complex Vpiu(struct OME ome, _Complex double E, _Complex double p1, _Comp
       double frame = 0.3;
       auto _z0 = z0(E, m1 - I * gam1 / 2, p1, p2, m0);
       auto _z0E = z0E(p1, p2, m0);
+#ifdef DEBUG
+      printf("z0: %f%+f\n", creal(_z0), cimag(_z0));
+      printf("z0E: %f\n", creal(_z0E));
+      printf("Epi: %f\n", cabs(Dij(E, _z0, p1, p2, m2, m4, m0)));
+#endif /* ifdef DEBUG */
       // auto foo = m1 - I*gam1;
       // printf("%f%+f\n", creal(foo), cimag(foo));
       // printf("%f%+f\n", creal(_z0), cimag(_z0));

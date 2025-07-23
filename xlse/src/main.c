@@ -301,15 +301,16 @@ double complex Ofunc(double complex E, double complex p, double complex pprime)
 void unitest()
 {
       size_t pNgauss = 30;
-      scanf("%lu", &pNgauss);
       double Lambda = 4;
       double epsilon = 1e-9;
-      double complex E = -0.3;
+      double E = 0.1835;
       LSE *lse [[gnu::cleanup(lsefree)]] = lse_malloc(pNgauss, Lambda, epsilon);
       lse_refresh(lse, E, (double[]) { 0, 0, 0, 0 }, PP);
+	// E = 0.2;
       E += m11 + m12;
-      lse_vmat(lse);
-      printf("quad start: %f\n", lse->xi[0]);
+      double p0 = 0.003525;
+      auto v = V(&lse->ome, E, p0, p0);
+	printf("%f\n", cabs(v));
       // 4 * square(g_pi) / square(f_pi) * -1 / 4 / p / pprime *
       // (clog((E - (m + csquare(p - pprime) / 2 / m) - omega_00(p, pprime)) /
       //       (E - (m + csquare(p + pprime) / 2 / m) - omega_00(p, pprime)))

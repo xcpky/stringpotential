@@ -182,7 +182,7 @@ struct OME *ome_malloc()
       return ome;
 }
 
-double complex V(struct OME *ome, double E, double p, double pprime) { return OME_00(*ome, E, p, pprime); }
+double complex V(struct OME *ome, double E, double p, double pprime) { return Vpiu(*ome, E, p, pprime, m_B_star, gamma_B_star, m_B, 0, m_B_star, gamma_B_star, m_B, 0, m_pi, 3 ); }
 
 double complex *traceG(double *E, size_t len, double C[4], size_t pNgauss, double Lambda, double epsilon)
 {
@@ -476,10 +476,10 @@ int oV(void *arg)
 	    // ose01[i] = V[ngauss + xoffset][2 * ngauss + 1 + yoffset];
 	    // ose10[i] = V[2 * ngauss + 1 + xoffset][ngauss + yoffset];
 	    // ose11[i] = V[2 * ngauss + 1 + xoffset][2 * ngauss + 1 + yoffset];
-	    ose00[i] = V(&lse->ome, foo.E[i] + m11 + m12, 0.003525, 0.003525);
-	    ose01[i] = V(&lse->ome, foo.E[i] + m11 + m12, 0.003525, 0.003525);
-	    ose10[i] = V(&lse->ome, foo.E[i] + m11 + m12, 0.003525, 0.003525);
-	    ose11[i] = V(&lse->ome, foo.E[i] + m11 + m12, 0.003525, 0.003525);
+	    ose00[i] = OME_00(lse->ome, foo.E[i] + m11 + m12, 0.003525, 0.003525);
+	    ose01[i] = OME_00(lse->ome, foo.E[i] + m11 + m12, 0.003525, 0.003525);
+	    ose10[i] = OME_00(lse->ome, foo.E[i] + m11 + m12, 0.003525, 0.003525);
+	    ose11[i] = OME_00(lse->ome, foo.E[i] + m11 + m12, 0.003525, 0.003525);
       }
       return 0;
 }

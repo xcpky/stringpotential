@@ -121,7 +121,7 @@ function detImVG(E::Vector{Cdouble}, len, C::Vector{Cdouble}, pNgauss, Lambda, e
     # vline!([m_pi], s=:dash, label=L"m_\pi")
     plot!(E, abs.(Det), label=L"|det($1-VG$)|", dpi=400)
     xlims!(E[1], E[end])
-    ylims!(0, 3e3)
+    ylims!(0, 5e2)
     xlabel!("E/GeV")
     # ylims!(0, 1e9)
     savefig("det.png")
@@ -265,7 +265,7 @@ if "--poles" in ARGS
     # savefig("tmp.png")
 end
 onshellRange = LinRange(m_Xb11P - 0.3, delta[1], 3000)
-onshellRange = LinRange(-0.0902298635, 0.690229863, 4000)
+onshellRange = LinRange(-0.8902298635, 0.690229863, 4000)
 
 if "--onshellT" in ARGS
     # E = 1.48:0.00001:1.499
@@ -378,23 +378,30 @@ z0E(p1, p2, m0) = (p1^2 + p2^2 + m0^2) / (2p2 * p1)
 if "--OME" in ARGS
     ome = ccall(dlsym(libscript, :ome_malloc), Ptr{Cvoid}, ())
     V(E, p, pprime) = ccall(dlsym(libscript, :V), ComplexF64, (Ptr{Cvoid}, Cdouble, Cdouble, Cdouble), ome, E, p, pprime)
-    Erange = LinRange(0.001, 0.298, 1000)
-    # Erange = LinRange(0.09266, 0.0929, 10000)
-    prange = LinRange(0.00001, 0.5, 1000)
+    Erange = LinRange(0.001, 0.298, 10000)
+    # Erange = LinRange(-0.801, 0.298, 1000)
+    # Erange = LinRange(0.183, 0.184, 1000)
+    prange = LinRange(0.00001, 2, 1000)
     p0 = 0.003525
-    pole1 = [z0(Erange[i] + m11 + m12, m_B_star, p0, p0, m_pi) for i in eachindex(Erange)]
-    vvec = [abs(V(Erange[i] + m11 + m12, 0.003525, 0.003525)) for i in eachindex(Erange)]
-    plot(Erange, vvec, dpi=400)
-    ylims!(0, 500)
+    Esing = 0.1835 + m11 + m12
+    @time vsur = [abs(V(Esing, prange[i], prange[j])) for i in eachindex(prange), j in eachindex(prange)]
+    surface(prange, prange, vsur, dpi=400)
+    xlabel!("p")
+    ylabel!("p'")
+    zlabel!("V")
     # @time vvec = [abs(V(Erange[i] + m11 + m12, prange[j], 0.003525)) for i in eachindex(Erange), j in eachindex(prange)]
     # p = surface(Erange, prange, vvec, dpi=400)
     # xlabel!(p, "E")
     # ylabel!(p, "p")
-    # zlims!(p, 0, 50)
+    zlims!(0, 80)
     savefig("surface.png")
-    plot(Erange, pole1, dpi=400)
-    plot!(Erange, vvec, dpi=400)
-    hline!([-0.3, 0.3], label="frame")
-    ylims!(-0.5, 0.5)
+    pole1 = [z0(Erange[i] + m11 + m12, m_B, p0, p0, m_pi) for i in eachindex(Erange)]
+    vvec = [abs(V(Erange[i] + m11 + m12, 0.003525, 0.003525)) for i in eachindex(Erange)]
+    scatter(Erange, pole1, dpi=400, label="singularity position", markersize=1.5, markerstrokewidth=0)
+    plot!(Erange, vvec, dpi=400, label="abs(numerical V)")
+    hline!([-0.3, 0.3], label="box")
+    xlabel!("E/GeV")
+    # ylims!(-0.5, maximum(vvec) * 1.1)
+    ylims!(-0.5, 5.5)
     savefig("pole1.png")
 end
