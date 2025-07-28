@@ -123,47 +123,6 @@ static inline double Ctct_10(double g_C) { return pow(1.0 / 2.0, 3.0 / 2.0) * 4 
 
 static inline double Ctct_11(double g_C) { return g_C; }
 
-// Omega functions
-static inline double complex omega_00(double complex p, double complex pprime)
-{
-      return 2 * m_B + (p * p + pprime * pprime) / (2 * m_B);
-}
-
-static inline double complex omega_01(double complex p, double complex pprime)
-{
-      return m_B + pprime * pprime / (2 * m_B) + m_B_s + p * p / (2 * m_B_s);
-}
-
-static inline double complex omega_10(double complex p, double complex pprime)
-{
-      return m_B_s + pprime * pprime / (2 * m_B_s) + m_B + p * p / (2 * m_B);
-}
-
-static inline double complex omega_11(double complex p, double complex pprime)
-{
-      return 2 * m_B_s + (p * p + pprime * pprime) / (2 * m_B_s);
-}
-
-static inline double complex omegaprime_00(double complex p, double complex pprime)
-{
-      return 2 * m_B_star + (p * p + pprime * pprime) / (2 * m_B_star);
-}
-
-static inline double complex omegaprime_01(double complex p, double complex pprime)
-{
-      return m_B_star + pprime * pprime / (2 * m_B_star) + m_B_star_s + p * p / (2 * m_B_star_s);
-}
-
-static inline double complex omegaprime_10(double complex p, double complex pprime)
-{
-      return m_B_star_s + pprime * pprime / (2 * m_B_star_s) + m_B_star + p * p / (2 * m_B_star);
-}
-
-static inline double complex omegaprime_11(double complex p, double complex pprime)
-{
-      return 2 * m_B_star_s + (p * p + pprime * pprime) / (2 * m_B_star_s);
-}
-
 #define DEFINE_O_FUNCTION(suffix)                                                                                              \
       static inline double complex O_##suffix(double complex E, double complex p, double complex pprime, double m)             \
       {                                                                                                                        \
@@ -290,7 +249,7 @@ static inline double complex V_curlOME_11(double complex E, double complex p, do
       {                                                                                                                        \
 	    auto E = self->E;                                                                                                  \
 	    E += m11 + m12;                                                                                                    \
-	    return OME_##suffix(self->ome, E, p, pprime) ;                                       \
+	    return OMEANA_##suffix( E, p, pprime) ;                                       \
       }
 
 DEFINE_V_FUNCTION(00);

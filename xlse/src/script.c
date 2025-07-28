@@ -182,7 +182,7 @@ struct OME *ome_malloc()
       return ome;
 }
 
-double complex V(struct OME *ome, double E, double p, double pprime) { return Vpiu(*ome, E, p, pprime, m_B_star, gamma_B_star, m_B, 0, m_B_star, gamma_B_star, m_B, 0, m_pi, 3 ); }
+double complex V(struct OME *ome, double E, double p, double pprime) { return OMEANA_00(E, p, pprime); }
 
 double complex *traceG(double *E, size_t len, double C[4], size_t pNgauss, double Lambda, double epsilon)
 {

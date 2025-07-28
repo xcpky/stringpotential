@@ -102,3 +102,47 @@ double complex Vpiu(struct OME ome, _Complex double E, _Complex double p1, _Comp
 	    }
       }
 }
+double complex quad(double complex E, double complex p1, double complex p2)
+{
+      gsl_integration_glfixed_table *table = gsl_integration_glfixed_table_alloc(DIMRE);
+      double xxz[DIMRE];
+      double wwz[DIMRE];
+      for (size_t i = 0; i < DIMRE; i += 1) {
+            gsl_integration_glfixed_point(-1, 1, i, &xxz[i], &wwz[i], table);
+      }
+      double gam1 = 0;
+      double gam2 = 0;
+      double gam3 = 0;
+      double gam4 = 0;
+      double m1 = m_B;
+      double m2 = m_B_star;
+      double m3 = m_B;
+      double m4 = m_B_star;
+      double m0 = m_pi;
+      double complex res = 0;
+      for (size_t i = 0; i < DIMRE; i += 1) {
+	    auto z = xxz[i];
+	    auto w = wwz[i];
+	    auto D1 = Dij(E, z, p1, p2, m1 - I * gam1 / 2, m3 - I * gam3 / 2, m0);
+	    auto D2 = Dij(E, z, p1, p2, m2 - I * gam2 / 2, m4 - I * gam4 / 2, m0);
+	    auto Dint = FACPI*(1 / D1 + 1 / D2) / (2 * Epi(z, p1, p2, m0)) * (p1 * p1 + p2 * p2 - 2 * p1 * p2 * z);
+	    // auto Dint = ( 1/D1 + 1 / D2) / (2*Epi(z, p1, p2, m0)) * (z);
+	    // auto Dint = (1 / D1 + 1 / D2) / (2 * Epi(z, p1, p2, m0)) * (- 2 * p1 * p2 * z);
+	    res += Dint * w;
+      }
+      gsl_integration_glfixed_table_free(table);
+      return res;
+}
+double complex juliana(double complex E, double complex p, double complex pprime) {
+      auto A = p*p + pprime*pprime + m_pi*m_pi;
+      auto B = 2*p*pprime;
+      auto D = 2*m_B_star + (p*p + pprime * pprime)/(2*m_B_star) - E;
+      auto C = 2*m_B + (p*p + pprime * pprime)/(2*m_B) - E;
+      auto a = csqrt(A-B);
+      auto b = csqrt(A+B);
+      // auto ret = -1*((D+C)*(a-b)+2*B-(A- D*D)*clog((b + D)/(a + D)) - (A- C*C)*clog((b + C)/(a + C)));
+      // return ret/B/B;
+      // return -(p*p+pprime*pprime)*Delta0_00(E, p, pprime, m_pi) + 2*p*pprime*Delta1_00(E, p, pprime, m_pi);
+      // return -Delta1_00(E, p, pprime, m_pi);
+      return ANA_00(E, p, pprime, m_pi);
+}
