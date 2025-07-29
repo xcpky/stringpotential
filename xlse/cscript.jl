@@ -266,7 +266,7 @@ if "--poles" in ARGS
       # savefig("tmp.png")
 end
 onshellRange = LinRange(m_Xb11P - 0.3, delta[1], 3000)
-onshellRange = LinRange(-0.8902298635, 0.690229863, 4000)
+onshellRange = LinRange(-0.7, 0.690229863, 4000)
 
 if "--onshellT" in ARGS
       # E = 1.48:0.00001:1.499
@@ -409,16 +409,26 @@ if "--OME" in ARGS
       savefig("pole1.png")
 end
 
-function nonana(E, p, m1, m2, m0)
+function nonana(E, p, m1, m2, m0)::Vector{ComplexF64}
       M = m1 + m2
-      p = Polynomial([E^2 + M^2 + p^4 / 4 / m2 / m2 - 2E * M - E * p^2 / m2 + M * p^2 / m2 - p^2 - m0^2, -2p, (M - E) / m1 + p^2 / 2 / m1 / m2 - 1, 0, 1 / 4 / m1 / m1,])
-      return roots(p)
+      poly = Polynomial([E^2 + M^2 + p^4 / 4 / m2 / m2 - 2E * M - E * p^2 / m2 + M * p^2 / m2 - p^2 - m0^2, 2p, (M - E) / m1 + p^2 / 2 / m1 / m2 - 1, 0, 1 / 4 / m1 / m1,])
+      rts = roots(poly)
+      # for i in eachindex(rts)
+      #       if abs(imag(rts[i])) < 1e-6
+      #             if E - M - real(rts[i])^2 / 2 / m1 - p^2 / 2 / m2 < 0
+      #                   rts[i] = NaN
+      #             end
+      #       end
+      # end
+      return rts
 end
 
 if "--analyticity" in ARGS
-      prange = LinRange(0.01, 2, 400)
-      Erange = LinRange(-0.8, 0.6, 1000)
-      @time nonanalyticity = [nonana(E + m11 + m12, p, m_B, m_B, m_pi) for E in Erange, p in prange]
+      # prange = LinRange(0.01 , 2 , 10000)
+      prange = vcat(LinRange(0.01 + 0.0001im, 0.9 + 0.01im, 600), LinRange(0.9 + 0.01im, 0.9 + 0.16im, 300), LinRange(0.9 + 0.16im, 2 + 0.16im, 600), LinRange(2+0.16im, 2, 300))
+      # Erange = LinRange(0.2, 0.6, 20)
+      Erange = [0.6]
+      @time nonanalyticity = [nonana(E + m_B + m_B_star , p, m_B, m_B, m_pi) for E in Erange, p in prange]
       z = Array{ComplexF64}(undef, size(Erange)[1], 4 * size(prange)[1])
       for i in eachindex(Erange)
             z[i, :] = vcat(nonanalyticity[i, :]...)
@@ -436,8 +446,11 @@ if "--analyticity" in ARGS
                   color=i,  # Unique color per group
                   alpha=0.6) # Semi-transparent for overlap visibility
       end
+      scatter!(p, real.(prange), imag.(prange), markersize=0.5, markerstrokewidth=0, label="path", legend=true)
+      
 
       xlims!(-1, 3)
+      # ylims!(-0.05, 0.05)
       @time savefig(p, "complex.png")
 
 end

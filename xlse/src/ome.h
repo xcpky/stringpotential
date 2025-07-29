@@ -5,7 +5,7 @@
 #include <stddef.h>
 #include <stdio.h>
 #define FSQUARE(F) (F) * (F)
-#define EPSILON (1e-5)
+#define EPSILON (-1e-4)
 #define DIMIM (16)
 #define DIMRE (24)
 #define ZI (0.2)

@@ -13,18 +13,19 @@
 #define m_eta (0.548)
 #define m_eta_s (0.69)
 
-#define m_B (5.27934)
-#define m_B_star (5.32471)
-#define m_B_s (5.36692)
-#define m_B_star_s (5.4154)
+#define WIDTH (1e-2*I)
+#define m_B (5.27934 + WIDTH)
+#define m_B_star (5.32471+ WIDTH)
+#define m_B_s (5.36692+ WIDTH)
+#define m_B_star_s (5.4154+ WIDTH)
 #define gamma_B_star (0)
 #define gamma_B_star_s (0)
 
-#define m11 (m_B)
-#define m12 (m_B_star)
+#define m11 (5.27934)
+#define m12 (5.32471)
 
-#define m21 (m_B_s)
-#define m22 (m_B_star_s)
+#define m21 (5.36692)
+#define m22 (5.4154)
 
 #define m_Xb13P (10.5134 - (m11 + m12))
 #define m_Xb12P (10.25546 - (m11 + m12))
