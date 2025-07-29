@@ -1,4 +1,5 @@
 using Libdl
+using Polynomials
 using LinearAlgebra
 
 # Load the shared library
@@ -121,7 +122,7 @@ function detImVG(E::Vector{Cdouble}, len, C::Vector{Cdouble}, pNgauss, Lambda, e
       # vline!([m_pi], s=:dash, label=L"m_\pi")
       plot!(E, abs.(Det), label=L"|det($1-VG$)|", dpi=400)
       xlims!(E[1], E[end])
-      ylims!(0, 5e4)
+      ylims!(0, 5e2)
       xlabel!("E/GeV")
       # ylims!(0, 1e9)
       savefig("det.png")
@@ -407,7 +408,36 @@ if "--OME" in ARGS
       ylims!(-0.5, 5.5)
       savefig("pole1.png")
 end
-      ome = ccall(dlsym(libscript, :ome_malloc), Ptr{Cvoid}, ())
-      V(E, p, pprime) = ccall(dlsym(libscript, :V), ComplexF64, (Ptr{Cvoid}, Cdouble, Cdouble, Cdouble), ome, E, p, pprime)
-      quad(E, p, pprime) = ccall(dlsym(libscript, :quad), ComplexF64, (ComplexF64, ComplexF64, ComplexF64), E, p, pprime)
-      ana(E, p, pprime) = ccall(dlsym(libscript, :juliana), ComplexF64, (ComplexF64, ComplexF64, ComplexF64), E, p, pprime)
+
+function nonana(E, p, m1, m2, m0)
+      M = m1 + m2
+      p = Polynomial([E^2 + M^2 + p^4 / 4 / m2 / m2 - 2E * M - E * p^2 / m2 + M * p^2 / m2 - p^2 - m0^2, -2p, (M - E) / m1 + p^2 / 2 / m1 / m2 - 1, 0, 1 / 4 / m1 / m1,])
+      return roots(p)
+end
+
+if "--analyticity" in ARGS
+      prange = LinRange(0.01, 2, 400)
+      Erange = LinRange(-0.8, 0.6, 1000)
+      @time nonanalyticity = [nonana(E + m11 + m12, p, m_B, m_B, m_pi) for E in Erange, p in prange]
+      z = Array{ComplexF64}(undef, size(Erange)[1], 4 * size(prange)[1])
+      for i in eachindex(Erange)
+            z[i, :] = vcat(nonanalyticity[i, :]...)
+      end
+      # Create plot
+      p = plot(legend=false, xlabel="Re", ylabel="Im", title="Domain of non-analyticity", dpi=400)
+
+      # Plot each group with unique color
+      for i in 1:size(z, 1)
+            re = real.(z[i, :])
+            im = imag.(z[i, :])
+            scatter!(p, re, im,
+                  markersize=0.5,
+                  markerstrokewidth=0,
+                  color=i,  # Unique color per group
+                  alpha=0.6) # Semi-transparent for overlap visibility
+      end
+
+      xlims!(-1, 3)
+      @time savefig(p, "complex.png")
+
+end

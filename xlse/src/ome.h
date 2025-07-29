@@ -5,7 +5,7 @@
 #include <stddef.h>
 #include <stdio.h>
 #define FSQUARE(F) (F) * (F)
-#define EPSILON (0)
+#define EPSILON (1e-5)
 #define DIMIM (16)
 #define DIMRE (24)
 #define ZI (0.2)
@@ -188,7 +188,8 @@ static inline double complex OME_11(struct OME ome, double complex E, double com
 	    auto E = e - omegaprime_##suffix(p, pprime);                                                                       \
 	    auto a = csqrt(B + C);                                                                                             \
 	    auto b = csqrt(B - C);                                                                                             \
-	    return 1 / C * (clog((a - D) * (a - E) / (b - D) / (b - E)));                                                      \
+	    return 1 / C *                                                                                                     \
+		   (clog((a - D + I * EPSILON) * (a - E + I * EPSILON) / (b - D + I * EPSILON) / (b - E + I * EPSILON)));      \
       }
 
 #define DEFINE_DELTA1(suffix)                                                                                                  \
@@ -200,8 +201,8 @@ static inline double complex OME_11(struct OME ome, double complex E, double com
 	    auto D = omegaprime_##suffix(p, pprime) - E;                                                                       \
 	    auto a = csqrt(A - B);                                                                                             \
 	    auto b = csqrt(A + B);                                                                                             \
-	    auto ret =                                                                                                         \
-		-((C + D) * (a - b) + 2 * B + (A - C * C) * clog((a + C) / (b + C)) + (A - D * D) * clog((a + D) / (b + D)));  \
+	    auto ret = -((C + D) * (a - b) + 2 * B + (A - C * C) * clog((a + C + I * EPSILON) / (b + C + I * EPSILON)) +       \
+			 (A - D * D) * clog((a + D + I * EPSILON) / (b + D + I * EPSILON)));                                   \
 	    return ret / B / B;                                                                                                \
       }
 #define DEFINE_ANA(suffix)                                                                                                     \
