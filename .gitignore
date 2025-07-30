@@ -21,3 +21,4 @@ papers
 *.ipynb_checkpoints*
 *.dat
 *.pdf
+*compile_commands.json
