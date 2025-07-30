@@ -1,27 +1,27 @@
 [
 {
   "directory": "/home/zhy/code/stringpotential/xlse",
-  "arguments": ["/sbin/clang", "-c", "-Qunused-arguments", "-m64", "-fPIC", "-O3", "-std=gnu23", "-Wall", "-Wextra", "-DHAVE_INLINE", "-fgnuc-version=8", "-Wconversion", "-DNDEBUG", "-o", "build/.objs/script/linux/x86_64/release/src/script.c.o", "src/script.c"],
+  "arguments": ["/sbin/clang", "-c", "-Qunused-arguments", "-m64", "-fPIC", "-O3", "-std=gnu23", "-DNTHREADS=16", "-Wall", "-Wextra", "-DHAVE_INLINE", "-fgnuc-version=8", "-Wconversion", "-DNDEBUG", "-o", "build/.objs/script/linux/x86_64/release/src/script.c.o", "src/script.c"],
   "file": "src/script.c"
 },
 {
   "directory": "/home/zhy/code/stringpotential/xlse",
-  "arguments": ["/sbin/clang", "-c", "-Qunused-arguments", "-m64", "-fPIC", "-O3", "-std=gnu23", "-Wall", "-Wextra", "-DHAVE_INLINE", "-fgnuc-version=8", "-Wconversion", "-DNDEBUG", "-o", "build/.objs/script/linux/x86_64/release/src/constants.c.o", "src/constants.c"],
+  "arguments": ["/sbin/clang", "-c", "-Qunused-arguments", "-m64", "-fPIC", "-O3", "-std=gnu23", "-DNTHREADS=16", "-Wall", "-Wextra", "-DHAVE_INLINE", "-fgnuc-version=8", "-Wconversion", "-DNDEBUG", "-o", "build/.objs/script/linux/x86_64/release/src/constants.c.o", "src/constants.c"],
   "file": "src/constants.c"
 },
 {
   "directory": "/home/zhy/code/stringpotential/xlse",
-  "arguments": ["/sbin/clang", "-c", "-Qunused-arguments", "-m64", "-fPIC", "-O3", "-std=gnu23", "-Wall", "-Wextra", "-DHAVE_INLINE", "-fgnuc-version=8", "-Wconversion", "-DNDEBUG", "-o", "build/.objs/script/linux/x86_64/release/src/wavefunction.c.o", "src/wavefunction.c"],
+  "arguments": ["/sbin/clang", "-c", "-Qunused-arguments", "-m64", "-fPIC", "-O3", "-std=gnu23", "-DNTHREADS=16", "-Wall", "-Wextra", "-DHAVE_INLINE", "-fgnuc-version=8", "-Wconversion", "-DNDEBUG", "-o", "build/.objs/script/linux/x86_64/release/src/wavefunction.c.o", "src/wavefunction.c"],
   "file": "src/wavefunction.c"
 },
 {
   "directory": "/home/zhy/code/stringpotential/xlse",
-  "arguments": ["/sbin/clang", "-c", "-Qunused-arguments", "-m64", "-fPIC", "-O3", "-std=gnu23", "-Wall", "-Wextra", "-DHAVE_INLINE", "-fgnuc-version=8", "-Wconversion", "-DNDEBUG", "-o", "build/.objs/script/linux/x86_64/release/src/lse.c.o", "src/lse.c"],
+  "arguments": ["/sbin/clang", "-c", "-Qunused-arguments", "-m64", "-fPIC", "-O3", "-std=gnu23", "-DNTHREADS=16", "-Wall", "-Wextra", "-DHAVE_INLINE", "-fgnuc-version=8", "-Wconversion", "-DNDEBUG", "-o", "build/.objs/script/linux/x86_64/release/src/lse.c.o", "src/lse.c"],
   "file": "src/lse.c"
 },
 {
   "directory": "/home/zhy/code/stringpotential/xlse",
-  "arguments": ["/sbin/clang", "-c", "-Qunused-arguments", "-m64", "-fPIC", "-O3", "-std=gnu23", "-Wall", "-Wextra", "-DHAVE_INLINE", "-fgnuc-version=8", "-Wconversion", "-DNDEBUG", "-o", "build/.objs/script/linux/x86_64/release/src/ome.c.o", "src/ome.c"],
+  "arguments": ["/sbin/clang", "-c", "-Qunused-arguments", "-m64", "-fPIC", "-O3", "-std=gnu23", "-DNTHREADS=16", "-Wall", "-Wextra", "-DHAVE_INLINE", "-fgnuc-version=8", "-Wconversion", "-DNDEBUG", "-o", "build/.objs/script/linux/x86_64/release/src/ome.c.o", "src/ome.c"],
   "file": "src/ome.c"
 },
 {

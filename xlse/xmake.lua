@@ -29,6 +29,8 @@ target("xlse")
     add_files("src/main.c", "src/constants.c")
 
 target("script")
+    local cpu_count = os.cpuinfo().ncpu
+    add_defines("NTHREADS=" .. cpu_count)
     set_kind("shared")
     add_files("src/script.c", "src/constants.c", "src/wavefunction.c", "src/lse.c", "src/ome.c")
     add_packages("gsl")
