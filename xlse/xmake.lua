@@ -7,34 +7,44 @@ add_requires("gsl")
 add_rules("plugin.compile_commands.autoupdate")
 
 target("wavefunction")
-    set_kind("shared")
-    add_files("src/wavefunction.c", "src/constants.c")
-    add_packages("gsl")
-    add_links("m")
+do
+      set_kind("shared")
+      add_files("src/wavefunction.c", "src/constants.c")
+      add_packages("gsl")
+      add_links("m")
+end
 
 target("lse")
-    set_kind("shared")
-    -- add_headerfiles("src/lse.h")
-    add_files("src/lse.c", "src/constants.c", "src/wavefunction.c", "src/ome.c")
-    add_packages("gsl")
-    add_links("m")
+do
+      set_kind("shared")
+      -- add_headerfiles("src/lse.h")
+      add_files("src/lse.c", "src/constants.c", "src/wavefunction.c", "src/ome.c")
+      add_packages("gsl")
+      add_links("m")
+end
 
 target("xlse")
-    set_kind("binary")
-    add_deps("lse")
-    add_deps("wavefunction")
-    add_deps("script")
-    add_packages("gsl")
-    add_links("m")
-    add_files("src/main.c", "src/constants.c")
+do
+      set_kind("binary")
+      add_deps("lse")
+      add_deps("wavefunction")
+      add_deps("script")
+      add_packages("gsl")
+      add_links("m")
+      add_files("src/main.c", "src/constants.c")
+end
 
 target("script")
-    local cpu_count = os.cpuinfo().ncpu
-    add_defines("NTHREADS=" .. cpu_count)
-    set_kind("shared")
-    add_files("src/script.c", "src/constants.c", "src/wavefunction.c", "src/lse.c", "src/ome.c")
-    add_packages("gsl")
-    add_links("m")
+do
+      on_load(function(target)
+            local nproc = os.cpuinfo().ncpu
+            target:add("defines"," NTHREADS=" .. nproc)
+      end)
+      set_kind("shared")
+      add_files("src/script.c", "src/constants.c", "src/wavefunction.c", "src/lse.c", "src/ome.c")
+      add_packages("gsl")
+      add_links("m")
+end
 --
 -- target("xlsepp")
 --     set_kind("binary")
@@ -115,4 +125,3 @@ target("script")
 --
 -- @endcode
 --
-

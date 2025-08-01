@@ -24,7 +24,7 @@ function conshellT(E::Vector{Cdouble}, len, C::Vector{Cdouble}, pNgauss, Lambda,
       plot!(E, abs.(ot[4, :]), label=L"$T_{22}$")
       # plot!(E, abs.(ot[2, :]), label=L"$T_{12}$")
       # ylims!(0, upper)
-      ylims!(0, 1e3)
+      # ylims!(0, 1e3)
       println(E[end])
       xlims!(E[1], E[end])
       savefig("onshellT.png")
@@ -122,7 +122,7 @@ function detImVG(E::Vector{Cdouble}, len, C::Vector{Cdouble}, pNgauss, Lambda, e
       # vline!([m_pi], s=:dash, label=L"m_\pi")
       plot!(E, abs.(Det), label=L"|det($1-VG$)|", dpi=400)
       xlims!(E[1], E[end])
-      ylims!(0, 5e2)
+      # ylims!(0, 1e5)
       xlabel!("E/GeV")
       # ylims!(0, 1e9)
       savefig("det.png")
@@ -266,7 +266,7 @@ if "--poles" in ARGS
       # savefig("tmp.png")
 end
 onshellRange = LinRange(m_Xb11P - 0.3, delta[1], 3000)
-onshellRange = LinRange(-0.7, 0.690229863, 4000)
+onshellRange = LinRange(-2.7, 0.690229863, 8000)
 
 if "--onshellT" in ARGS
       # E = 1.48:0.00001:1.499

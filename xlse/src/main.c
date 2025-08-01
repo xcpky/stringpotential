@@ -300,17 +300,15 @@ double complex Ofunc(double complex E, double complex p, double complex pprime)
 
 void unitest()
 {
-      size_t pNgauss = 30;
+      size_t pNgauss = 64;
       double Lambda = 4;
-      double epsilon = 1e-9;
-      double E = 0.1835;
+      double epsilon = 1e-6;
+      double E = 1.2;
       LSE *lse [[gnu::cleanup(lsefree)]] = lse_malloc(pNgauss, Lambda, epsilon);
-      lse_refresh(lse, E, (double[]) { 0, 0, 0, 0 }, PP);
+      lse_compute(lse, E, (double[]) { 0, 0, 0, 0 }, PP);
+      printf("m_B: %.8f  det: %.8f\n", m_B, cabs(lse->det));
 	// E = 0.2;
       E += m11 + m12;
-      double p0 = 0.003525;
-      auto v = V(&lse->ome, E, p0, p0);
-	printf("%f\n", cabs(v));
       // 4 * square(g_pi) / square(f_pi) * -1 / 4 / p / pprime *
       // (clog((E - (m + csquare(p - pprime) / 2 / m) - omega_00(p, pprime)) /
       //       (E - (m + csquare(p + pprime) / 2 / m) - omega_00(p, pprime)))

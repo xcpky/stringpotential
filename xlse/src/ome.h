@@ -5,12 +5,14 @@
 #include <stddef.h>
 #include <stdio.h>
 #define FSQUARE(F) (F) * (F)
-#define EPSILON (-1e-4)
+#define EPSILON (1e-2)
 #define DIMIM (16)
 #define DIMRE (24)
 #define ZI (0.2)
 #define FACPI (-3 * g_b * g_b / f_pi / f_pi / 24)
 #include <complex.h>
+
+#define RECOIL
 
 static inline double complex csquare(double complex x) { return x * x; }
 static inline double fsquare(double x) { return x * x; }
@@ -32,42 +34,75 @@ void ome_free(struct OME *self);
 // Omega functions
 static inline double complex omega_00(double complex p, double complex pprime)
 {
+#ifdef RECOIL
+
       return 2 * m_B + (p * p + pprime * pprime) / (2 * m_B);
+#else
+      return 2 * m_B;
+#endif // RECOIL
 }
 
 static inline double complex omega_01(double complex p, double complex pprime)
 {
+#ifdef RECOIL
       return m_B + pprime * pprime / (2 * m_B) + m_B_s + p * p / (2 * m_B_s);
+#else
+      return m_B + m_B_s;
+#endif
 }
 
 static inline double complex omega_10(double complex p, double complex pprime)
 {
+#ifdef RECOIL
       return m_B_s + pprime * pprime / (2 * m_B_s) + m_B + p * p / (2 * m_B);
+#else
+      return m_B_s + m_B;
+#endif
 }
 
 static inline double complex omega_11(double complex p, double complex pprime)
 {
+#ifdef RECOIL
       return 2 * m_B_s + (p * p + pprime * pprime) / (2 * m_B_s);
+#else
+      return 2 * m_B_s;
+#endif
 }
 
 static inline double complex omegaprime_00(double complex p, double complex pprime)
 {
+#ifdef RECOIL
       return 2 * m_B_star + (p * p + pprime * pprime) / (2 * m_B_star);
+#else
+      return 2 * m_B_star;
+#endif
 }
 
 static inline double complex omegaprime_01(double complex p, double complex pprime)
 {
+#ifdef RECOIL
       return m_B_star + pprime * pprime / (2 * m_B_star) + m_B_star_s + p * p / (2 * m_B_star_s);
+#else
+      return m_B_star + m_B_star_s;
+#endif
 }
 
 static inline double complex omegaprime_10(double complex p, double complex pprime)
 {
+#ifdef RECOIL
       return m_B_star_s + pprime * pprime / (2 * m_B_star_s) + m_B_star + p * p / (2 * m_B_star);
+#else
+      return m_B_star_s + m_B_star;
+#endif
 }
 
 static inline double complex omegaprime_11(double complex p, double complex pprime)
 {
+#ifdef RECOIL
       return 2 * m_B_star_s + (p * p + pprime * pprime) / (2 * m_B_star_s);
+#else
+      return 2 * m_B_star_s;
+#endif
 }
 
 static inline double complex Epi(double complex z, double complex p1, double complex p2, double m0)
@@ -189,7 +224,8 @@ static inline double complex OME_11(struct OME ome, double complex E, double com
 	    auto a = csqrt(B + C);                                                                                             \
 	    auto b = csqrt(B - C);                                                                                             \
 	    return 1 / C *                                                                                                     \
-		   (clog((a - D + I * EPSILON) * (a - E + I * EPSILON) / (b - D + I * EPSILON) / (b - E + I * EPSILON)));      \
+		   (clog(csqrt(csquare(a - D) + EPSILON) * csqrt(csquare(a - E) + EPSILON) / csqrt(csquare(b - D) + EPSILON) / \
+			 csqrt(csquare(b - E) + EPSILON)));                                                                    \
       }
 
 #define DEFINE_DELTA1(suffix)                                                                                                  \
@@ -201,8 +237,9 @@ static inline double complex OME_11(struct OME ome, double complex E, double com
 	    auto D = omegaprime_##suffix(p, pprime) - E;                                                                       \
 	    auto a = csqrt(A - B);                                                                                             \
 	    auto b = csqrt(A + B);                                                                                             \
-	    auto ret = -((C + D) * (a - b) + 2 * B + (A - C * C) * clog((a + C + I * EPSILON) / (b + C + I * EPSILON)) +       \
-			 (A - D * D) * clog((a + D + I * EPSILON) / (b + D + I * EPSILON)));                                   \
+	    auto ret = -((C + D) * (a - b) + 2 * B +                                                                           \
+			 (A - C * C) * clog(csqrt(csquare(a + C) + EPSILON) / csqrt(csquare(b + C) + EPSILON)) +               \
+			 (A - D * D) * clog(csqrt(csquare(a + D) + EPSILON) / csqrt(csquare(b + D) + EPSILON)));               \
 	    return ret / B / B;                                                                                                \
       }
 #define DEFINE_ANA(suffix)                                                                                                     \
