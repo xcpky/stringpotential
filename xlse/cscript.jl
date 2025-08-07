@@ -10,6 +10,85 @@ using LaTeXStrings
 
 include("constants.jl")
 
+function imT(E::Vector{Cdouble}, len, C::Vector{Cdouble}, pNgauss, Lambda, epsilon)
+    @time otr = ccall(Libdl.dlsym(libscript, :onshellT), Ptr{ComplexF64}, (Ptr{Cdouble}, Cuint, Ptr{Cdouble}, Cuint, Cdouble, Cdouble), E, len, C, pNgauss, Lambda, epsilon)
+    ot = transpose(copy(unsafe_wrap(Array, otr, (len, 4), own=false)))
+    invT = Array{ComplexF64}(undef, 4, len)
+    function ρ(e, i)
+        if e <= delta[i]
+            return 0
+        end
+        k = sqrt(2 * mu[i] * (e - delta[i]))
+        return mu[i] * k / 2 / pi
+        e += m11 + m12
+        s = e^2
+        k = sqrt((s - (m[i, 1] + m[i, 2])^2) * (s - (m[i, 1] - m[i, 2])^2)) / 2 / e
+        # return k
+        return k / 8 / pi / e
+    end
+    for i in 1:len
+        m = [ot[1, i] ot[2, i]; ot[3, i] ot[4, i]]
+        # if abs(det(m)) == NaN
+        #     invT[1, i] = 0
+        #     invT[2, i] = 0
+        #     invT[3, i] = 0
+        #     invT[4, i] = 0
+        #     break
+        # end
+        invm = inv(m)
+        invT[1, i] = invm[1, 1]
+        invT[2, i] = invm[1, 2]
+        invT[3, i] = invm[2, 1]
+        invT[4, i] = invm[2, 2]
+    end
+    plot(dpi=400)
+    plot!(E, imag.(invT[1, :]), label="Im " * L"T^{-1}_{11}", alpha=0.5, lw=1, s=:dot)
+    # plot!(E, imag.(invT[2, :]), label="Im "*L"T^{-1}_{12}")
+    # plot!(E, imag.(invT[3, :]), label="Im "*L"T^{-1}_{21}")
+    plot!(E, imag.(invT[4, :]), label="Im " * L"T^{-1}_{22}", alpha=0.5, lw=1, s=:dot)
+    # plot!(E, ρ.(E, 1), label=L"\rho_1(E)\Theta(E-m_B-m_{B^*})")
+    # plot!(E, ρ.(E, 2), label=L"\rho_2(E)\Theta(E-m_{B_s} - m_{B_s^*})")
+    vline!([m_pi + m_B - m_B_star], s=:dash, label=L"BB\pi", c=:grey)
+    vline!([m_pi + delta[2]], s=:dash, label=L"B_sB_s^*\pi", c=:grey)
+    ylims!(-2, 1.5)
+    xlabel!("E/GeV")
+    savefig("imT.png")
+    savefig("iminvT.pdf")
+    cfree(reinterpret(Ptr{Cvoid}, otr))
+end
+
+function imTsing(E::Vector{Cdouble}, len, C::Vector{Cdouble}, pNgauss, Lambda, epsilon)
+    @time otr = ccall(Libdl.dlsym(libscript, :onshellT), Ptr{ComplexF64}, (Ptr{Cdouble}, Cuint, Ptr{Cdouble}, Cuint, Cdouble, Cdouble), E, len, C, pNgauss, Lambda, epsilon)
+    ot = copy(unsafe_wrap(Array, otr, len, own=false))
+    invT = inv.(ot)
+    function ρ(e, i)
+        if e <= delta[i]
+            return 0
+        end
+        k = sqrt(2 * mu[i] * (e - delta[i]))
+        return mu[i] * k / 2 / pi
+        e += m11 + m12
+        s = e^2
+        k = sqrt((s - (m[i, 1] + m[i, 2])^2) * (s - (m[i, 1] - m[i, 2])^2)) / 2 / e
+        # return k
+        return k / 8 / pi / e
+    end
+    plot(dpi=400, legend=:bottomright)
+    plot!(E, imag.(invT[:]), label="Im " * L"T^{-1}_{11}", alpha=0.5, lw=1)
+    # plot!(E, imag.(invT[2, :]), label="Im "*L"T^{-1}_{12}")
+    # plot!(E, imag.(invT[3, :]), label="Im "*L"T^{-1}_{21}")
+    # plot!(E, imag.(invT[4, :]), label="Im "*L"T^{-1}_{22}", alpha=0.5, lw=1, s=:dot)
+    plot!(E, ρ.(E, 1), label=L"\rho_1(E)\Theta(E-m_B-m_{B^*})", alpha=0.8, s=:dash)
+    # plot!(E, ρ.(E, 2), label=L"\rho_2(E)\Theta(E-m_{B_s} - m_{B_s^*})")
+    vline!([m_pi + m_B - m_B_star], s=:dash, label=L"BB\pi", c=:grey)
+    vline!([m_pi + delta[2]], s=:dash, label=L"B_sB_s^*\pi", c=:grey)
+    ylims!(-2, 1.5)
+    xlabel!("E/GeV")
+    savefig("imTsing.png")
+    savefig("iminvTsing.pdf")
+    cfree(reinterpret(Ptr{Cvoid}, otr))
+end
+
 function conshellT(E::Vector{Cdouble}, len, C::Vector{Cdouble}, pNgauss, Lambda, epsilon)
     @time otr = ccall(Libdl.dlsym(libscript, :onshellT), Ptr{ComplexF64}, (Ptr{Cdouble}, Cuint, Ptr{Cdouble}, Cuint, Cdouble, Cdouble), E, len, C, pNgauss, Lambda, epsilon)
     ot = transpose(copy(unsafe_wrap(Array, otr, (len, 4), own=false)))
@@ -25,11 +104,35 @@ function conshellT(E::Vector{Cdouble}, len, C::Vector{Cdouble}, pNgauss, Lambda,
     plot!(E, abs.(ot[4, :]), label=L"$T_{22}$")
     # plot!(E, abs.(ot[2, :]), label=L"$T_{12}$")
     # ylims!(0, upper)
-    # ylims!(0, 1e3)
+    ylims!(0, 1e3)
     println(E[end])
     xlims!(E[1], E[end])
     savefig("onshellT.png")
     savefig("onshellT.pdf")
+    cfree(reinterpret(Ptr{Cvoid}, otr))
+    return ot
+end
+
+function conshellT_single(E::Vector{Cdouble}, len, C::Vector{Cdouble}, pNgauss, Lambda, epsilon)
+    @time otr = ccall(Libdl.dlsym(libscript, :onshellT_single), Ptr{ComplexF64}, (Ptr{Cdouble}, Cuint, Ptr{Cdouble}, Cuint, Cdouble, Cdouble), E, len, C, pNgauss, Lambda, epsilon)
+    ot = copy(unsafe_wrap(Array, otr, len, own=false))
+    level = getEvec(C[1])
+    vls = filter(e -> e > E[1] && e < E[end], level)
+    vline(vls, s=:dash, c=:grey, label=L"$E_i$")
+    vline!(delta, s=:dash, label="thresholds", lw=0.8)
+    vline!([m_Xb11P], s=:dash, label=L"\chi_{b1}(1P)")
+    vline!([m_Xb12P], s=:dash, label=L"\chi_{b1}(2P)")
+    vline!([m_Xb13P], s=:dash, label=L"\chi_{b1}(3P)")
+    plot!(E, abs.(ot), label=L"$T_{11}$", dpi=400)
+    # plot!(E, abs.(ot[3, :]), label=L"$T_{21}$")
+    # plot!(E, abs.(ot[4, :]), label=L"$T_{22}$")
+    # plot!(E, abs.(ot[2, :]), label=L"$T_{12}$")
+    # ylims!(0, upper)
+    # ylims!(0, 1e3)
+    println(E[end])
+    xlims!(E[1], E[end])
+    savefig("onshellT_single.png")
+    savefig("onshellT_single.pdf")
     cfree(reinterpret(Ptr{Cvoid}, otr))
     return ot
 end
@@ -119,11 +222,12 @@ function detImVG(E::Vector{Cdouble}, len, C::Vector{Cdouble}, pNgauss, Lambda, e
     vline!([m_Xb11P], s=:dash, label=L"\chi_{b1}(1P)")
     vline!([m_Xb12P], s=:dash, label=L"\chi_{b1}(2P)")
     vline!([m_Xb13P], s=:dash, label=L"\chi_{b1}(3P)")
+    vline!([m_pi + m_B - m_B_star], s=:dash, label=L"\pi")
     # vline!([m_pi + m_B - m_B_star], s=:dash, label=L"\pi")
     # vline!([m_pi], s=:dash, label=L"m_\pi")
     plot!(E, abs.(Det), label=L"|det($1-VG$)|", dpi=400)
     xlims!(E[1], E[end])
-    # ylims!(0, 1e5)
+    ylims!(0, 1e3)
     xlabel!("E/GeV")
     # ylims!(0, 1e9)
     savefig("det.png")
@@ -268,6 +372,7 @@ if "--poles" in ARGS
 end
 onshellRange = LinRange(m_Xb11P - 0.3, delta[1], 3000)
 onshellRange = LinRange(-0.7, 1.690229863, 8000)
+# onshellRange = LinRange(0., 0.190229863, 8000)
 
 if "--onshellT" in ARGS
     # E = 1.48:0.00001:1.499
@@ -282,6 +387,24 @@ if "--onshellT" in ARGS
     # println("in julia")
     # println(collect(E))
     ot = conshellT(collect(E), length(E), C, pNgauss, Lambda, epsi)
+    # og = conshellG(collect(E), length(E), 100, 4, epsi)
+    # Det = detImVG(collect(E), length(E), 64, 4, epsi)
+    # data = Both(collect(E), length(E), 64, 4, epsi)
+    # E = getEvec()
+end
+if "--onshellT_single" in ARGS
+    # E = 1.48:0.00001:1.499
+    E = onshellRange
+    # C = [-4.015485e-01, -1.722080e+00, -1.854979e-01, -2.092185e+00]
+    # C = [0.0, 0, 0, 0]
+    # E = LinRange(-1.8, -1.6, 10000)
+    # E = LinRange(-0.8001, -0.7999, 5000)
+    # E = LinRange(0.5, 2, 5000)
+    # E = 0.399999999:0.00000000001:0.400000001
+    # E = 0:0.01:1.8
+    # println("in julia")
+    # println(collect(E))
+    ot = conshellT_single(collect(E), length(E), C, pNgauss, Lambda, epsi)
     # og = conshellG(collect(E), length(E), 100, 4, epsi)
     # Det = detImVG(collect(E), length(E), 64, 4, epsi)
     # data = Both(collect(E), length(E), 64, 4, epsi)
@@ -415,23 +538,23 @@ function nonana(E, p, m1, m2, m0)::Vector{ComplexF64}
     M = m1 + m2
     poly = Polynomial([E^2 + M^2 + p^4 / 4 / m2 / m2 - 2E * M - E * p^2 / m2 + M * p^2 / m2 - p^2 - m0^2, 2p, (M - E) / m1 + p^2 / 2 / m1 / m2 - 1, 0, 1 / 4 / m1 / m1,])
     rts = roots(poly)
-    # for i in eachindex(rts)
-    #       if abs(imag(rts[i])) < 1e-6
-    #             if E - M - real(rts[i])^2 / 2 / m1 - p^2 / 2 / m2 < 0
-    #                   rts[i] = NaN
-    #             end
-    #       end
-    # end
+    for i in eachindex(rts)
+        if abs(imag(rts[i])) < 1e-6
+            if E - M - real(rts[i])^2 / 2 / m1 - p^2 / 2 / m2 < 0
+                rts[i] = NaN
+            end
+        end
+    end
     return rts
 end
 
 if "--analyticity" in ARGS
     prange = LinRange(0.01, 2, 10000)
-    # prange = [0.2, 0.9, 1.5, 2]
+    # prange = [0.9]
     # prange = vcat(LinRange(0.01 + 0.0001im, 0.9 + 0.01im, 600), LinRange(0.9 + 0.01im, 0.9 + 0.16im, 300), LinRange(0.9 + 0.16im, 2 + 0.16im, 600), LinRange(2 + 0.16im, 2, 300))
-    # Erange = LinRange(0.2, 0.6, 20)
-    Erange = [0.6]
-    @time nonanalyticity = [nonana(E + m_B + m_B_star, p, m_B_s, m_B_s, m_pi) for E in Erange, p in prange]
+    # Erange = LinRange(-0.4, 0.0, 20)
+    Erange = [-0.6]
+    @time nonanalyticity = [nonana(E + m_B + m_B_star, p, m_B, m_B, m_pi) for E in Erange, p in prange]
     z = Array{ComplexF64}(undef, size(Erange)[1], 4 * size(prange)[1])
     for i in eachindex(Erange)
         z[i, :] = vcat(nonanalyticity[i, :]...)
@@ -444,7 +567,7 @@ if "--analyticity" in ARGS
         re = real.(z[i, :])
         im = imag.(z[i, :])
         scatter!(p, re, im,
-            markersize=0.5,
+            # markersize=0.5,
             markerstrokewidth=0,
             color=i,  # Unique color per group
             alpha=0.6) # Semi-transparent for overlap visibility
@@ -531,4 +654,13 @@ if "--nroots" in ARGS
     # end fps = 30
     #
     # println("Animation saved as 'anim.gif'")
+end
+
+if "--imT" in ARGS
+    imT(collect(onshellRange), length(onshellRange), C, pNgauss, Lambda, epsi)
+
+end
+
+if "--imTsing" in ARGS
+    imTsing(collect(onshellRange), length(onshellRange), C, pNgauss, Lambda, epsi)
 end

@@ -20,6 +20,7 @@ const m12 = m_B_star
 
 const m21 = m_B_s
 const m22 = m_B_star_s
+const m = [m11 m12; m21 m22]
 
 #masses of bound states in 1++ channel
 const m_Xb13P=10.5134-(m11+m12)

@@ -16,6 +16,7 @@ typedef struct {
 
 // Declare the function with void* to avoid complex.h dependency in C++
 double complex *onshellT(double *E, size_t len, double C[4], size_t pNgauss, double Lambda, double epsilon);
+double complex *onshellT_single(double *E, size_t len, double C[4], size_t pNgauss, double Lambda, double epsilon);
 double complex *onshellG(double *E, size_t len, double C[4], size_t pNgauss, double Lambda, double epsilon);
 double complex *onshellV(double *E, size_t len, double C[4], size_t pNgauss, double Lambda, double epsilon);
 double complex *onshellTV(double *E, size_t len, double C[4], size_t pNgauss, double Lambda, double epsilon);
@@ -64,6 +65,7 @@ struct polestruct {
 };
 
 int oT(void *arg);
+int oTsing(void *arg);
 int oG(void *arg);
 int oV(void *arg);
 int oTV(void *arg);

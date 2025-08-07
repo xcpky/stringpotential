@@ -69,6 +69,7 @@ typedef enum {
 
 LSE *lse_malloc(size_t pNgauss, double Lambda, double epsilon);
 int lse_compute(LSE *self, double complex E, double C[4], RS rs);
+int lse_compute_single(LSE *self, double complex E, double C[4], RS rs);
 void lse_free(LSE *self);
 double complex *lse_get_g_data(LSE *self);
 void lse_get_g_size(LSE *self, unsigned int *rows, unsigned int *cols);
@@ -94,6 +95,7 @@ double *minimize(LSE *lse, double C[4]);
 int lse_gmat(LSE *self);
 int lse_vmat(LSE *self);
 int lse_tmat(LSE *self);
+int lse_tmat_single(LSE *self);
 double complex lse_detImVG(LSE *self, double complex E, double C[4], RS rs);
 double complex lse_detVG(LSE *self, double complex E, double C[4], RS rs);
 double lse_cost(LSE *self, double C[4], RS rs);
