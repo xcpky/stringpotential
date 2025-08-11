@@ -467,8 +467,26 @@ int lse_tmat_single(LSE *self)
 	return -1;
     }
     gsl_blas_zgemm(CblasNoTrans, CblasNoTrans, alpha, inv_I_minus_VG, &V.matrix, beta, &T.matrix);
-    self->onshellT[0][0] = gsl_matrix_get(&T.matrix, n-6, n-8);
+    self->onshellT[0][0] = gsl_matrix_get(&T.matrix, n - 6, n - 8);
     return GSL_SUCCESS;
+}
+
+double complex lse_invT(LSE *self, double complex E, double C[4], RS rs)
+{
+    lse_compute_single(self, E, C, rs);
+    size_t n = self->pNgauss;
+    auto T = gsl_matrix_complex_submatrix(self->TOME, 0, 0, n, n);
+    gsl_matrix_complex *tmp [[gnu::cleanup(matfree)]] = matrix_alloc(n, n);
+    gsl_matrix_complex *inv [[gnu::cleanup(matfree)]] = matrix_alloc(n, n);
+    gsl_matrix_complex_memcpy(tmp, &T.matrix);
+    int signum;
+    gsl_permutation *perm [[gnu::cleanup(permfree)]] = gsl_permutation_alloc(n);
+    if (gsl_linalg_complex_LU_decomp(tmp, perm, &signum) != GSL_SUCCESS)
+	exit(1);
+    if (gsl_linalg_complex_LU_invert(tmp, perm, inv) != GSL_SUCCESS)
+	exit(1);
+    auto res = matrix_get(inv, n, n);
+    return res;
 }
 
 void lse_X(LSE *self)

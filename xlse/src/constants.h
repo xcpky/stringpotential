@@ -36,7 +36,7 @@
 #define gcoupling (0.898794378386677 / a_l)
 #define g0 (gcoupling * 0.014926616931653945)
 // #define g1 (gcoupling * 0.006467550544943349)
-#define g1 (36/1000*1.4142135623730951)
+#define g1 (36./1000*1.4142135623730951)
 #define delta0 0
 #define delta1 (m21 + m22 - m11 - m12)
 #define mu0 (m11 * m12 / (m11 + m12))

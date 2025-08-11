@@ -15,6 +15,7 @@ typedef struct {
 } onshellElements;
 
 // Declare the function with void* to avoid complex.h dependency in C++
+double complex *onshell(double *E, size_t len, size_t pNgauss, double Lambda, double epsilon);
 double complex *onshellT(double *E, size_t len, double C[4], size_t pNgauss, double Lambda, double epsilon);
 double complex *onshellT_single(double *E, size_t len, double C[4], size_t pNgauss, double Lambda, double epsilon);
 double complex *onshellG(double *E, size_t len, double C[4], size_t pNgauss, double Lambda, double epsilon);
@@ -23,7 +24,7 @@ double complex *onshellTV(double *E, size_t len, double C[4], size_t pNgauss, do
 double complex *traceG(double *E, size_t len, double C[4], size_t pNgauss, double Lambda, double epsilon);
 double complex *Det(double *E, size_t len, double C[4], size_t pNgauss, double Lambda, double epsilon);
 double complex *Both(double *E, size_t len, double C[4], size_t pNgauss, double Lambda, double epsilon);
-double complex V(struct OME *ome, double E, double p, double pprime);
+double complex V(double E, double complex p, double complex pprime);
 struct OME* ome_malloc();
 void Evec(double *, double);
 void Ntower(size_t *);

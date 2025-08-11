@@ -9,6 +9,17 @@
 #include <string.h>
 #include <threads.h>
 
+double complex *onshell(double *E, size_t len, size_t pNgauss, double Lambda, double epsilon)
+{
+    double complex(*res)[len] = malloc(sizeof(double complex) * len * 2);
+    LSE *lse [[gnu::cleanup(lsefree)]] = lse_malloc(pNgauss, Lambda, epsilon);
+    for (size_t i = 0; i < len; i += 1) {
+	lse_refresh(lse, E[i], (double[4]) { 0, 0, 0, 0 }, PP);
+	res[0][i] = lse->x0[0];
+	res[1][i] = lse->x0[1];
+    }
+    return (double complex *)res;
+}
 double complex *onshellT(double *E, size_t len, double C[4], size_t pNgauss, double Lambda, double epsilon)
 {
     // puts("in C");
@@ -56,7 +67,7 @@ double complex *onshellT(double *E, size_t len, double C[4], size_t pNgauss, dou
 
 double complex *onshellT_single(double *E, size_t len, double C[4], size_t pNgauss, double Lambda, double epsilon)
 {
-    double complex *res = malloc(sizeof(double complex) * len);
+    double complex *res = malloc(sizeof(double complex) * len * 2);
     thrd_t tid[NTHREADS];
     argstruct args[NTHREADS];
     size_t ntasks = len / NTHREADS;
@@ -69,6 +80,7 @@ double complex *onshellT_single(double *E, size_t len, double C[4], size_t pNgau
 	args[i].rs = PP;
 	args[i].E = E;
 	args[i].id = i;
+	args[i].size = len;
 	for (size_t cc = 0; cc < 4; cc += 1) {
 	    args[i].C[cc] = C[cc];
 	}
@@ -152,7 +164,8 @@ double complex *onshellV(double *E, size_t len, double C[4], size_t pNgauss, dou
 	args[i].Lambda = Lambda;
 	args[i].epsilon = epsilon;
 	args[i].res = &onshellBuf;
-	args[i].rs = PP, args[i].E = E;
+	args[i].rs = PP;
+	args[i].E = E;
 	args[i].id = i;
 	for (size_t cc = 0; cc < 4; cc += 1) {
 	    args[i].C[cc] = C[cc];
@@ -217,7 +230,22 @@ struct OME *ome_malloc()
     return ome;
 }
 
-double complex V(struct OME *ome, double E, double p, double pprime) { return OMEANA_00(E, p, pprime); }
+double complex V(double E, double complex p, double complex pprime)
+{
+    return Delta1_00(E, p, pprime, m_pi);
+    double m0 = m_pi;
+    auto A = p * p + pprime * pprime + m0 * m0;
+    auto B = 2 * p * pprime;
+    auto C = omega_00(p, pprime) - E;
+    auto D = omegaprime_00(p, pprime) - E;
+    auto a = csqrt(A - B);
+    auto b = csqrt(A + B);
+    // return 1/(a-C)/(a-D);
+    // return b*b ;
+    // return clog(b*b + b*C + b*D + C*D);
+    // return clog(C +D );
+    // return (b + C) * (b + D) / (a + C) / (a + D);
+}
 
 double complex *traceG(double *E, size_t len, double C[4], size_t pNgauss, double Lambda, double epsilon)
 {
@@ -461,7 +489,7 @@ int oTsing(void *arg)
     argstruct foo = *(argstruct *)arg;
     LSE *lse [[gnu::cleanup(lsefree)]] = lse_malloc(foo.pNgauss, foo.Lambda, foo.epsilon);
     size_t ngauss = foo.pNgauss;
-    double complex *res = foo.res;
+    double complex(*res)[foo.size] = foo.res;
     // printf("start: %lu, len: %lu\n", foo.start, foo.len);
     for (size_t i = foo.start; i < foo.start + foo.len; i += 1) {
 	lse_compute_single(lse, foo.E[i], foo.C, foo.rs);
@@ -475,7 +503,8 @@ int oTsing(void *arg)
 	ose11[i] = lse->onshellT[1][1];
 #else
 	auto T = (double complex(*)[2 * ngauss + 2]) lse->TOME->data;
-	res[i] = T[ngauss][ngauss];
+	res[0][i] = T[ngauss][ngauss];
+	res[1][i] = matrix_get(lse->VOME, ngauss, ngauss);
 	// res[i] = lse->onshellT[0][0];
 	// size_t idx = ngauss * 2 * (ngauss + 1) + ngauss;
 	// ose00[i] = lse->TOME->data[2 * idx] + lse->TOME->data[2 * idx
@@ -526,29 +555,27 @@ int oV(void *arg)
     argstruct foo = *(argstruct *)arg;
     LSE *lse [[gnu::cleanup(lsefree)]] = lse_malloc(foo.pNgauss, foo.Lambda, foo.epsilon);
     size_t ngauss = foo.pNgauss;
-    if (foo.id == 0) {
-	printf("%f\n", lse->xi[0]);
-    }
     onshellElements *res = (onshellElements *)foo.res;
     double complex *ose00 = (double complex *)res->ose00;
     double complex *ose01 = (double complex *)res->ose01;
     double complex *ose10 = (double complex *)res->ose10;
     double complex *ose11 = (double complex *)res->ose11;
-    int64_t xoffset = -ngauss;
-    int64_t yoffset = -ngauss;
+    int64_t xoffset = 0;
+    int64_t yoffset = 0;
     // printf("start: %lu, len: %lu\n", foo.start, foo.len);
     for (size_t i = foo.start; i < foo.start + foo.len; i += 1) {
-	// lse_refresh(lse, foo.E[i], foo.C, foo.rs);
-	// lse_vmat(lse);
-	// auto V = (double complex(*)[2 * ngauss + 2]) lse->VOME->data;
-	// ose00[i] = V[ngauss + xoffset][ngauss + yoffset];
-	// ose01[i] = V[ngauss + xoffset][2 * ngauss + 1 + yoffset];
-	// ose10[i] = V[2 * ngauss + 1 + xoffset][ngauss + yoffset];
-	// ose11[i] = V[2 * ngauss + 1 + xoffset][2 * ngauss + 1 + yoffset];
-	ose00[i] = OME_00(lse->ome, foo.E[i] + m11 + m12, 0.003525, 0.003525);
-	ose01[i] = OME_00(lse->ome, foo.E[i] + m11 + m12, 0.003525, 0.003525);
-	ose10[i] = OME_00(lse->ome, foo.E[i] + m11 + m12, 0.003525, 0.003525);
-	ose11[i] = OME_00(lse->ome, foo.E[i] + m11 + m12, 0.003525, 0.003525);
+	lse_refresh(lse, foo.E[i], foo.C, foo.rs);
+	lse_vmat(lse);
+	auto V = (double complex(*)[2 * ngauss + 2]) lse->VOME->data;
+	ose00[i] = V[ngauss + xoffset][ngauss + yoffset];
+	ose01[i] = V[ngauss + xoffset][2 * ngauss + 1 + yoffset];
+	ose10[i] = V[2 * ngauss + 1 + xoffset][ngauss + yoffset];
+	ose11[i] = V[2 * ngauss + 1 + xoffset][2 * ngauss + 1 + yoffset];
+	// ose00[i] = OME_00(lse->ome, foo.E[i] + m11 + m12, 0.003525, 0.003525);
+	// ose01[i] = OME_00(lse->ome, foo.E[i] + m11 + m12, 0.003525, 0.003525);
+	// ose10[i] = OME_00(lse->ome, foo.E[i] + m11 + m12, 0.003525, 0.003525);
+	// ose11[i] = OME_00(lse->ome, foo.E[i] + m11 + m12, 0.003525, 0.003525);
+	// ose00[i] = OMEANA_00(foo.E[i] + m11 + m12 , lse->x0[0], lse->x0[0]);
     }
     return 0;
 }

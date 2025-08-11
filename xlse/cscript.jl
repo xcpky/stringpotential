@@ -10,8 +10,18 @@ using LaTeXStrings
 
 include("constants.jl")
 
+function onshell(E::Vector{Cdouble}, len, pNgauss, Lambda, epsilon)
+    @time otr = ccall(Libdl.dlsym(libscript, :onshell), Ptr{ComplexF64}, (Ptr{Cdouble}, Cuint, Cuint, Cdouble, Cdouble), E, len, pNgauss, Lambda, epsilon)
+    ot = transpose(copy(unsafe_wrap(Array, otr, (len, 2), own=false)))
+    cfree(reinterpret(Ptr{Cvoid}, otr))
+    plot(dpi=400)
+    plot!(E, imag.(ot[1, :]))
+    savefig("onshell.png")
+    return ot
+end
+
 function imT(E::Vector{Cdouble}, len, C::Vector{Cdouble}, pNgauss, Lambda, epsilon)
-    @time otr = ccall(Libdl.dlsym(libscript, :onshellT), Ptr{ComplexF64}, (Ptr{Cdouble}, Cuint, Ptr{Cdouble}, Cuint, Cdouble, Cdouble), E, len, C, pNgauss, Lambda, epsilon)
+    @time otr = ccall(Libdl.dlsym(libscript, :onshellG), Ptr{ComplexF64}, (Ptr{Cdouble}, Cuint, Ptr{Cdouble}, Cuint, Cdouble, Cdouble), E, len, C, pNgauss, Lambda, epsilon)
     ot = transpose(copy(unsafe_wrap(Array, otr, (len, 4), own=false)))
     invT = Array{ComplexF64}(undef, 4, len)
     function ρ(e, i)
@@ -35,22 +45,22 @@ function imT(E::Vector{Cdouble}, len, C::Vector{Cdouble}, pNgauss, Lambda, epsil
         #     invT[4, i] = 0
         #     break
         # end
-        invm = inv(m)
+        invm = -(m)
         invT[1, i] = invm[1, 1]
         invT[2, i] = invm[1, 2]
         invT[3, i] = invm[2, 1]
         invT[4, i] = invm[2, 2]
     end
     plot(dpi=400)
-    plot!(E, imag.(invT[1, :]), label="Im " * L"T^{-1}_{11}", alpha=0.5, lw=1, s=:dot)
+    plot!(E, imag.(invT[1, :]), label="-Im " * L"G_{11}", lw=1., alpha=0.7)
     # plot!(E, imag.(invT[2, :]), label="Im "*L"T^{-1}_{12}")
     # plot!(E, imag.(invT[3, :]), label="Im "*L"T^{-1}_{21}")
-    plot!(E, imag.(invT[4, :]), label="Im " * L"T^{-1}_{22}", alpha=0.5, lw=1, s=:dot)
-    # plot!(E, ρ.(E, 1), label=L"\rho_1(E)\Theta(E-m_B-m_{B^*})")
-    # plot!(E, ρ.(E, 2), label=L"\rho_2(E)\Theta(E-m_{B_s} - m_{B_s^*})")
+    plot!(E, imag.(invT[4, :]), label="-Im " * L"G_{22}", lw=1., alpha=0.7)
+    plot!(E, ρ.(E, 1), label=L"\rho_1(E)\Theta(E-m_B-m_{B^*})", s=:dash, lw=1.5)
+    plot!(E, ρ.(E, 2), label=L"\rho_2(E)\Theta(E-m_{B_s} - m_{B_s^*})", s=:dash, lw=1.5)
     vline!([m_pi + m_B - m_B_star], s=:dash, label=L"BB\pi", c=:grey)
     vline!([m_pi + delta[2]], s=:dash, label=L"B_sB_s^*\pi", c=:grey)
-    ylims!(-2, 1.5)
+    ylims!(-1, 1.5)
     xlabel!("E/GeV")
     savefig("imT.png")
     savefig("iminvT.pdf")
@@ -58,8 +68,8 @@ function imT(E::Vector{Cdouble}, len, C::Vector{Cdouble}, pNgauss, Lambda, epsil
 end
 
 function imTsing(E::Vector{Cdouble}, len, C::Vector{Cdouble}, pNgauss, Lambda, epsilon)
-    @time otr = ccall(Libdl.dlsym(libscript, :onshellT), Ptr{ComplexF64}, (Ptr{Cdouble}, Cuint, Ptr{Cdouble}, Cuint, Cdouble, Cdouble), E, len, C, pNgauss, Lambda, epsilon)
-    ot = copy(unsafe_wrap(Array, otr, len, own=false))
+    @time otr = ccall(Libdl.dlsym(libscript, :onshellT_single), Ptr{ComplexF64}, (Ptr{Cdouble}, Cuint, Ptr{Cdouble}, Cuint, Cdouble, Cdouble), E, len, C, pNgauss, Lambda, epsilon)
+	ot = transpose(copy(unsafe_wrap(Array, otr, (len, 2), own=false)))
     invT = inv.(ot)
     function ρ(e, i)
         if e <= delta[i]
@@ -74,11 +84,12 @@ function imTsing(E::Vector{Cdouble}, len, C::Vector{Cdouble}, pNgauss, Lambda, e
         return k / 8 / pi / e
     end
     plot(dpi=400, legend=:bottomright)
-    plot!(E, imag.(invT[:]), label="Im " * L"T^{-1}_{11}", alpha=0.5, lw=1)
+    plot!(E, imag.(invT[1, :]), label="Im " * L"T^{-1}_{11}", alpha=0.5, lw=1)
     # plot!(E, imag.(invT[2, :]), label="Im "*L"T^{-1}_{12}")
     # plot!(E, imag.(invT[3, :]), label="Im "*L"T^{-1}_{21}")
     # plot!(E, imag.(invT[4, :]), label="Im "*L"T^{-1}_{22}", alpha=0.5, lw=1, s=:dot)
     plot!(E, ρ.(E, 1), label=L"\rho_1(E)\Theta(E-m_B-m_{B^*})", alpha=0.8, s=:dash)
+	plot!(E, imag.(invT[2, :]))
     # plot!(E, ρ.(E, 2), label=L"\rho_2(E)\Theta(E-m_{B_s} - m_{B_s^*})")
     vline!([m_pi + m_B - m_B_star], s=:dash, label=L"BB\pi", c=:grey)
     vline!([m_pi + delta[2]], s=:dash, label=L"B_sB_s^*\pi", c=:grey)
@@ -118,12 +129,13 @@ function conshellT_single(E::Vector{Cdouble}, len, C::Vector{Cdouble}, pNgauss, 
     ot = copy(unsafe_wrap(Array, otr, len, own=false))
     level = getEvec(C[1])
     vls = filter(e -> e > E[1] && e < E[end], level)
-    vline(vls, s=:dash, c=:grey, label=L"$E_i$")
+    # vline(vls, s=:dash, c=:grey, label=L"$E_i$")
     vline!(delta, s=:dash, label="thresholds", lw=0.8)
-    vline!([m_Xb11P], s=:dash, label=L"\chi_{b1}(1P)")
-    vline!([m_Xb12P], s=:dash, label=L"\chi_{b1}(2P)")
-    vline!([m_Xb13P], s=:dash, label=L"\chi_{b1}(3P)")
+    # vline!([m_Xb11P], s=:dash, label=L"\chi_{b1}(1P)")
+    # vline!([m_Xb12P], s=:dash, label=L"\chi_{b1}(2P)")
+    # vline!([m_Xb13P], s=:dash, label=L"\chi_{b1}(3P)")
     plot!(E, abs.(ot), label=L"$T_{11}$", dpi=400)
+    # vline!([m_pi-m_B_star], s=:dash, c=:grey, label=L"BB\pi")
     # plot!(E, abs.(ot[3, :]), label=L"$T_{21}$")
     # plot!(E, abs.(ot[4, :]), label=L"$T_{22}$")
     # plot!(E, abs.(ot[2, :]), label=L"$T_{12}$")
@@ -131,6 +143,8 @@ function conshellT_single(E::Vector{Cdouble}, len, C::Vector{Cdouble}, pNgauss, 
     # ylims!(0, 1e3)
     println(E[end])
     xlims!(E[1], E[end])
+    # ylims!(0, 50)
+    xlabel!("E/GeV")
     savefig("onshellT_single.png")
     savefig("onshellT_single.pdf")
     cfree(reinterpret(Ptr{Cvoid}, otr))
@@ -175,10 +189,10 @@ function conshellG(E::Vector{Cdouble}, len, C::Vector{Cdouble}, pNgauss, Lambda,
     vline!([m_Xb11P], s=:dash, label=L"\chi_{b1}(1P)")
     vline!([m_Xb12P], s=:dash, label=L"\chi_{b1}(2P)")
     vline!([m_Xb13P], s=:dash, label=L"\chi_{b1}(3P)")
-    plot!(E, abs.(ot[1, :]), label=L"$G_{11}$", dpi=400)
-    # plot!(E, abs.(ot[3,:]), label=L"$G_{21}$")
-    plot!(E, abs.(ot[4, :]), label=L"$G_{22}$")
-    plot!(E, abs.(ot[2, :]), label=L"$G_{12}$")
+    plot!(E, imag.(ot[1, :]), label=L"$G_{11}$", dpi=400)
+    # plot!(E, imag.(ot[3,:]), label=L"$G_{21}$")
+    plot!(E, imag.(ot[4, :]), label=L"$G_{22}$")
+    plot!(E, imag.(ot[2, :]), label=L"$G_{12}$")
     # ylims!(0, upper)
     xlims!(E[1], E[end])
     # ylims!(0,10)
@@ -193,17 +207,19 @@ function conshellV(E::Vector{Cdouble}, len, C::Vector{Cdouble}, pNgauss, Lambda,
     ot = copy(transpose(unsafe_wrap(Array, otr, (len, 4), own=false)))
     level = getEvec(C[1])
     vls = filter(e -> e > E[1] && e < E[end], level)
-    vline(vls, s=:dash, c=:grey, label=L"$E_i$", dpi=400)
+    plot(dpi=400)
+    # vline(vls, s=:dash, c=:grey, label=L"$E_i$", dpi=400)
     vline!(delta, s=:dash, label="thresholds", lw=0.8)
     vline!([m_Xb11P], s=:dash, label=L"\chi_{b1}(1P)")
     vline!([m_Xb12P], s=:dash, label=L"\chi_{b1}(2P)")
     vline!([m_Xb13P], s=:dash, label=L"\chi_{b1}(3P)")
-    plot!(E, abs.(ot[1, :]), label=L"$V_{11}$", dpi=400)
-    plot!(E, abs.(ot[3, :]), label=L"$V_{21}$")
+    vline!([m_pi + m_B - m_B_star], s=:dash, label=L"BB\pi")
+    plot!(E, imag.(ot[1, :]), label=L"abs($V_{11}$)", dpi=400)
+    # plot!(E, abs.(ot[3, :]), label=L"$V_{21}$")
     # plot!(E, abs.(ot[4, :]), label=L"$V_{22}$")
     # plot!(E, abs.(ot[2, :]), label=L"$V_{12}$", dpi=400)
     xlims!(E[1], E[end])
-    ylims!(0, 50)
+    # ylims!(0, 50)
     # ylims!(0, 5e3)
     savefig("onshellV.png")
     savefig("onshellV.pdf")
@@ -351,7 +367,7 @@ function cfree(ptr::Ptr{Cvoid})
     ccall(Libdl.dlsym(libscript, :Free), Cvoid, (Ptr{Cvoid},), ptr)
 end
 
-epsi = 1e-6
+epsi = 1e-10
 Lambda = 4
 pNgauss = 64
 data = Nothing
@@ -371,7 +387,7 @@ if "--poles" in ARGS
     # savefig("tmp.png")
 end
 onshellRange = LinRange(m_Xb11P - 0.3, delta[1], 3000)
-onshellRange = LinRange(-0.7, 1.690229863, 8000)
+onshellRange = LinRange(-0.02, 0., 8000)
 # onshellRange = LinRange(0., 0.190229863, 8000)
 
 if "--onshellT" in ARGS
@@ -663,4 +679,27 @@ end
 
 if "--imTsing" in ARGS
     imTsing(collect(onshellRange), length(onshellRange), C, pNgauss, Lambda, epsi)
+end
+
+o1(p1) = 2 * m_B + (p1^2 + p1^2) / (2m_B)
+o2(p1) = 2 * m_B_star + (p1^2 + p1^2) / (2m_B_star)
+if "--delt" in ARGS
+    V(E, p, pprime)::ComplexF64 = ccall(dlsym(libscript, :V), ComplexF64, (Cdouble, ComplexF64, ComplexF64), E, p, pprime)
+    E = onshellRange
+    k = sqrt.(Complex.(2 * mu[1] .* E))
+    delt = Array{ComplexF64}(undef, length(E))
+    for i in eachindex(E)
+        delt[i] = V(E[i] + m11 + m12, k[i], k[i])
+    end
+    plot(dpi=400)
+    # plot!(E, real.(delt), label="real")
+    A = 2 .* k .* k .+ m_pi^2
+    B = 2 .* k .* k
+    C = o1.(k) .- (E .+ m11 .+ m12)
+    D = o2.(k) .- (E .+ m11 .+ m12)
+    a = sqrt.(A .- B)
+    b = sqrt.(A .+ B)
+    # plot!(E, imag.(log.(C .+ D)))
+    plot!(E, imag.(delt), label="imag", s=:dash)
+    savefig("delt.png")
 end
