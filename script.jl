@@ -1,7 +1,7 @@
 include("lse.jl")
 
 Lambda = 2
-Ngauss = 128
+pNgauss = 128
 # E = delta[1]-2:0.002001:delta[2]+0.5
 E = LinRange(-0.9, delta[1] + 0.4, 500)
 # E = -1.5:0.00201:0.4
@@ -72,7 +72,7 @@ if "--test" in ARGS
 
 
     p = xsqrt(2 * mu[1] * (E - delta[1]))
-    data = vmat(Lambda, E , pNgauss)
+    data = vmat(Lambda, E, pNgauss)
     E += m11 + m12
     function testfunc(E, p, pprime, m)
         log(Complex((E - (m + (p - pprime)^2 / 2 / m) - ω[1][1](p, pprime)) / (E - (m + (p + pprime)^2 / 2 / m) - ω[1][1](p, pprime))))
@@ -103,6 +103,23 @@ if "--testSchrodinger" in ARGS
     y = @. (p^2 + p'^2) / 2 / (p * p')
     sol = Solver(1.0, 1.0, 1.0, 0.0)
     E, psi = solve(sol, 0)
+end
+
+if "--integration" in ARGS
+	E = LinRange(0.1, 0.8, 256)
+	println(pNgauss)
+    integrand(x, E, p1) = V_OME_11(E, p1, x) * x^2 / 2 / pi / 2 / (E - m11 - m12 - x^2 / 2 / mu[1] + ϵ * im)
+    p, w = gauss(pNgauss, 0, Lambda)
+	res = Array{ComplexF64}(undef, pNgauss, length(E))
+	for i in 1:pNgauss
+		for j in eachindex(E)
+			res[i,j], _ = quadgk(x -> integrand(x, E[j] + m11 + m12, p[i]), 0, Lambda)
+		end
+	end
+	using Plots
+	plot(dpi=400)
+	surface!(E, p, abs.(res))
+	savefig("quadgk.png")
 end
 
 function naivedif1(Ngauss, Nlag, p)
