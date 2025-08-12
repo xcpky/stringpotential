@@ -1,8 +1,9 @@
 include("lse.jl")
 
-Ngauss = 40
+Lambda = 2
+Ngauss = 128
 # E = delta[1]-2:0.002001:delta[2]+0.5
-E = LinRange(-0.9, delta[1], 500)
+E = LinRange(-0.9, delta[1] + 0.4, 500)
 # E = -1.5:0.00201:0.4
 
 function onshellG(matrix)
@@ -28,7 +29,7 @@ if "--onshellG" in ARGS
 end
 
 if "--onshellT" in ARGS
-    osT = onshellT.(tmat.(4, E, Ngauss))
+    osT = onshellT.(tmat.(Lambda, E, Ngauss))
     len = size(E)[1]
     T = [[abs(osT[i][1]) for i in 1:len], [abs(osT[i][2]) for i in 1:len], [abs(osT[i][1]) for i in 1:len], [abs(osT[i][4]) for i in 1:len]]
     using Plots
@@ -43,7 +44,7 @@ if "--onshellT" in ARGS
 end
 
 if "--Det" in ARGS
-    de = detImVG.(4, E, Ngauss)
+    de = detImVG.(Lambda, E, Ngauss)
     len = size(de)[1]
     using Plots
     plot(E, abs.(de), dpi=300)
@@ -71,7 +72,7 @@ if "--test" in ARGS
 
 
     p = xsqrt(2 * mu[1] * (E - delta[1]))
-    data = vmat(Lambda, E , pNgauss, 0)
+    data = vmat(Lambda, E , pNgauss)
     E += m11 + m12
     function testfunc(E, p, pprime, m)
         log(Complex((E - (m + (p - pprime)^2 / 2 / m) - ω[1][1](p, pprime)) / (E - (m + (p + pprime)^2 / 2 / m) - ω[1][1](p, pprime))))

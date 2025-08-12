@@ -13,9 +13,9 @@
 #define m_eta (0.548)
 #define m_eta_s (0.69)
 
-#define WIDTH (1e-3*I)
+#define WIDTH (1e-3 * I)
 // #define DEVI (-0.2)
-#define m_B (5.27934 )
+#define m_B (5.27934)
 #define m_B_star (5.32471)
 #define m_B_s (5.36692)
 #define m_B_star_s (5.4154)
@@ -36,7 +36,7 @@
 #define gcoupling (0.898794378386677 / a_l)
 #define g0 (gcoupling * 0.014926616931653945)
 // #define g1 (gcoupling * 0.006467550544943349)
-#define g1 (36./1000*1.4142135623730951)
+#define g1 (36. / 1000 * 1.4142135623730951)
 #define delta0 0
 #define delta1 (m21 + m22 - m11 - m12)
 #define mu0 (m11 * m12 / (m11 + m12))

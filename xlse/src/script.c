@@ -232,7 +232,7 @@ struct OME *ome_malloc()
 
 double complex V(double E, double complex p, double complex pprime)
 {
-    return Delta1_00(E, p, pprime, m_pi);
+    return OMEANA_00(E, p, pprime);
     double m0 = m_pi;
     auto A = p * p + pprime * pprime + m0 * m0;
     auto B = 2 * p * pprime;
@@ -245,6 +245,20 @@ double complex V(double E, double complex p, double complex pprime)
     // return clog(b*b + b*C + b*D + C*D);
     // return clog(C +D );
     // return (b + C) * (b + D) / (a + C) / (a + D);
+}
+
+double complex *V3d(double E, size_t pNgauss, double Lambda, double epsilon){
+    LSE *lse[[gnu::cleanup(lsefree)]] = lse_malloc(pNgauss, Lambda, epsilon);
+    lse_refresh(lse, E, (double[4]){0,0,0,0}, PP);
+    lse_vmat(lse);
+    double complex (*vmat)[2*pNgauss + 2] = malloc(sizeof(double complex)*2*(pNgauss + 1)*2*(pNgauss + 1));
+    for (size_t i = 0; i < pNgauss + 1; i += 1) {
+	for (size_t j = 0; j < pNgauss + 1; j += 1) {
+	    vmat[i][j] = matrix_get(lse->VOME, i, j);
+	}
+    }
+    return vmat;
+    // return (double complex*) lse->VOME->data;
 }
 
 double complex *traceG(double *E, size_t len, double C[4], size_t pNgauss, double Lambda, double epsilon)
@@ -617,7 +631,7 @@ int det(void *arg)
     double complex *res = (double complex *)foo.res;
     for (size_t i = foo.start; i < foo.start + foo.len; i += 1) {
 	// res[i] = lse_detImVG(lse, foo.E[i], foo.C, PP);
-	lse_compute_single(lse, foo.E[i], (double[4]) { 0, 0, 0, 0 }, foo.rs);
+	lse_compute(lse, foo.E[i], (double[4]) { 0, 0, 0, 0 }, foo.rs);
 	res[i] = lse->det;
     }
     return 0;

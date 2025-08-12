@@ -40,7 +40,7 @@ function gmat(Λ, E, Ngauss)
     return mat
 end
 
-function vmat(Λ, E, Ngauss, g_C)
+function vmat(Λ, E, Ngauss)
     nodes, _ = gauss(Ngauss, 0, Λ)
     p::Array{Vector{ComplexF64}} = [copy(nodes), copy(nodes)]
     dim = 2 * Ngauss + 2
@@ -77,7 +77,7 @@ end
 
 function tmat(Λ, E, Ngauss)
     G = gmat(Λ, E, Ngauss)
-    V = vmat(Λ, E , Ngauss, -1/4)
+    V = vmat(Λ, E , Ngauss)
     return inv(I - V * G) * V
 end
 
@@ -159,6 +159,6 @@ V22(E, p, pprime) = Vπu(E, p, pprime, m_B_star_s, gamma_B_star_s, m_B_s, 0, m_B
 
 function detImVG(Λ, E, Ngauss)
     G = gmat(Λ, E, Ngauss)
-    V = vmat(Λ, E, Ngauss, -1/4)
+    V = vmat(Λ, E, Ngauss)
     return det(I - V*G)
 end

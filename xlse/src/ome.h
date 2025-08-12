@@ -252,7 +252,7 @@ static inline double complex OME_11(struct OME ome, double complex E, double com
     static inline double complex ANA_##suffix(double complex E, double complex p, double complex pprime, double m0)            \
     {                                                                                                                          \
 	return -3 * g_b * g_b / 24 / f_pi / f_pi *                                                                             \
-	       ( -                                                           \
+	       (2 * p * pprime * Delta1_##suffix(E, p, pprime, m0) -                                                           \
 		(p * p + pprime * pprime) * Delta0_##suffix(E, p, pprime, m0));                                                \
     }
 

@@ -7,8 +7,16 @@ using LinearAlgebra
 const libscript = Libdl.dlopen(joinpath(@__DIR__, "build/linux/x86_64/release/libscript.so"))
 using Plots
 using LaTeXStrings
-
 include("constants.jl")
+
+epsi = 1e-9
+Lambda = 4
+pNgauss = 128
+data = Nothing
+C = [-1.010589943548671, 0, -1.220749787118462, 0]
+onshellRange = LinRange(m_Xb11P - 0.3, delta[1], 1000)
+onshellRange = LinRange(-0.7, 0.6, 1000)
+# onshellRange = LinRange(0., 0.190229863, 8000)
 
 function onshell(E::Vector{Cdouble}, len, pNgauss, Lambda, epsilon)
     @time otr = ccall(Libdl.dlsym(libscript, :onshell), Ptr{ComplexF64}, (Ptr{Cdouble}, Cuint, Cuint, Cdouble, Cdouble), E, len, pNgauss, Lambda, epsilon)
@@ -52,10 +60,10 @@ function imT(E::Vector{Cdouble}, len, C::Vector{Cdouble}, pNgauss, Lambda, epsil
         invT[4, i] = invm[2, 2]
     end
     plot(dpi=400)
-    plot!(E, imag.(invT[1, :]), label="-Im " * L"G_{11}", lw=1., alpha=0.7)
+    plot!(E, imag.(invT[1, :]), label="-Im " * L"G_{11}", lw=1.0, alpha=0.7)
     # plot!(E, imag.(invT[2, :]), label="Im "*L"T^{-1}_{12}")
     # plot!(E, imag.(invT[3, :]), label="Im "*L"T^{-1}_{21}")
-    plot!(E, imag.(invT[4, :]), label="-Im " * L"G_{22}", lw=1., alpha=0.7)
+    plot!(E, imag.(invT[4, :]), label="-Im " * L"G_{22}", lw=1.0, alpha=0.7)
     plot!(E, ρ.(E, 1), label=L"\rho_1(E)\Theta(E-m_B-m_{B^*})", s=:dash, lw=1.5)
     plot!(E, ρ.(E, 2), label=L"\rho_2(E)\Theta(E-m_{B_s} - m_{B_s^*})", s=:dash, lw=1.5)
     vline!([m_pi + m_B - m_B_star], s=:dash, label=L"BB\pi", c=:grey)
@@ -69,7 +77,7 @@ end
 
 function imTsing(E::Vector{Cdouble}, len, C::Vector{Cdouble}, pNgauss, Lambda, epsilon)
     @time otr = ccall(Libdl.dlsym(libscript, :onshellT_single), Ptr{ComplexF64}, (Ptr{Cdouble}, Cuint, Ptr{Cdouble}, Cuint, Cdouble, Cdouble), E, len, C, pNgauss, Lambda, epsilon)
-	ot = transpose(copy(unsafe_wrap(Array, otr, (len, 2), own=false)))
+    ot = transpose(copy(unsafe_wrap(Array, otr, (len, 2), own=false)))
     invT = inv.(ot)
     function ρ(e, i)
         if e <= delta[i]
@@ -89,10 +97,11 @@ function imTsing(E::Vector{Cdouble}, len, C::Vector{Cdouble}, pNgauss, Lambda, e
     # plot!(E, imag.(invT[3, :]), label="Im "*L"T^{-1}_{21}")
     # plot!(E, imag.(invT[4, :]), label="Im "*L"T^{-1}_{22}", alpha=0.5, lw=1, s=:dot)
     plot!(E, ρ.(E, 1), label=L"\rho_1(E)\Theta(E-m_B-m_{B^*})", alpha=0.8, s=:dash)
-	plot!(E, imag.(invT[2, :]))
+    # plot!(E, imag.(invT[2, :]))
     # plot!(E, ρ.(E, 2), label=L"\rho_2(E)\Theta(E-m_{B_s} - m_{B_s^*})")
+    vline!(delta, s=:dash, label="threshold")
     vline!([m_pi + m_B - m_B_star], s=:dash, label=L"BB\pi", c=:grey)
-    vline!([m_pi + delta[2]], s=:dash, label=L"B_sB_s^*\pi", c=:grey)
+    vline!([m_pi ], s=:dash, label=L"BB^*\pi", c=:grey)
     ylims!(-2, 1.5)
     xlabel!("E/GeV")
     savefig("imTsing.png")
@@ -115,7 +124,7 @@ function conshellT(E::Vector{Cdouble}, len, C::Vector{Cdouble}, pNgauss, Lambda,
     plot!(E, abs.(ot[4, :]), label=L"$T_{22}$")
     # plot!(E, abs.(ot[2, :]), label=L"$T_{12}$")
     # ylims!(0, upper)
-    ylims!(0, 1e3)
+    ylims!(0, 1e4)
     println(E[end])
     xlims!(E[1], E[end])
     savefig("onshellT.png")
@@ -207,18 +216,30 @@ function conshellV(E::Vector{Cdouble}, len, C::Vector{Cdouble}, pNgauss, Lambda,
     ot = copy(transpose(unsafe_wrap(Array, otr, (len, 4), own=false)))
     level = getEvec(C[1])
     vls = filter(e -> e > E[1] && e < E[end], level)
-    plot(dpi=400)
+    p = plot(dpi=400, layout=(1,2), size=(900,500))
     # vline(vls, s=:dash, c=:grey, label=L"$E_i$", dpi=400)
-    vline!(delta, s=:dash, label="thresholds", lw=0.8)
-    vline!([m_Xb11P], s=:dash, label=L"\chi_{b1}(1P)")
-    vline!([m_Xb12P], s=:dash, label=L"\chi_{b1}(2P)")
-    vline!([m_Xb13P], s=:dash, label=L"\chi_{b1}(3P)")
-    vline!([m_pi + m_B - m_B_star], s=:dash, label=L"BB\pi")
-    plot!(E, imag.(ot[1, :]), label=L"abs($V_{11}$)", dpi=400)
+    vline!(p[1],delta, s=:dash, label="thresholds", lw=0.8)
+    vline!(p[1],[m_Xb11P], s=:dash, label=L"\chi_{b1}(1P)")
+    vline!(p[1],[m_Xb12P], s=:dash, label=L"\chi_{b1}(2P)")
+    vline!(p[1],[m_Xb13P], s=:dash, label=L"\chi_{b1}(3P)")
+    vline!(p[1],[m_pi + m_B - m_B_star], s=:dash, label=L"BB\pi")
+    plot!(p[1],E, real.(ot[1, :]), label=L"real($V_{11}$)", dpi=400)
+    xlabel!(p[1], "real, E/GeV")
     # plot!(E, abs.(ot[3, :]), label=L"$V_{21}$")
     # plot!(E, abs.(ot[4, :]), label=L"$V_{22}$")
     # plot!(E, abs.(ot[2, :]), label=L"$V_{12}$", dpi=400)
-    xlims!(E[1], E[end])
+    # xlims!(E[1], E[end])
+    vline!(p[2],delta, s=:dash, label="thresholds", lw=0.8)
+    vline!(p[2],[m_Xb11P], s=:dash, label=L"\chi_{b1}(1P)")
+    vline!(p[2],[m_Xb12P], s=:dash, label=L"\chi_{b1}(2P)")
+    vline!(p[2],[m_Xb13P], s=:dash, label=L"\chi_{b1}(3P)")
+    vline!(p[2],[m_pi + m_B - m_B_star], s=:dash, label=L"BB\pi")
+    plot!(p[2],E, imag.(ot[1, :]), label=L"imag($V_{11}$)", dpi=400)
+    xlabel!(p[2], "imag, E/GeV")
+    # plot!(E, abs.(ot[3, :]), label=L"$V_{21}$")
+    # plot!(E, abs.(ot[4, :]), label=L"$V_{22}$")
+    # plot!(E, abs.(ot[2, :]), label=L"$V_{12}$", dpi=400)
+    # xlims!(E[1], E[end])
     # ylims!(0, 50)
     # ylims!(0, 5e3)
     savefig("onshellV.png")
@@ -367,11 +388,6 @@ function cfree(ptr::Ptr{Cvoid})
     ccall(Libdl.dlsym(libscript, :Free), Cvoid, (Ptr{Cvoid},), ptr)
 end
 
-epsi = 1e-10
-Lambda = 4
-pNgauss = 64
-data = Nothing
-C = [-1.010589943548671, 0, -1.220749787118462, 0]
 if "--poles" in ARGS
     Er = LinRange(-0.9, 0.0, 64)
     Ei = LinRange(-0.01, 0.01, 8)
@@ -386,9 +402,6 @@ if "--poles" in ARGS
     # scatter(cs, po, dpi=400)
     # savefig("tmp.png")
 end
-onshellRange = LinRange(m_Xb11P - 0.3, delta[1], 3000)
-onshellRange = LinRange(-0.02, 0., 8000)
-# onshellRange = LinRange(0., 0.190229863, 8000)
 
 if "--onshellT" in ARGS
     # E = 1.48:0.00001:1.499
@@ -569,7 +582,7 @@ if "--analyticity" in ARGS
     # prange = [0.9]
     # prange = vcat(LinRange(0.01 + 0.0001im, 0.9 + 0.01im, 600), LinRange(0.9 + 0.01im, 0.9 + 0.16im, 300), LinRange(0.9 + 0.16im, 2 + 0.16im, 600), LinRange(2 + 0.16im, 2, 300))
     # Erange = LinRange(-0.4, 0.0, 20)
-    Erange = [-0.6]
+    Erange = [0.6]
     @time nonanalyticity = [nonana(E + m_B + m_B_star, p, m_B, m_B, m_pi) for E in Erange, p in prange]
     z = Array{ComplexF64}(undef, size(Erange)[1], 4 * size(prange)[1])
     for i in eachindex(Erange)
@@ -702,4 +715,21 @@ if "--delt" in ARGS
     # plot!(E, imag.(log.(C .+ D)))
     plot!(E, imag.(delt), label="imag", s=:dash)
     savefig("delt.png")
+end
+
+if "--V3d" in ARGS
+    using QuadGK
+    # V(E, p, pprime)::ComplexF64 = ccall(dlsym(libscript, :V), ComplexF64, (Cdouble, ComplexF64, ComplexF64), E, p, pprime)
+    pNgauss = 256
+    x, w = gauss(pNgauss, 0, Lambda)
+    @time dtr = ccall(Libdl.dlsym(libscript, :V3d), Ptr{ComplexF64}, (Cdouble, Cuint, Cdouble, Cdouble), m_pi, pNgauss, Lambda, epsi)
+    n = 2*pNgauss + 2
+    data = transpose(copy(unsafe_wrap(Array, dtr, (n,n), own=false)))
+    # data = [abs(V(m_pi + m11 + m12, x[i], x[j])) for i in eachindex(x), j in eachindex(x)]
+    surface(x, x, abs.(data[1:pNgauss, 1:pNgauss]), dpi=400, camera=(45, 30))
+    xlabel!("p")
+    ylabel!("p'")
+    zlabel!("abs(V)")
+    zlims!(0,3000)
+    savefig("surface.png")
 end
