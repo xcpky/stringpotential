@@ -15,7 +15,7 @@ function onshellT(matrix)
 end
 
 if "--onshellG" in ARGS
-    gmatrices = gmat.(4, E, Ngauss)
+    gmatrices = gmat.(4, E, pNgauss)
     tce = onshellG.(gmatrices)
     g11 = [tce[i][1] for i in 1:size(E)[1]]
     g22 = [tce[i][2] for i in 1:size(E)[1]]
@@ -29,7 +29,7 @@ if "--onshellG" in ARGS
 end
 
 if "--onshellT" in ARGS
-    osT = onshellT.(tmat.(Lambda, E, Ngauss))
+    osT = onshellT.(tmat.(Lambda, E, pNgauss))
     len = size(E)[1]
     T = [[abs(osT[i][1]) for i in 1:len], [abs(osT[i][2]) for i in 1:len], [abs(osT[i][1]) for i in 1:len], [abs(osT[i][4]) for i in 1:len]]
     using Plots
@@ -44,7 +44,7 @@ if "--onshellT" in ARGS
 end
 
 if "--Det" in ARGS
-    de = detImVG.(Lambda, E, Ngauss)
+    de = detImVG.(Lambda, E, pNgauss)
     len = size(de)[1]
     using Plots
     plot(E, abs.(de), dpi=300)

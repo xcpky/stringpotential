@@ -23,9 +23,10 @@ const m22 = m_B_star_s
 const m = [m11 m12; m21 m22]
 
 #masses of bound states in 1++ channel
-const m_Xb13P=10.5134-(m11+m12)
-const m_Xb12P=10.25546-(m11+m12)
-const m_Xb11P=9.89278-(m11+m12)
+const m_Xb14P=10.825-(m11+m12)
+const m_Xb13P=10.529-(m11+m12)
+const m_Xb12P=10.224-(m11+m12)
+const m_Xb11P=9.909-(m11+m12)
 
 #use couplings from D200 fit
 #Lattice spacing

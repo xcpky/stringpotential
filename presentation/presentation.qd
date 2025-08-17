@@ -1,0 +1,178 @@
+.docname {String Potential}
+.doctype {slides}
+.doclang {English}
+.theme {paperwhite} layout:{latex}
+
+.docauthors
+  - 张宇
+
+.footer
+    .docauthor
+
+    **.docname**
+
+.pagemargin {bottomright}
+	**.currentpage** .whitespace width:{1cm}
+
+.center
+	##! Interplay of quark and meson degrees of freedom: matching with string breaking potentials
+
+.whitespace height:{2cm}
+
+
+.center
+	.text{.docauthor} size:{larger}
+
+.whitespace height:{0.4cm}
+
+.center
+	.text{2025-08-14}
+<<<
+
+## General Idea
+
+
+Study the interplay of different types of exchanges between heavy-light mesons (B meson) meditated by t(u)-channel one-boson exchanges and s-channel exchanges through quark-model quarkonium states
+
+---
+
+.align{start}
+	- full interaction potential $ V = V_{\text{OME}} + V_{\text{QM}} $
+	  - parameters in $ V_{\text{OME}} $ are fixed and well known
+	  - parameters in $ V_{\text{QM}} $ are fitted from lattice result of Born-Oppenheimer potential [Phys. Lett. B **793**, 493 (2019)](https://doi.org/10.1016/j.physletb.2019.05.018), [Phys. Lett. B **854**, 138754 (2024)](https://doi.org/10.1016/j.physletb.2024.138754)
+	- quantum number for the $ X_Q $ 
+	  $ J^{PC} = 1^{++} $
+	  - heavy quark spin symmetry(HQSS) $ S_{Q\bar{Q}}^{\text{fin}} = S_{Q\bar{Q}}^{\text{in}} = 1^{++} $
+	  - $ L_{Q\bar{Q}}^{\text{fin}} = 0 $ for 
+	  $ b\bar{b} $ core with excited light quark pair
+	  $ j_l^{PC} = 1^{--} $
+	- exact isospin symmetry and SU(3) violation by strange quark mass
+	  - two coupled channels $ \ket{B \bar{B}^*} = \frac{1}{\sqrt{2}}(\ket{B_u\bar{B}_u^*} + \ket{B_d\bar{B}_d^*}),\hspace{11pt}\ket{B_s\bar{B}_s^*} $
+
+$$$
+V = 
+\begin{pmatrix}
+V(B\bar{B}^* \to B\bar{B}^*) & V(B\bar{B}^*\to B_s\bar{B}^*_s)\\
+V(B_s\bar{B}^*_s \to B\bar{B}^*) & V(B_s\bar{B}_s^* \to B_s\bar{B}_s^*)
+\end{pmatrix}
+$$$
+
+<<<
+
+!(70%)[schematic](image/diag.svg)
+
+.center
+	 .text{Schematic representation of the coupling of a generic quark-model $ b\bar{b} $ state with the quantum numbers $ 1^{++} $ to an open-bottom channel $ B\bar{B}^* $ through the light-quark pair creation mechanism.}
+
+<<<
+
+## One Meson Exchange Interaction
+---
+Lagrangian for $ \phi $-field coupling to pair of heavy-light mesons
+
+$ \mathcal{L}_\phi = \frac{g_b}{2f_\pi}(V_a^{i\dagger}P_b + P_a^\dagger V_b^i + \bar{P}_a^\dagger \bar{V}_b^i + \bar{V}_a^{\dagger i}\bar{P}_b)\partial^i\phi_{ab} $
+
+$ g_b \approx 0.57 , \hspace{11pt} f_\pi = 92.2 \text{MeV},\hspace{11pt} P_a = \{B^+, B^0, B_s\}, \hspace{11pt} V_a = \{B^{*+}, B^{*0}, B^*_s\} $
+
+Time-Ordered Perturbation Theory(TOPT)
+
+$ V_{\text{OME}}(p, p', m_G) = \frac{g_b^2}{24f_\pi^2}\int_{-1}^1 dx \frac{2pp'x - p^2 - p'^2}{2E_G(q)}\left[\frac{1}{E_G(q) + E_{1'}(p') + E_2(p) - M} + \frac{1}{E_G(q) + E_1(p) + E_{2'}(p') - M}\right] $
+
+$ M $ is the energy
+
+$ E_i(p) = m_i + \frac{p^2}{2m_i},\hspace{11pt} E_G = \sqrt{q^2 + m_G^2} $
+
+<<<
+
+## Quark Model States Exchange
+---
+Hamiltonian and Cornell potential
+$$$
+H_0 = -\frac{1}{2\mu}\nabla^2 + V(r)\\
+V(r) = V_0 + \sigma r + \frac{\gamma}{r}
+$$$
+
+Rayleigh-Ritz principle, expand wavefuction using Gaussian basis [Prog. Part. Nucl. Phys. **51**, 223 (2003)](https://doi.org/10.1016/S0146-6410(03)90015-9)
+
+$$$
+\psi_n(\bm{r}) = \sum_{k = 1}^{k_{\text{max}}}c_{kl}\phi_{klm}(\bm{r}) = Y_{lm}(\hat{\bm{r}})\sum_{k = 0}^{k_{\text{max}}}c_{kl}\phi_{kl}(r)\\
+\phi_{klm}(\bm{r}) = \phi_{kl}(r)Y_{lm}(\hat{\bm{r}}),\hspace{11pt}\phi_{kl}(r) = N_{kl}r^le^{-\nu_k r^2},\hspace{11pt}N_{kl} = \sqrt{\frac{2^{l+2}(2\nu_k)^{l+\frac{3}{2}}}{\sqrt{\pi}(2l+1)!!}}
+$$$
+
+Schrödinger equation becomes an eigenvalue problem
+
+$ \sum_{k' = 1}^{k_{\text{max}}} = [H_{0kk'} - E\delta_{kk'}]c_{k'l} = 0 $
+
+<<<
+
+wavefuction as superposition of quark-model states and molecular states
+
+$$$
+\ket{\Psi} = 
+\begin{pmatrix}
+\lambda_n\ket{\psi_n}\\
+\chi(\bm{p})\ket{M_1M_2}
+\end{pmatrix},
+\hspace{11pt}\mathcal{H} = 
+\begin{pmatrix}
+H_0 & \hat{g}\\
+\hat{g} & V_l
+\end{pmatrix}
+$$$
+
+Schrödinger equation for such a system
+
+$$$
+\mathcal{H} \ket{\Psi} = E\ket{\Psi},\hspace{15pt}
+\begin{cases}
+\lambda_n E_n + \int\frac{dp^3}{(2\pi)^3}\chi(\bm{p})\braket{\psi_n|\hat{g}|M_1M_2} = \lambda_n E\\
+\sum_n\lambda_n\hat{g}\ket{\psi_n} + V_l\ket{M_1M_2} = E\ket{M_1M_2}
+\end{cases}
+$$$
+
+$ \braket{\psi_n|\hat{g}|M_1M_2} \approx g\psi^*_n(\bm{p}) $
+
+$ V_{\text{QM}}^{\alpha\beta}(\bm{p}, \bm{p}') = g^{\alpha}g^{\beta}\sum_{n=1}^{\infty}\frac{\psi_n(\bm{p})\psi_n^*(\bm{p}')}{E - E_n} $
+
+<<<
+
+## Lippmann-Schwinger Equation
+---
+The coupled channel Lippmann-Schwinger equation reads
+
+$ T^{\alpha\beta}(E,\bm{p}, \bm{p}') = V^{\alpha\beta}(E, \bm{p}, \bm{p}') - \sum_\gamma\int\frac{d^3k}{(2\pi)^3}V^{\alpha\gamma}(E, \bm{p}, \bm{k})G_\gamma(E, \bm{k})T^{\gamma\beta}(E, \bm{k}, \bm{p}') $
+
+$ G_\gamma(E, \bm{k}) = \frac{1}{k^2/(2\mu_\gamma) + \Delta_\gamma - E - i\epsilon} $
+
+the integral equation is then discretized using Gauss-Legendre quadrature and becomes a matrix equation
+
+$ \int_0^\Lambda dkf(k) \to \sum_n\tilde{\omega}_nf(k_n) $
+
+$$$
+T = V - VGT\\
+T = [I + VG]^{-1}V
+$$$
+
+$ \text{pole}\{T\} = \text{root}\{\text{det}[I+VG]\} $
+
+<<<
+
+## Results
+result solved with only one-meson exchange potential, hard cutoff $ \Lambda = 2 $ GeV
+
+---
+
+.grid columns:{2}
+	.column
+		!(90%)[Tome](image/onshellT_OME.svg)
+
+		.center
+			.text{onshell T-matrix}
+	
+	.column
+		!(90%)[detOME](image/detOME.svg)
+
+		.center
+			.text{determinant of I-VG}
+
+possibly UV divergence observed above $ BB\pi $ three-body threshold

@@ -22,3 +22,4 @@ papers
 *.dat
 *.pdf
 *compile_commands.json
+*presentation/output
