@@ -1,17 +1,18 @@
 include("lse.jl")
 
-Lambda = 2
-pNgauss = 128
+Lambda = 4
+pNgauss = 64
 # E = delta[1]-2:0.002001:delta[2]+0.5
 E = LinRange(-0.9, delta[1] + 0.4, 500)
+E = LinRange(-0.5, 0.5, 500)
 # E = -1.5:0.00201:0.4
 
 function onshellG(matrix)
-    return [tr(matrix[1:Ngauss+1, 1:Ngauss+1]), tr(matrix[Ngauss+2:2*Ngauss+2, Ngauss+2:2*Ngauss+2])]
+    return [tr(matrix[1:pNgauss+1, 1:pNgauss+1]), tr(matrix[pNgauss+2:2*pNgauss+2, pNgauss+2:2*pNgauss+2])]
 end
 
 function onshellT(matrix)
-    return [matrix[Ngauss+1, Ngauss+1], matrix[Ngauss+1, end], matrix[end, Ngauss+1], matrix[end, end]]
+    return [matrix[pNgauss+1, pNgauss+1], matrix[pNgauss+1, end], matrix[end, pNgauss+1], matrix[end, end]]
 end
 
 if "--onshellG" in ARGS
@@ -48,7 +49,7 @@ if "--Det" in ARGS
     len = size(de)[1]
     using Plots
     plot(E, abs.(de), dpi=300)
-    # ylims!(0, 1e17)
+    ylims!(0, 100)
     savefig("det.png")
 
 end

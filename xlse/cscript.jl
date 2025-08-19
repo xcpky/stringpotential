@@ -14,7 +14,8 @@ Lambda = 4
 pNgauss = 128
 data = Nothing
 C = [-1.010589943548671, 0, -1.220749787118462, 0]
-onshellRange = LinRange(m_Xb11P - 0.1, delta[1]+0.3, 1000)
+Erange = LinRange(m_Xb11P - 0.1, delta[1] + 0.3, 1000)
+# Erange = LinRange(-0.1, 2, 1000)
 # onshellRange = LinRange(-0.7, 0.6, 1000)
 # onshellRange = LinRange(0., 0.190229863, 8000)
 
@@ -101,7 +102,7 @@ function imTsing(E::Vector{Cdouble}, len, C::Vector{Cdouble}, pNgauss, Lambda, e
     # plot!(E, ρ.(E, 2), label=L"\rho_2(E)\Theta(E-m_{B_s} - m_{B_s^*})")
     vline!(delta, s=:dash, label="threshold")
     vline!([m_pi + m_B - m_B_star], s=:dash, label=L"BB\pi", c=:grey)
-    vline!([m_pi ], s=:dash, label=L"BB^*\pi", c=:grey)
+    vline!([m_pi], s=:dash, label=L"BB^*\pi", c=:grey)
     ylims!(-2, 1.5)
     xlabel!("E/GeV")
     savefig("imTsing.png")
@@ -111,8 +112,9 @@ end
 
 function conshellT(E::Vector{Cdouble}, len, C::Vector{Cdouble}, pNgauss, Lambda, epsilon)
     @time otr = ccall(Libdl.dlsym(libscript, :onshellT), Ptr{ComplexF64}, (Ptr{Cdouble}, Cuint, Ptr{Cdouble}, Cuint, Cdouble, Cdouble), E, len, C, pNgauss, Lambda, epsilon)
+	yup=1e1
     ot = transpose(copy(unsafe_wrap(Array, otr, (len, 4), own=false)))
-	plot(dpi=400, legend=:topleft)
+    plot(dpi=400, legend=:topleft)
     # level = getEvec(C[1])
     # vls = filter(e -> e > E[1] && e < E[end], level)
     # vline(vls, s=:dash, c=:grey, label=L"$E_i$")
@@ -124,13 +126,13 @@ function conshellT(E::Vector{Cdouble}, len, C::Vector{Cdouble}, pNgauss, Lambda,
     plot!(E, abs.(ot[1, :]), label=L"|$T_{11}$|", dpi=400)
     plot!(E, abs.(ot[3, :]), label=L"|$T_{21}$|")
     plot!(E, abs.(ot[4, :]), label=L"|$T_{22}$|")
-	annotate!(0.01, -750, text(L"BB^*", 8))
-	annotate!(delta[2]+0.01, -750, text(L"B_sB_s^*", 8))
+    annotate!(0.01, -0.075*yup, text(L"BB^*", 8))
+    annotate!(delta[2] + 0.01, -0.075*yup, text(L"B_sB_s^*", 8))
     # plot!(E, abs.(ot[2, :]), label=L"$T_{12}$")
     # ylims!(0, upper)
-	xlabel!("E/GeV")
-	ylabel!(L"|T_{\alpha\beta}|"*"/GeV")
-    ylims!(0, 1e4)
+    xlabel!("E/GeV")
+    ylabel!(L"|T_{\alpha\beta}|" * "/GeV")
+    ylims!(0, yup)
     println(E[end])
     xlims!(E[1], E[end])
     savefig("onshellT.png")
@@ -222,27 +224,27 @@ function conshellV(E::Vector{Cdouble}, len, C::Vector{Cdouble}, pNgauss, Lambda,
     ot = copy(transpose(unsafe_wrap(Array, otr, (len, 4), own=false)))
     level = getEvec(C[1])
     vls = filter(e -> e > E[1] && e < E[end], level)
-    p = plot(dpi=400, layout=(1,2), size=(900,500))
+    p = plot(dpi=400, layout=(1, 2), size=(900, 500))
     # vline(vls, s=:dash, c=:grey, label=L"$E_i$", dpi=400)
-    vline!(p[1],delta, s=:dash, label="thresholds", lw=0.8)
-    vline!(p[1],[m_Xb11P], s=:dash, label=L"\chi_{b1}(1P)")
-    vline!(p[1],[m_Xb12P], s=:dash, label=L"\chi_{b1}(2P)")
-    vline!(p[1],[m_Xb13P], s=:dash, label=L"\chi_{b1}(3P)")
-    vline!(p[1],[m_pi + m_B - m_B_star], s=:dash, label=L"BB\pi")
-	vline!(p[1], [-0.010], s=:dash)
-    plot!(p[1],E, real.(ot[1, :]), label=L"real($V_{11}$)", dpi=400)
+    vline!(p[1], delta, s=:dash, label="thresholds", lw=0.8)
+    vline!(p[1], [m_Xb11P], s=:dash, label=L"\chi_{b1}(1P)")
+    vline!(p[1], [m_Xb12P], s=:dash, label=L"\chi_{b1}(2P)")
+    vline!(p[1], [m_Xb13P], s=:dash, label=L"\chi_{b1}(3P)")
+    vline!(p[1], [m_pi + m_B - m_B_star], s=:dash, label=L"BB\pi")
+    vline!(p[1], [-0.010], s=:dash)
+    plot!(p[1], E, real.(ot[1, :]), label=L"real($V_{11}$)", dpi=400)
     xlabel!(p[1], "real, E/GeV")
     # plot!(E, abs.(ot[3, :]), label=L"$V_{21}$")
     # plot!(E, abs.(ot[4, :]), label=L"$V_{22}$")
     # plot!(E, abs.(ot[2, :]), label=L"$V_{12}$", dpi=400)
     # xlims!(E[1], E[end])
-    vline!(p[2],delta, s=:dash, label="thresholds", lw=0.8)
-    vline!(p[2],[m_Xb11P], s=:dash, label=L"\chi_{b1}(1P)")
-    vline!(p[2],[m_Xb12P], s=:dash, label=L"\chi_{b1}(2P)")
-    vline!(p[2],[m_Xb13P], s=:dash, label=L"\chi_{b1}(3P)")
-    vline!(p[2],[m_pi + m_B - m_B_star], s=:dash, label=L"BB\pi")
-	vline!(p[2], [-0.02], s=:dash)
-    plot!(p[2],E, imag.(ot[1, :]), label=L"imag($V_{11}$)", dpi=400)
+    vline!(p[2], delta, s=:dash, label="thresholds", lw=0.8)
+    vline!(p[2], [m_Xb11P], s=:dash, label=L"\chi_{b1}(1P)")
+    vline!(p[2], [m_Xb12P], s=:dash, label=L"\chi_{b1}(2P)")
+    vline!(p[2], [m_Xb13P], s=:dash, label=L"\chi_{b1}(3P)")
+    vline!(p[2], [m_pi + m_B - m_B_star], s=:dash, label=L"BB\pi")
+    vline!(p[2], [-0.02], s=:dash)
+    plot!(p[2], E, imag.(ot[1, :]), label=L"imag($V_{11}$)", dpi=400)
     xlabel!(p[2], "imag, E/GeV")
     # plot!(E, abs.(ot[3, :]), label=L"$V_{21}$")
     # plot!(E, abs.(ot[4, :]), label=L"$V_{22}$")
@@ -258,25 +260,27 @@ end
 
 function detImVG(E::Vector{Cdouble}, len, C::Vector{Cdouble}, pNgauss, Lambda, epsilon)
     @time dtr = ccall(Libdl.dlsym(libscript, :Det), Ptr{ComplexF64}, (Ptr{Cdouble}, Cuint, Ptr{Cdouble}, Cuint, Cdouble, Cdouble), E, len, C, pNgauss, Lambda, epsilon)
+	yup = 1e2
     Det = copy(unsafe_wrap(Array, dtr, len, own=false))
     # plot(E, real.(Det), label=L"det($1-VG$)",dpi=400)
     # level = getEvec(C[1])
     # vls = filter(e -> e > E[1] && e < E[end], level)
     # vline(vls, s=:dash, c=:grey, label=L"$E_i$")
-	plot(dpi=400, legend=:topleft)
+    plot(dpi=400, legend=:topleft)
     vline!(delta, s=:dash, label="thresholds", lw=0.8)
     vline!([m_Xb11P], s=:dash, label=L"\chi_{b1}(1P)")
     vline!([m_Xb12P], s=:dash, label=L"\chi_{b1}(2P)")
     vline!([m_Xb13P], s=:dash, label=L"\chi_{b1}(3P)")
     vline!([m_Xb14P], s=:dash, label=L"\chi_{b1}(4P)")
-	annotate!(0.01, -75, text(L"BB^*", 8))
-	annotate!(delta[2]+0.01, -75, text(L"B_sB_s^*", 8))
-    # vline!([m_pi + m_B - m_B_star], s=:dash, label=L"\pi")
+    annotate!(0.01, -0.075*yup, text(L"BB^*", 8))
+    annotate!(delta[2] + 0.01, -0.075*yup, text(L"B_sB_s^*", 8))
+    annotate!(m_pi + m_B - m_B_star, -0.019*yup, text(L"BB\pi", 8))
+    vline!([m_pi + m_B - m_B_star], s=:dash, label=L"BB\pi")
     # vline!([m_pi + m_B - m_B_star], s=:dash, label=L"\pi")
     # vline!([m_pi], s=:dash, label=L"m_\pi")
     plot!(E, abs.(Det), label=L"|det($I+VG$)|", dpi=400)
     xlims!(E[1], E[end])
-    ylims!(0, 1e3)
+    ylims!(0, yup)
     xlabel!("E/GeV")
     # ylims!(0, 1e9)
     savefig("det.png")
@@ -417,7 +421,7 @@ end
 
 if "--onshellT" in ARGS
     # E = 1.48:0.00001:1.499
-    E = onshellRange
+    E = Erange
     # C = [-4.015485e-01, -1.722080e+00, -1.854979e-01, -2.092185e+00]
     # C = [0.0, 0, 0, 0]
     # E = LinRange(-1.8, -1.6, 10000)
@@ -435,7 +439,7 @@ if "--onshellT" in ARGS
 end
 if "--onshellT_single" in ARGS
     # E = 1.48:0.00001:1.499
-    E = onshellRange
+    E = Erange
     # C = [-4.015485e-01, -1.722080e+00, -1.854979e-01, -2.092185e+00]
     # C = [0.0, 0, 0, 0]
     # E = LinRange(-1.8, -1.6, 10000)
@@ -453,7 +457,7 @@ if "--onshellT_single" in ARGS
 end
 if "--onshellG" in ARGS
     # E = 1.48:0.00001:1.499
-    E = onshellRange
+    E = Erange
     # E = LinRange(-1.8, -1.6, 10000)
     # E = LinRange(-0.8001, -0.7999, 5000)
     # E = LinRange(0.5, 2, 5000)
@@ -471,7 +475,7 @@ if "--onshellV" in ARGS
     # E = 1.48:0.00001:1.499
     # C = [-4.015485e-01, -1.722080e+00, -1.854979e-01, -2.092185e+00]
     C = [0, 0.0, 0, 0]
-    E = onshellRange
+    E = Erange
     # E = LinRange(-1.8, -1.6, 10000)
     # E = LinRange(-0.8001, -0.7999, 5000)
     # E = LinRange(0.5, 2, 5000)
@@ -482,7 +486,7 @@ end
 if "--onshellTV" in ARGS
     # E = 1.48:0.00001:1.499
     C = [-4.015485e-01, -1.722080e+00, -1.854979e-01, -2.092185e+00]
-    E = onshellRange
+    E = Erange
     # E = LinRange(-1.8, -1.6, 10000)
     # E = LinRange(-0.8001, -0.7999, 5000)
     # E = LinRange(0.5, 2, 5000)
@@ -499,7 +503,7 @@ end
 if "--Det" in ARGS
     # C = [-4.015485e-01, -1.722080e+00, -1.854979e-01, -2.092185e+00]
     # C = zeros(Float64, 4)
-    E = onshellRange
+    E = Erange
     det = detImVG(collect(E), length(E), C, pNgauss, Lambda, epsi)
     # serialize("detwithoutrecoil.dat", det)
 end
@@ -537,7 +541,7 @@ if "--minimize" in ARGS
     lse = ccall(dlsym(libscript, :lse_malloc), Ptr{Cvoid}, (Csize_t, Cdouble, Cdouble), pNgauss, Lambda, epsi)
     c = minimize(C, pNgauss, Lambda, epsi)
     println(ccall(dlsym(libscript, :lse_cost), Cdouble, (Ptr{Cvoid}, Ptr{Cdouble}, UInt), lse, c, 3))
-    conshellT(collect(onshellRange), length(onshellRange), c, pNgauss, Lambda, epsi)
+    conshellT(collect(Erange), length(Erange), c, pNgauss, Lambda, epsi)
 end
 
 z0(E, m, p1, p2, m0) = ((E - 2m - (p1^2 + p2^2) / (2m))^2 - m0^2 - p1^2 - p2^2) / (-2p2 * p1)
@@ -698,19 +702,19 @@ if "--nroots" in ARGS
 end
 
 if "--imT" in ARGS
-    imT(collect(onshellRange), length(onshellRange), C, pNgauss, Lambda, epsi)
+    imT(collect(Erange), length(Erange), C, pNgauss, Lambda, epsi)
 
 end
 
 if "--imTsing" in ARGS
-    imTsing(collect(onshellRange), length(onshellRange), C, pNgauss, Lambda, epsi)
+    imTsing(collect(Erange), length(Erange), C, pNgauss, Lambda, epsi)
 end
 
 o1(p1) = 2 * m_B + (p1^2 + p1^2) / (2m_B)
 o2(p1) = 2 * m_B_star + (p1^2 + p1^2) / (2m_B_star)
 if "--delt" in ARGS
     V(E, p, pprime)::ComplexF64 = ccall(dlsym(libscript, :V), ComplexF64, (Cdouble, ComplexF64, ComplexF64), E, p, pprime)
-    E = onshellRange
+    E = Erange
     k = sqrt.(Complex.(2 * mu[1] .* E))
     delt = Array{ComplexF64}(undef, length(E))
     for i in eachindex(E)
@@ -735,13 +739,13 @@ if "--V3d" in ARGS
     pNgauss = 256
     x, w = gauss(pNgauss, 0, Lambda)
     @time dtr = ccall(Libdl.dlsym(libscript, :V3d), Ptr{ComplexF64}, (Cdouble, Cuint, Cdouble, Cdouble), m_pi, pNgauss, Lambda, epsi)
-    n = 2*pNgauss + 2
-    data = transpose(copy(unsafe_wrap(Array, dtr, (n,n), own=false)))
+    n = 2 * pNgauss + 2
+    data = transpose(copy(unsafe_wrap(Array, dtr, (n, n), own=false)))
     # data = [abs(V(m_pi + m11 + m12, x[i], x[j])) for i in eachindex(x), j in eachindex(x)]
     surface(x, x, abs.(data[1:pNgauss, 1:pNgauss]), dpi=400, camera=(45, 30))
     xlabel!("p")
     ylabel!("p'")
     zlabel!("abs(V)")
-    zlims!(0,3000)
+    zlims!(0, 3000)
     savefig("surface.png")
 end

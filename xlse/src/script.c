@@ -631,7 +631,7 @@ int det(void *arg)
     double complex *res = (double complex *)foo.res;
     for (size_t i = foo.start; i < foo.start + foo.len; i += 1) {
 	// res[i] = lse_detImVG(lse, foo.E[i], foo.C, PP);
-	lse_compute(lse, foo.E[i], (double[4]) { 0, 0, 0, 0 }, foo.rs);
+	lse_compute(lse, foo.E[i], foo.C, foo.rs);
 	res[i] = lse->det;
     }
     return 0;
