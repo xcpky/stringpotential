@@ -166,7 +166,7 @@ $ \text{pole}\{T\} = \text{root}\{\text{det}[I+VG]\} $
 <<<
 
 ## Results
-result solved with only one-meson exchange potential, hard cutoff $ \Lambda = 4 $ GeV
+result solved with only one-meson exchange potential, hard cutoff $ \Lambda = 2 $ GeV
 
 ---
 
@@ -205,3 +205,5 @@ result with only quark-model exchange potential
 
 	.column
 		!(90%)[detQM](image/detQM.svg)
+
+by fitting the poles to the $ \chi_{b1} $ states we can find the values of contact terms
