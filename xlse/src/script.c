@@ -247,11 +247,12 @@ double complex V(double E, double complex p, double complex pprime)
     // return (b + C) * (b + D) / (a + C) / (a + D);
 }
 
-double complex *V3d(double E, size_t pNgauss, double Lambda, double epsilon){
-    LSE *lse[[gnu::cleanup(lsefree)]] = lse_malloc(pNgauss, Lambda, epsilon);
-    lse_refresh(lse, E, (double[4]){0,0,0,0}, PP);
+double complex *V3d(double E, size_t pNgauss, double Lambda, double epsilon)
+{
+    LSE *lse [[gnu::cleanup(lsefree)]] = lse_malloc(pNgauss, Lambda, epsilon);
+    lse_refresh(lse, E, (double[4]) { 0, 0, 0, 0 }, PP);
     lse_vmat(lse);
-    double complex (*vmat)[2*pNgauss + 2] = malloc(sizeof(double complex)*2*(pNgauss + 1)*2*(pNgauss + 1));
+    double complex(*vmat)[2 * pNgauss + 2] = malloc(sizeof(double complex) * 2 * (pNgauss + 1) * 2 * (pNgauss + 1));
     for (size_t i = 0; i < pNgauss + 1; i += 1) {
 	for (size_t j = 0; j < pNgauss + 1; j += 1) {
 	    vmat[i][j] = matrix_get(lse->VOME, i, j);
@@ -717,3 +718,15 @@ int trG(void *arg)
 }
 
 void Free(void *ptr) { free(ptr); }
+double complex *getV(double E, size_t pNgauss, double Lambda, double epsilon)
+{
+    LSE *lse [[gnu::cleanup(lsefree)]] = lse_malloc(pNgauss, Lambda, epsilon);
+    lse_compute(lse, E, (double[4]) { 0, 0, 0, 0 }, PP);
+    double complex(*V)[2 * pNgauss + 2] = malloc(sizeof(*V) * (2 * pNgauss + 2));
+    for (size_t i = 0; i < 2 * pNgauss + 2; i += 1) {
+	for (size_t j = 0; j < 2 * pNgauss + 2; j += 1) {
+	    V[i][j] = matrix_get(lse->VOME, i, j);
+	}
+    }
+    return (double complex *)V;
+}

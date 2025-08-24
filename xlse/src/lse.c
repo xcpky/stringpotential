@@ -283,6 +283,11 @@ int lse_vmat(LSE *self)
 	    matrix_set(self->VOME, i10, j10, V10(self, p, pprime, idx, jdx));
 
 	    matrix_set(self->VOME, i11, j11, V11(self, p, pprime, idx, jdx));
+	 //    if (idx == 57 && jdx == 59) {
+		// auto v = V11(self, p, pprime, idx, jdx);
+		// printf("p: %f %f\n", cimag(p), cimag(pprime));
+		// printf("57 59: %f%+f\n", creal(v), cimag(v));
+	 //    }
 	}
     }
 

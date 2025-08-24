@@ -152,15 +152,15 @@ function Vπu(E,p1,p2,m1,gam1,m2,gam2,m3,gam3,m4,gam4,m0,fac)  # this is only va
     end
 end
 
-V11(E, p, pprime) = Vπu(E, p, pprime, m_B_star, gamma_B_star, m_B, 0, m_B_star, gamma_B_star, m_B, 0, m_pi, -9) + Vπu(E, p, pprime, m_B_star, gamma_B_star, m_B, 0, m_B_star, gamma_B_star, m_B, 0, m_eta, -1)
+V11(E, p, pprime) = Vπu(E, p, pprime, m_B_star, gamma_B_star, m_B, 0, m_B_star, gamma_B_star, m_B, 0, m_pi, 3) + Vπu(E, p, pprime, m_B_star, gamma_B_star, m_B, 0, m_B_star, gamma_B_star, m_B, 0, m_eta, 1/3)
 V12(E, p, pprime) = Vπu(E, p, pprime, m_B_star_s, gamma_B_star_s, m_B_s, 0, m_B_star, gamma_B_star, m_B, 0, m_K, 2^(3/2))
 V21(E, p, pprime) = Vπu(E, p, pprime, m_B_star, gamma_B_star, m_B, 0, m_B_star_s, gamma_B_star_s, m_B_s, 0, m_K, 2^(3/2))
-V22(E, p, pprime) = Vπu(E, p, pprime, m_B_star_s, gamma_B_star_s, m_B_s, 0, m_B_star_s, gamma_B_star_s, m_B_s, 0, m_eta, 2/3)
+V22(E, p, pprime) = Vπu(E, p, pprime, m_B_star_s, gamma_B_star_s, m_B_s, 0, m_B_star_s, gamma_B_star_s, m_B_s, 0, m_eta, 4/3)
 
 # V11(E, p, pprime) = Vπu(E, p, pprime, m_B_star, gamma_B_star, m_B, 0, m_B_star, gamma_B_star, m_B, 0, m_pi, 1)
 # V12(E, p, pprime) = Vπu(E, p, pprime, m_B_star_s, gamma_B_star_s, m_B_s, 0, m_B_star, gamma_B_star, m_B, 0, m_pi, 1)
 # V21(E, p, pprime) = Vπu(E, p, pprime, m_B_star, gamma_B_star, m_B, 0, m_B_star_s, gamma_B_star_s, m_B_s, 0, m_pi, 1)
-# V22(E, p, pprime) = Vπu(E, p, pprime, m_B_star, gamma_B_star, m_B_s, 0, m_B_star_s, gamma_B_star_s, m_B_s, 0, m_pi, 1)
+# V22(E, p, pprime) = Vπu(E, p, pprime, m_B_star_s, gamma_B_star_s, m_B_s, 0, m_B_star_s, gamma_B_star_s, m_B_s, 0, m_pi, 1)
 
 
 function detImVG(Λ, E, Ngauss)

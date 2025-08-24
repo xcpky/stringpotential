@@ -108,15 +108,6 @@ static inline double min(double x, double y) { return x > y ? y : x; }
 
 static inline double max(double x, double y) { return x > y ? x : y; }
 
-// Complex square root function
-static inline double complex xsqrt(double complex x)
-{
-    if (cimag(x) >= 0)
-	return csqrt(x);
-    else
-	return -csqrt(x - 0 * I);
-}
-
 // Contact term functions
 static inline double Ctct_00(double g_C) { return -3 * 2 * g_C; }
 
@@ -252,7 +243,8 @@ static inline double complex V_curlOME_11(double complex E, double complex p, do
     {                                                                                                                          \
 	auto E = self->E;                                                                                                      \
 	E += m11 + m12;                                                                                                        \
-	return  OMEANA_##suffix(E, p, pprime);                                                                                  \
+	auto res = OMEANA_##suffix(E, p, pprime) - OME_##suffix(self->ome, E, p, pprime);                                      \
+	return res;                                                                                                            \
     }
 
 DEFINE_V_FUNCTION(00);

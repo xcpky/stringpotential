@@ -10,7 +10,7 @@ using LaTeXStrings
 include("constants.jl")
 
 epsi = 1e-9
-Lambda = 2.3
+Lambda = 4.0
 pNgauss = 64
 data = Nothing
 C = [-1.010589943548671, 0, -1.220749787118462, 0]
@@ -112,7 +112,7 @@ end
 
 function conshellT(E::Vector{Cdouble}, len, C::Vector{Cdouble}, pNgauss, Lambda, epsilon)
     @time otr = ccall(Libdl.dlsym(libscript, :onshellT), Ptr{ComplexF64}, (Ptr{Cdouble}, Cuint, Ptr{Cdouble}, Cuint, Cdouble, Cdouble), E, len, C, pNgauss, Lambda, epsilon)
-	yup=1e4
+    yup = 15
     ot = transpose(copy(unsafe_wrap(Array, otr, (len, 4), own=false)))
     plot(dpi=400, legend=:topleft)
     # level = getEvec(C[1])
@@ -126,8 +126,8 @@ function conshellT(E::Vector{Cdouble}, len, C::Vector{Cdouble}, pNgauss, Lambda,
     plot!(E, abs.(ot[1, :]), label=L"|$T_{11}$|", dpi=400)
     plot!(E, abs.(ot[3, :]), label=L"|$T_{21}$|")
     plot!(E, abs.(ot[4, :]), label=L"|$T_{22}$|")
-    annotate!(0.01, -0.075*yup, text(L"BB^*", 8))
-    annotate!(delta[2] + 0.01, -0.075*yup, text(L"B_sB_s^*", 8))
+    annotate!(0.01, -0.075 * yup, text(L"BB^*", 8))
+    annotate!(delta[2] + 0.01, -0.075 * yup, text(L"B_sB_s^*", 8))
     # plot!(E, abs.(ot[2, :]), label=L"$T_{12}$")
     # ylims!(0, upper)
     xlabel!("E/GeV")
@@ -224,28 +224,28 @@ function conshellV(E::Vector{Cdouble}, len, C::Vector{Cdouble}, pNgauss, Lambda,
     ot = copy(transpose(unsafe_wrap(Array, otr, (len, 4), own=false)))
     level = getEvec(C[1])
     vls = filter(e -> e > E[1] && e < E[end], level)
-    p = plot(dpi=400, layout=(1, 2), size=(900, 500))
+    p = plot(dpi=400 )
     # vline(vls, s=:dash, c=:grey, label=L"$E_i$", dpi=400)
-    vline!(p[1], delta, s=:dash, label="thresholds", lw=0.8)
-    vline!(p[1], [m_Xb11P], s=:dash, label=L"\chi_{b1}(1P)")
-    vline!(p[1], [m_Xb12P], s=:dash, label=L"\chi_{b1}(2P)")
-    vline!(p[1], [m_Xb13P], s=:dash, label=L"\chi_{b1}(3P)")
-    vline!(p[1], [m_pi + m_B - m_B_star], s=:dash, label=L"BB\pi")
-    vline!(p[1], [-0.010], s=:dash)
-    plot!(p[1], E, real.(ot[1, :]), label=L"real($V_{11}$)", dpi=400)
-    xlabel!(p[1], "real, E/GeV")
-    # plot!(E, abs.(ot[3, :]), label=L"$V_{21}$")
-    # plot!(E, abs.(ot[4, :]), label=L"$V_{22}$")
-    # plot!(E, abs.(ot[2, :]), label=L"$V_{12}$", dpi=400)
+    vline!(p, delta, s=:dash, label="thresholds", lw=0.8)
+    vline!(p, [m_Xb11P], s=:dash, label=L"\chi_{b1}(1P)")
+    vline!(p, [m_Xb12P], s=:dash, label=L"\chi_{b1}(2P)")
+    vline!(p, [m_Xb13P], s=:dash, label=L"\chi_{b1}(3P)")
+    vline!(p, [m_pi + m_B - m_B_star], s=:dash, label=L"BB\pi")
+    vline!(p, [-0.010], s=:dash)
+    plot!(p, E, abs.(ot[1, :]), label=L"real($V_{11}$)", dpi=400)
+    xlabel!(p, "real, E/GeV")
+    plot!(E, abs.(ot[3, :]), label=L"$V_{21}$")
+    plot!(E, abs.(ot[4, :]), label=L"$V_{22}$")
+    plot!(E, abs.(ot[2, :]), label=L"$V_{12}$", dpi=400)
     # xlims!(E[1], E[end])
-    vline!(p[2], delta, s=:dash, label="thresholds", lw=0.8)
-    vline!(p[2], [m_Xb11P], s=:dash, label=L"\chi_{b1}(1P)")
-    vline!(p[2], [m_Xb12P], s=:dash, label=L"\chi_{b1}(2P)")
-    vline!(p[2], [m_Xb13P], s=:dash, label=L"\chi_{b1}(3P)")
-    vline!(p[2], [m_pi + m_B - m_B_star], s=:dash, label=L"BB\pi")
-    vline!(p[2], [-0.02], s=:dash)
-    plot!(p[2], E, imag.(ot[1, :]), label=L"imag($V_{11}$)", dpi=400)
-    xlabel!(p[2], "imag, E/GeV")
+    # vline!(p[2], delta, s=:dash, label="thresholds", lw=0.8)
+    # vline!(p[2], [m_Xb11P], s=:dash, label=L"\chi_{b1}(1P)")
+    # vline!(p[2], [m_Xb12P], s=:dash, label=L"\chi_{b1}(2P)")
+    # vline!(p[2], [m_Xb13P], s=:dash, label=L"\chi_{b1}(3P)")
+    # vline!(p[2], [m_pi + m_B - m_B_star], s=:dash, label=L"BB\pi")
+    # vline!(p[2], [-0.02], s=:dash)
+    # plot!(p[2], E, imag.(ot[1, :]), label=L"imag($V_{11}$)", dpi=400)
+    # xlabel!(p[2], "imag, E/GeV")
     # plot!(E, abs.(ot[3, :]), label=L"$V_{21}$")
     # plot!(E, abs.(ot[4, :]), label=L"$V_{22}$")
     # plot!(E, abs.(ot[2, :]), label=L"$V_{12}$", dpi=400)
@@ -260,7 +260,7 @@ end
 
 function detImVG(E::Vector{Cdouble}, len, C::Vector{Cdouble}, pNgauss, Lambda, epsilon)
     @time dtr = ccall(Libdl.dlsym(libscript, :Det), Ptr{ComplexF64}, (Ptr{Cdouble}, Cuint, Ptr{Cdouble}, Cuint, Cdouble, Cdouble), E, len, C, pNgauss, Lambda, epsilon)
-	yup = 1e3
+    yup = 1e3
     Det = copy(unsafe_wrap(Array, dtr, len, own=false))
     # plot(E, real.(Det), label=L"det($1-VG$)",dpi=400)
     # level = getEvec(C[1])
@@ -272,9 +272,9 @@ function detImVG(E::Vector{Cdouble}, len, C::Vector{Cdouble}, pNgauss, Lambda, e
     vline!([m_Xb12P], s=:dash, label=L"\chi_{b1}(2P)")
     vline!([m_Xb13P], s=:dash, label=L"\chi_{b1}(3P)")
     vline!([m_Xb14P], s=:dash, label=L"\chi_{b1}(4P)")
-    annotate!(0.01, -0.075*yup, text(L"BB^*", 8))
-    annotate!(delta[2] + 0.01, -0.075*yup, text(L"B_sB_s^*", 8))
-    annotate!(m_pi + m_B - m_B_star, -0.019*yup, text(L"BB\pi", 8))
+    annotate!(0.01, -0.075 * yup, text(L"BB^*", 8))
+    annotate!(delta[2] + 0.01, -0.075 * yup, text(L"B_sB_s^*", 8))
+    annotate!(m_pi + m_B - m_B_star, -0.019 * yup, text(L"BB\pi", 8))
     vline!([m_pi + m_B - m_B_star], s=:dash, label=L"BB\pi")
     # vline!([m_pi + m_B - m_B_star], s=:dash, label=L"\pi")
     # vline!([m_pi], s=:dash, label=L"m_\pi")
@@ -593,6 +593,13 @@ function nonana(E, p, m1, m2, m0)::Vector{ComplexF64}
     return rts
 end
 
+function getV(E)
+    dtr = ccall(dlsym(libscript, :getV), Ptr{ComplexF64}, (Cdouble, Csize_t, Cdouble, Cdouble), E, pNgauss, Lambda, epsi)
+	V = copy(transpose(unsafe_wrap(Array, dtr, (2 * pNgauss + 2, 2 * pNgauss + 2), own=false)))
+	cfree(reinterpret(Ptr{Cvoid}, dtr))
+	return V
+end
+
 if "--analyticity" in ARGS
     prange = LinRange(0.01, 2, 10000)
     # prange = [0.9]
@@ -749,3 +756,4 @@ if "--V3d" in ARGS
     zlims!(0, 3000)
     savefig("surface.png")
 end
+
