@@ -1,8 +1,8 @@
 #ifndef OME_H
 #define OME_H
 #include "constants.h"
+#include "utils.h"
 #include <math.h>
-#include <stddef.h>
 #include <stdio.h>
 #define FSQUARE(F) (F) * (F)
 #define EPSILON (0)
@@ -12,6 +12,7 @@
 #define FACPI (g_b * g_b / f_pi / f_pi / 24)
 #include <complex.h>
 
+#define DEBUG
 #define RECOIL
 // #define PIIIII
 //
@@ -20,15 +21,6 @@ double complex ln2(double complex E, double complex p1, double complex p2, doubl
 
 static inline double complex csquare(double complex x) { return x * x; }
 static inline double fsquare(double x) { return x * x; }
-static inline double complex xlog(double complex x)
-{
-    auto res = clog(x);
-    // return clog(cabs(x));
-    if (cimag(res) < 0 && fabs(cimag(x)) < 1e-9 && creal(x) < 0) {
-	res += 2 * M_PI * I;
-    }
-    return res;
-}
 
 struct OME {
     double complex xxpiup[2 * DIMIM + DIMRE];
@@ -120,16 +112,27 @@ static inline double complex omegaprime_11(double complex p, double complex ppri
 
 static inline double complex Epi(double complex z, double complex p1, double complex p2, double m0)
 {
-    return csqrt(p1 * p1 + p2 * p2 - 2 * p1 * p2 * z + m0 * m0);
+    return xsqrt(p1 * p1 + p2 * p2 - 2 * p1 * p2 * z + m0 * m0);
 }
 
 static inline double complex Dij(double complex E, double complex z, double complex p1, double complex p2, double complex mi,
 				 double complex mj, double m0)
 {
+#ifdef RECOIL
     return E - (mi + p1 * p1 / (2 * mi)) - (mj + p2 * p2 / (2 * mj)) - Epi(z, p1, p2, m0) + I * EPSILON;
+#else
+    return E - mi - mj - Epi(z, p1, p2, m0) + I * EPSILON;
+#endif
 }
 
-static inline double complex p1p2(double complex p1, double complex p2, double complex z) { return p1 * p1 + p2 * p2; }
+static inline double complex p1p2(double complex p1, double complex p2, double complex z)
+{
+#ifdef DEBUG
+    return 1;
+#else
+    return p1 * p1 + p2 * p2 - 2 * p1 * p2 * z;
+#endif
+}
 
 static inline double complex TOPTintegrand(double complex E, double complex z, double complex p1, double complex p2,
 					   double complex m1, double complex m2, double complex m3, double complex m4,
@@ -137,12 +140,21 @@ static inline double complex TOPTintegrand(double complex E, double complex z, d
 {
     auto D1 = Dij(E, z, p1, p2, m1, m3, m0);
     auto D2 = Dij(E, z, p1, p2, m2, m4, m0);
-    return FACPI * (1 / D1 ) / (2 * Epi(z, p1, p2, m0)) * p1p2(p1, p2, z);
+#ifdef DEBUG
+    return ( 1/D2) / (2 * Epi(z, p1, p2, m0)) * p1p2(p1, p2, z);
+#else
+    return FACPI * (1 / D1 + 1 / D2) / (2 * Epi(z, p1, p2, m0)) * p1p2(p1, p2, z);
+#endif
 }
 
 static inline double complex z0(double complex E, double complex m, double complex p1, double complex p2, double m0)
 {
-    return (csquare(E - 2 * m - (p1 * p1 + p2 * p2) / (2 * m)) - m0 * m0 - p1 * p1 - p2 * p2) / (-2 * p2 * p1);
+    auto res = (csquare(E - 2 * m - (p1 * p1 + p2 * p2) / (2 * m)) - m0 * m0 - p1 * p1 - p2 * p2) / (-2 * p2 * p1);
+    if (cabs(xsqrt(p1 * p1 + p2 * p2 - 2 * p1 * p2 * res + m0 * m0) + 2 * m + (p1 * p1 + p2 * p2) / 2 / m - E) < 1e-6) {
+	return res;
+    } else {
+	return 5;
+    }
 }
 
 static inline double complex z0E(double complex p1, double complex p2, double m0)
@@ -180,9 +192,11 @@ static inline double complex quadup(struct OME ome, double complex E, double com
     for (size_t i = 0; i < 2 * DIMIM + DIMRE; i += 1) {
 	auto z = ome.xxpiup[i];
 	auto w = ome.wwpiup[i];
-	auto D1 = Dij(E, z, p1, p2, m1 - I * gam1 / 2, m3 - I * gam3 / 2, m0);
-	auto D2 = Dij(E, z, p1, p2, m2 - I * gam2 / 2, m4 - I * gam4 / 2, m0);
-	auto Dint = FACPI * fac * (1 / D1 + 1 / D2) / (2 * Epi(z, p1, p2, m0)) * p1p2(p1, p2, z);
+	// auto D1 = Dij(E, z, p1, p2, m1 - I * gam1 / 2, m3 - I * gam3 / 2, m0);
+	// auto D2 = Dij(E, z, p1, p2, m2 - I * gam2 / 2, m4 - I * gam4 / 2, m0);
+	// auto Dint = FACPI * fac * (1 / D1 + 1 / D2) / (2 * Epi(z, p1, p2, m0)) * p1p2(p1, p2, z);
+	auto Dint =
+	    fac * TOPTintegrand(E, z, p1, p2, m1 - I * gam1 / 2, m2 - I * gam2 / 2, m3 - I * gam3 / 2, m4 - I * gam4 / 2, m0);
 	res += Dint * w;
     }
     return res;
@@ -195,9 +209,11 @@ static inline double complex quaddn(struct OME ome, double complex E, double com
     for (size_t i = 0; i < 2 * DIMIM + DIMRE; i += 1) {
 	auto z = ome.xxpidn[i];
 	auto w = ome.wwpidn[i];
-	auto D1 = Dij(E, z, p1, p2, m1 - I * gam1 / 2, m3 - I * gam3 / 2, m0);
-	auto D2 = Dij(E, z, p1, p2, m2 - I * gam2 / 2, m4 - I * gam4 / 2, m0);
-	auto Dint = FACPI * fac * (1 / D1 + 1 / D2) / (2 * Epi(z, p1, p2, m0)) * p1p2(p1, p2, z);
+	// auto D1 = Dij(E, z, p1, p2, m1 - I * gam1 / 2, m3 - I * gam3 / 2, m0);
+	// auto D2 = Dij(E, z, p1, p2, m2 - I * gam2 / 2, m4 - I * gam4 / 2, m0);
+	// auto Dint = FACPI * fac * (1 / D1 + 1 / D2) / (2 * Epi(z, p1, p2, m0)) * p1p2(p1, p2, z);
+	auto Dint =
+	    fac * TOPTintegrand(E, z, p1, p2, m1 - I * gam1 / 2, m2 - I * gam2 / 2, m3 - I * gam3 / 2, m4 - I * gam4 / 2, m0);
 	res += Dint * w;
     }
     return res;
@@ -211,9 +227,11 @@ static inline double complex quadii(struct OME ome, double complex E, double com
     for (size_t i = 0; i < DIMRE; i += 1) {
 	auto z = ome.xx0ii[i] * _z + offset;
 	auto w = ome.ww0ii[i] * _z;
-	auto D1 = Dij(E, z, p1, p2, m1 - I * gam1 / 2, m3 - I * gam3 / 2, m0);
-	auto D2 = Dij(E, z, p1, p2, m2 - I * gam2 / 2, m4 - I * gam4 / 2, m0);
-	auto Dint = FACPI * fac * (1 / D1 + 1 / D2) / (2 * Epi(z, p1, p2, m0)) * p1p2(p1, p2, z);
+	// auto D1 = Dij(E, z, p1, p2, m1 - I * gam1 / 2, m3 - I * gam3 / 2, m0);
+	// auto D2 = Dij(E, z, p1, p2, m2 - I * gam2 / 2, m4 - I * gam4 / 2, m0);
+	// auto Dint = FACPI * fac * (1 / D1 + 1 / D2) / (2 * Epi(z, p1, p2, m0)) * p1p2(p1, p2, z);
+	auto Dint =
+	    fac * TOPTintegrand(E, z, p1, p2, m1 - I * gam1 / 2, m2 - I * gam2 / 2, m3 - I * gam3 / 2, m4 - I * gam4 / 2, m0);
 	res += Dint * w;
     }
     return res;
@@ -265,8 +283,8 @@ static inline double complex OME_11(struct OME ome, double complex E, double com
 	auto C = 2 * p * pprime;                                                                                               \
 	auto D = e - omega_##suffix(p, pprime);                                                                                \
 	auto E = e - omegaprime_##suffix(p, pprime);                                                                           \
-	auto a = csqrt(B + C);                                                                                                 \
-	auto b = csqrt(B - C);                                                                                                 \
+	auto a = xsqrt(B + C);                                                                                                 \
+	auto b = xsqrt(B - C);                                                                                                 \
 	return (xlog((a - D) * (a - E) / (b - D) / (b - E))) / C;                                                              \
     }
 
@@ -277,8 +295,8 @@ static inline double complex OME_11(struct OME ome, double complex E, double com
 	auto B = 2 * p * pprime;                                                                                               \
 	auto C = omega_##suffix(p, pprime) - E;                                                                                \
 	auto D = omegaprime_##suffix(p, pprime) - E;                                                                           \
-	auto a = csqrt(A - B);                                                                                                 \
-	auto b = csqrt(A + B);                                                                                                 \
+	auto a = xsqrt(A - B);                                                                                                 \
+	auto b = xsqrt(A + B);                                                                                                 \
 	auto ret =                                                                                                             \
 	    -((C + D) * (a - b) + 2 * B + (A - C * C) * xlog((a + C) / (b + C)) + (A - D * D) * xlog((a + D) / (b + D)));      \
 	return ret / B / B;                                                                                                    \

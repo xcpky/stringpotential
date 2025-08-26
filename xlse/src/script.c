@@ -575,8 +575,8 @@ int oV(void *arg)
     double complex *ose01 = (double complex *)res->ose01;
     double complex *ose10 = (double complex *)res->ose10;
     double complex *ose11 = (double complex *)res->ose11;
-    int64_t xoffset = 0;
-    int64_t yoffset = 0;
+    int64_t xoffset = -2;
+    int64_t yoffset = -4;
     // printf("start: %lu, len: %lu\n", foo.start, foo.len);
     for (size_t i = foo.start; i < foo.start + foo.len; i += 1) {
 	lse_refresh(lse, foo.E[i], foo.C, foo.rs);
@@ -720,8 +720,11 @@ int trG(void *arg)
 void Free(void *ptr) { free(ptr); }
 double complex *getV(double E, size_t pNgauss, double Lambda, double epsilon)
 {
+    // puts("getV get called");
+    // printf("E: %f, pNgauss: %zu, Lambda: %f, epsilon: %f\n", E, pNgauss, Lambda, epsilon);
     LSE *lse [[gnu::cleanup(lsefree)]] = lse_malloc(pNgauss, Lambda, epsilon);
-    lse_compute(lse, E, (double[4]) { 0, 0, 0, 0 }, PP);
+    lse_refresh(lse, E, (double[4]) { 0, 0, 0, 0 }, PP);
+    lse_vmat(lse);
     double complex(*V)[2 * pNgauss + 2] = malloc(sizeof(*V) * (2 * pNgauss + 2));
     for (size_t i = 0; i < 2 * pNgauss + 2; i += 1) {
 	for (size_t j = 0; j < 2 * pNgauss + 2; j += 1) {

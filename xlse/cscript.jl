@@ -14,7 +14,7 @@ Lambda = 4.0
 pNgauss = 64
 data = Nothing
 C = [-1.010589943548671, 0, -1.220749787118462, 0]
-Erange = LinRange(m_Xb11P - 0.1, delta[1] + 0.3, 1000)
+Erange = LinRange(m_Xb11P - 0.1, 0.7, 1000)
 # Erange = LinRange(-0.1, 2, 1000)
 # onshellRange = LinRange(-0.7, 0.6, 1000)
 # onshellRange = LinRange(0., 0.190229863, 8000)
@@ -112,7 +112,7 @@ end
 
 function conshellT(E::Vector{Cdouble}, len, C::Vector{Cdouble}, pNgauss, Lambda, epsilon)
     @time otr = ccall(Libdl.dlsym(libscript, :onshellT), Ptr{ComplexF64}, (Ptr{Cdouble}, Cuint, Ptr{Cdouble}, Cuint, Cdouble, Cdouble), E, len, C, pNgauss, Lambda, epsilon)
-    yup = 15
+    yup = 1e4
     ot = transpose(copy(unsafe_wrap(Array, otr, (len, 4), own=false)))
     plot(dpi=400, legend=:topleft)
     # level = getEvec(C[1])

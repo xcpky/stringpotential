@@ -18,33 +18,38 @@
 double complex delta0lim(double complex E, double complex p, double m0, double m1, double m2)
 {
     auto sq = xsqrt(p * p + m0 * m0);
-    printf("sq: %s\n", formatC(sq));
     auto omega = m1 + m2 + p * p / 2 / m2 - E;
-    printf("omega: %s\n", formatC(omega));
     auto omegap = 2 * m_B_star_s + p * p / 2 / m_B_star_s - E;
     auto ret = 1 / sq / (sq + omega);
-    printf("ret: %s\n", formatC(ret));
-    // ret += 1/sq/(sq+omegap);
-    puts("");
-    puts("");
     return -ret * p * p * FACPI;
 }
 
-double complex delta01(double complex E, double complex p1, double complex p2, double m0, double m1, double m2)
+double complex delta01(double complex E, double complex p1, double complex p2, double m0, double m1, double m2, double m3,
+		       double m4)
 {
     auto A = p1 * p1 + p2 * p2 + m0 * m0;
     printf("A: %s\n", formatC(A));
     auto B = 2 * p1 * p2;
     printf("B: %s\n", formatC(B));
-    auto C = m1 + m2 + p1 * p1 / 2 / m1 + p2 * p2 / 2 / m2 - E;
+    auto C = m1 + m3 + p1 * p1 / 2 / m1 + p2 * p2 / 2 / m3 - E;
     printf("C: %s\n", formatC(C));
+    auto D = m2 + m4 + p1 * p1 / 2 / m2 + p2 * p2 / 2 / m4 - E;
+    printf("D: %s\n", formatC(D));
     auto a = xsqrt(A - B);
     printf("a: %s\n", formatC(a));
     auto b = xsqrt(A + B);
+    auto ret = -1 * xlog((b + D) / (a + D)) / B;
     printf("b: %s\n", formatC(b));
-	puts("");
-	puts("");
-    auto ret = FACPI * -1 * (p1 * p1 + p2 * p2) * xlog((b + C) / (a + C)) / B;
+    printf("b+C: %s\n", formatC(b + C));
+    printf("a+C: %s\n", formatC(a + C));
+    printf("xlog(b+C): %s\n", formatC(xlog(b + C)));
+    printf("xlog(a+C): %s\n", formatC(xlog(a + C)));
+    printf("xlog((b+C)/(a+C)): %s\n", formatC(xlog((b + C) / (a + C))));
+    printf("xlog((b+C)/(a+C))/B: %s\n", formatC(xlog((b + C) / (a + C)) / B));
+    printf("ret: %s\n", formatC(ret));
+    // printf("FACPI*-1*(p1*p1+p2*p2): %s\n", formatC(FACPI * -1 * (p1 * p1 + p2 * p2)));
+    puts("");
+    puts("");
     return ret;
 }
 
@@ -374,32 +379,64 @@ void testpole()
     free(Poles(Er, 3, Ei, 3, (double[]) { 1, 1, 1, 1 }, 64, 4, 1e-6));
 }
 
-void repl()
+void test()
 {
     double Lambda = 4;
     size_t Ngauss = 64;
     LSE *lse [[gnu::cleanup(lsefree)]] = lse_malloc(Ngauss, Lambda, 1e-6);
-    double E = -0.1 + m11 + m12;
-    // lse_refresh(lse, -0.1, (double[4]) { 0, 0, 0, 0 }, PP);
-    // double complex pprime;
-    double complex p = 0.548 * I;
-    p = 0.56 * I;
-    // p = 1.81;
-    double pp;
-    // scanf("%lf", &pp);
-    double complex pprime = 0.00001;
-    // pprime = lse->x0[1];
-    auto vlim = delta0lim(E, p, m_eta, m_B_s, m_B_s);
-    auto v0 = -FACPI * (p * p + pprime * pprime) * Delta0_11(E, p, pprime, m_eta);
-    v0 = delta01(E, p, pprime, m_eta, m_B_s, m_B_s);
-    // v0 = ANA_11(E, p, pprime, m_eta);
-    auto v1 =
-	quadreal(lse->ome, E, p, pprime, m_B_s, 0, m_B_star_s, gamma_B_star_s, m_B_s, 0, m_B_star_s, gamma_B_star_s, m_eta, 1);
-    auto v = v1 - v0;
-    // auto v = matrix_get(lse->VOME, 2 * Ngauss + 1, 2 * Ngauss );
-    // auto p0 = lse->x0[1];
-    // printf("%.10f%+.10fim\n", creal(p0), cimag(p0));
-    printf("%s\n", formatC(v));
+    double E = 0.1;
+    lse_refresh(lse, E - m11 - m12 + 2 * m_B + m_pi, (double[4]) { 0, 0, 0, 0 }, PP);
+    // lse_vmat(lse);
+    E += 2 * m_B + m_pi;
+    // E += m11 + m12;
+    double complex p1;
+    double complex p2;
+    p1 = lse->xi[8];
+    p2 = lse->xi[4];
+    printf("p1: %s\n", formatC(p1));
+    printf("p2: %s\n", formatC(p2));
+    double complex v0;
+    puts("----------------------\n");
+    auto quadresult = Vpiu(lse->ome, E, p1, p2, m_B_star, gamma_B_star, m_B, 0, m_B_star, gamma_B_star, m_B, 0, m_pi, 1);
+    auto anaresult = ANA_00(E, p1, p2, m_pi);
+    // printf("quadrature: %s\n", formatC(quadresult));
+    // printf("analytic: %s\n", formatC(anaresult));
+    //    puts("----------------------\n");
+    v0 = delta01(E, p1, p2, m_pi, m_B_star, m_B, m_B_star, m_B);
+    double complex v1;
+    //   v1 = Vpiu(lse->ome, E, p, p, m_B, 0, m_B_star, gamma_B_star, m_B, 0, m_B_star, gamma_B_star, m_pi, 3) +
+    // Vpiu(lse->ome, E, p, p, m_B, 0, m_B_star, gamma_B_star, m_B, 0, m_B_star, gamma_B_star, m_eta, 1. / 3);
+
+    auto temp = quaddn(lse->ome, E, p1, p2, m_B_star, gamma_B_star, m_B, 0, m_B_star, gamma_B_star, m_B, 0, m_pi, 1);
+    printf("quaddn: %s\n", formatC(temp));
+    temp = quadup(lse->ome, E, p1, p2, m_B_star, gamma_B_star, m_B, 0, m_B_star, gamma_B_star, m_B, 0, m_pi, 1);
+    printf("quadup: %s\n", formatC(temp));
+    temp = quadreal(lse->ome, E, p1, p2, m_B_star, gamma_B_star, m_B, 0, m_B_star, gamma_B_star, m_B, 0, m_pi, 1);
+    printf("quadreal: %s\n", formatC(temp));
+    temp = Vpiu(lse->ome, E, p1, p2, m_B_star, gamma_B_star, m_B, 0, m_B_star, gamma_B_star, m_B, 0, m_pi, 1);
+    printf("Vpiu: %s\n\n\n", formatC(temp));
+
+	size_t ngauss = 64;
+    gsl_integration_glfixed_table *t = gsl_integration_glfixed_table_alloc(ngauss);
+    double complex res = 0;
+    double x, w;
+    for (size_t i = 0; i < ngauss; i += 1) {
+	gsl_integration_glfixed_point(-1, 1, i, &x, &w, t);
+	res +=
+	    TOPTintegrand(E, x, p1, p2, m_B_star , m_B, m_B_star , m_B, m_pi) * w;
+    }
+    printf("explict quadrature: %s\n", formatC(res));
+    gsl_integration_glfixed_table_free(t);
+}
+
+void testv()
+{
+    double Lambda = 4;
+    size_t Ngauss = 64;
+    LSE *lse [[gnu::cleanup(lsefree)]] = lse_malloc(Ngauss, Lambda, 1e-6);
+    lse_refresh(lse, -0.1, (double[4]) { 0, 0, 0, 0 }, PP);
+    lse_vmat(lse);
+    getV(-0.1, Ngauss, 4, 1e-6);
 }
 
 int main(int argc, char *argv[])
@@ -429,7 +466,9 @@ int main(int argc, char *argv[])
     } else if (strcmp(argv[1], "testome") == 0) {
 	testome();
     } else if (strcmp(argv[1], "repl") == 0) {
-	repl();
+	test();
+    } else if (strcmp(argv[1], "v") == 0) {
+	testv();
     }
     return EXIT_SUCCESS;
 }

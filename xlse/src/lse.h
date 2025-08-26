@@ -1,6 +1,7 @@
 #ifndef LSE_H
 #define LSE_H
 #include "constants.h"
+#include "utils.h"
 #include "ome.h"
 #include "wavefunction.h"
 #include <complex.h>
@@ -117,47 +118,6 @@ static inline double Ctct_10(double g_C) { return pow(1.0 / 2.0, 3.0 / 2.0) * 4 
 
 static inline double Ctct_11(double g_C) { return g_C; }
 
-#define DEFINE_O_FUNCTION(suffix)                                                                                              \
-    static inline double complex O_##suffix(double complex E, double complex p, double complex pprime, double m)               \
-    {                                                                                                                          \
-	if (cabs(p) <= 1e-8) {                                                                                                 \
-	    p += 1e-6;                                                                                                         \
-	}                                                                                                                      \
-	if (cabs(pprime) <= 1e-8) {                                                                                            \
-	    pprime += 1e-6;                                                                                                    \
-	}                                                                                                                      \
-	return 4 * fsquare(g_b) / fsquare(f_pi) * -1. / 4. / p / pprime *                                                      \
-	       (clog((E - (m + csquare(p - pprime) / 2 / m) - omega_##suffix(p, pprime)) /                                     \
-		     (E - (m + csquare(p + pprime) / 2 / m) - omega_##suffix(p, pprime))) +                                    \
-		clog((E - (m + csquare(p - pprime) / 2 / m) - omegaprime_##suffix(p, pprime)) /                                \
-		     (E - (m + csquare(p + pprime) / 2 / m) - omegaprime_##suffix(p, pprime))));                               \
-    }
-
-DEFINE_O_FUNCTION(00);
-DEFINE_O_FUNCTION(01);
-DEFINE_O_FUNCTION(10);
-DEFINE_O_FUNCTION(11);
-
-static inline double complex V_OME_00(double complex E, double complex p, double complex pprime)
-{
-    return -3 * (3 * O_00(E, p, pprime, m_pi) + O_00(E, p, pprime, m_eta) / 3);
-}
-
-static inline double complex V_OME_01(double complex E, double complex p, double complex pprime)
-{
-    return pow(2, 3. / 2) * O_01(E, p, pprime, m_K);
-}
-
-static inline double complex V_OME_10(double complex E, double complex p, double complex pprime)
-{
-    return pow(2, 3. / 2) * O_10(E, p, pprime, m_K);
-}
-
-static inline double complex V_OME_11(double complex E, double complex p, double complex pprime)
-{
-    return 2. / 3 * O_11(E, p, pprime, m_eta);
-}
-
 double complex V_QM_00(LSE *self, size_t p, size_t pprime);
 double complex V_QM_01(LSE *self, size_t p, size_t pprime);
 double complex V_QM_10(LSE *self, size_t p, size_t pprime);
@@ -206,44 +166,12 @@ DEFINE_V_TEST(1, 1)
 	return res * g##alpha * g##beta;                                                                                       \
     }
 
-static inline double complex curlO(double complex p, double complex pprime, double m)
-{
-    if (cabs(p) < 1e-8)
-	p += 1e-6;
-    if (cabs(pprime) < 1e-8)
-	pprime += 1e-6;
-    return 4 * fsquare(g_b) / fsquare(f_pi) *
-	   (1 - fsquare(m) / (4 * p * pprime) *
-		    (clog((csquare(p) + csquare(pprime) + 2 * p * pprime + fsquare(m))) -
-		     clog((csquare(p) + csquare(pprime) - 2 * p * pprime + fsquare(m)))));
-}
-
-static inline double complex V_curlOME_00(double complex E, double complex p, double complex pprime)
-{
-    return -3 * (3 * curlO(p, pprime, m_pi) + curlO(p, pprime, m_eta) / 3);
-}
-
-static inline double complex V_curlOME_01(double complex E, double complex p, double complex pprime)
-{
-    return pow(2, 3. / 2) * curlO(p, pprime, m_K);
-}
-
-static inline double complex V_curlOME_10(double complex E, double complex p, double complex pprime)
-{
-    return pow(2, 3. / 2) * curlO(p, pprime, m_K);
-}
-
-static inline double complex V_curlOME_11(double complex E, double complex p, double complex pprime)
-{
-    return 2. / 3 * curlO(p, pprime, m_eta);
-}
-
 #define DEFINE_V_FUNCTION(suffix)                                                                                              \
     static inline gsl_complex V##suffix(LSE *self, double complex p, double complex pprime, size_t pi, size_t ppi)             \
     {                                                                                                                          \
 	auto E = self->E;                                                                                                      \
 	E += m11 + m12;                                                                                                        \
-	auto res = OMEANA_##suffix(E, p, pprime) - OME_##suffix(self->ome, E, p, pprime);                                      \
+	auto res = OMEANA_##suffix(E, p, pprime) - OME_##suffix(self->ome, E, p, pprime);                                                                              \
 	return res;                                                                                                            \
     }
 

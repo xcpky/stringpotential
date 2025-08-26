@@ -18,7 +18,7 @@ target("lse")
 do
 	set_kind("shared")
 	-- add_headerfiles("src/lse.h")
-	add_files("src/lse.c", "src/constants.c", "src/wavefunction.c", "src/ome.c")
+	add_files("src/lse.c", "src/constants.c", "src/wavefunction.c", "src/ome.c", "src/utils.c")
 	add_packages("gsl")
 	add_links("m")
 end
