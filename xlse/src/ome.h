@@ -12,8 +12,8 @@
 #define FACPI (g_b * g_b / f_pi / f_pi / 24)
 #include <complex.h>
 
-#define DEBUG
-#define RECOIL
+// #define DEBUG
+// #define RECOIL
 // #define PIIIII
 //
 double complex ln1(double complex E, double complex p1, double complex p2, double m0, double m1, double m2);

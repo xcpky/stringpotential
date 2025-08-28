@@ -283,12 +283,14 @@ int lse_vmat(LSE *self)
 	    matrix_set(self->VOME, i10, j10, V10(self, p, pprime, idx, jdx));
 
 	    matrix_set(self->VOME, i11, j11, V11(self, p, pprime, idx, jdx));
+#ifdef DEBUG
 	    if (idx == 8 && jdx == 4) {
 		auto v = V00(self, p, pprime, idx, jdx);
 		printf("p: %f%+fim\n", creal(p), cimag(p));
 		printf("pprime: %f%+fim\n", creal(pprime), cimag(pprime));
 		printf("V: %f%+f\n", creal(v), cimag(v));
 	    }
+#endif
 	}
     }
 

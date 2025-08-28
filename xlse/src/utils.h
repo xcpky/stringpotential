@@ -15,6 +15,7 @@ static inline double complex xsqrt(double complex x)
 static inline double complex xlog(double complex x)
 {
     // return cimag(x) >= 0 ? clog(x + 0I) : clog(x + 0I) + 2 * M_PI * I;
+	return clog(x);
     auto res = clog(x);
 	// return res;
     // return clog(cabs(x));

@@ -10,7 +10,7 @@ using LaTeXStrings
 include("constants.jl")
 
 epsi = 1e-9
-Lambda = 4.0
+Lambda = 2.0
 pNgauss = 64
 data = Nothing
 C = [-1.010589943548671, 0, -1.220749787118462, 0]
@@ -112,7 +112,7 @@ end
 
 function conshellT(E::Vector{Cdouble}, len, C::Vector{Cdouble}, pNgauss, Lambda, epsilon)
     @time otr = ccall(Libdl.dlsym(libscript, :onshellT), Ptr{ComplexF64}, (Ptr{Cdouble}, Cuint, Ptr{Cdouble}, Cuint, Cdouble, Cdouble), E, len, C, pNgauss, Lambda, epsilon)
-    yup = 1e4
+    yup = 1e3
     ot = transpose(copy(unsafe_wrap(Array, otr, (len, 4), own=false)))
     plot(dpi=400, legend=:topleft)
     # level = getEvec(C[1])
