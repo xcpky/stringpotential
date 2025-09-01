@@ -27,6 +27,7 @@ double complex *Both(double *E, size_t len, double C[4], size_t pNgauss, double 
 double complex V(double E, double complex p, double complex pprime);
 double complex *V3d(double E, size_t pNgauss, double Lambda, double epsilon);
 double complex *getV(double E, size_t pNgauss, double Lambda, double epsilon);
+double complex *getIntegrand();
 struct OME* ome_malloc();
 void Evec(double *, double);
 void Ntower(size_t *);

@@ -9,6 +9,8 @@ using Plots
 using LaTeXStrings
 include("constants.jl")
 
+xsqrt(x) = imag(x) >= 0 ? sqrt(x+0im) : -sqrt(x-0im)
+
 epsi = 1e-9
 Lambda = 2.0
 pNgauss = 64
@@ -30,7 +32,7 @@ function onshell(E::Vector{Cdouble}, len, pNgauss, Lambda, epsilon)
 end
 
 function imT(E::Vector{Cdouble}, len, C::Vector{Cdouble}, pNgauss, Lambda, epsilon)
-    @time otr = ccall(Libdl.dlsym(libscript, :onshellG), Ptr{ComplexF64}, (Ptr{Cdouble}, Cuint, Ptr{Cdouble}, Cuint, Cdouble, Cdouble), E, len, C, pNgauss, Lambda, epsilon)
+    @time otr = ccall(Libdl.dlsym(libscript, :onshellT), Ptr{ComplexF64}, (Ptr{Cdouble}, Cuint, Ptr{Cdouble}, Cuint, Cdouble, Cdouble), E, len, C, pNgauss, Lambda, epsilon)
     ot = transpose(copy(unsafe_wrap(Array, otr, (len, 4), own=false)))
     invT = Array{ComplexF64}(undef, 4, len)
     function ρ(e, i)
@@ -47,29 +49,28 @@ function imT(E::Vector{Cdouble}, len, C::Vector{Cdouble}, pNgauss, Lambda, epsil
     end
     for i in 1:len
         m = [ot[1, i] ot[2, i]; ot[3, i] ot[4, i]]
-        # if abs(det(m)) == NaN
-        #     invT[1, i] = 0
-        #     invT[2, i] = 0
-        #     invT[3, i] = 0
-        #     invT[4, i] = 0
-        #     break
-        # end
-        invm = -(m)
+        if abs(det(m)) < 1e-8
+            invT[1, i] = 0 + 1im
+            invT[2, i] = 0 + 1im
+            invT[3, i] = 0 + 1im
+            invT[4, i] = 0 + 2im
+            continue
+        end
+        invm = inv(m)
         invT[1, i] = invm[1, 1]
         invT[2, i] = invm[1, 2]
         invT[3, i] = invm[2, 1]
         invT[4, i] = invm[2, 2]
     end
-    plot(dpi=400)
-    plot!(E, imag.(invT[1, :]), label="-Im " * L"G_{11}", lw=1.0, alpha=0.7)
+    plot(dpi=400, legend=:topleft)
+    plot!(E, imag.(invT[1, :]), label="Im " * L"T_{11}", lw=1.0, alpha=0.7)
     # plot!(E, imag.(invT[2, :]), label="Im "*L"T^{-1}_{12}")
     # plot!(E, imag.(invT[3, :]), label="Im "*L"T^{-1}_{21}")
-    plot!(E, imag.(invT[4, :]), label="-Im " * L"G_{22}", lw=1.0, alpha=0.7)
+    plot!(E, imag.(invT[4, :]), label="Im " * L"T_{22}", lw=1.0, alpha=0.7)
     plot!(E, ρ.(E, 1), label=L"\rho_1(E)\Theta(E-m_B-m_{B^*})", s=:dash, lw=1.5)
     plot!(E, ρ.(E, 2), label=L"\rho_2(E)\Theta(E-m_{B_s} - m_{B_s^*})", s=:dash, lw=1.5)
     vline!([m_pi + m_B - m_B_star], s=:dash, label=L"BB\pi", c=:grey)
-    vline!([m_pi + delta[2]], s=:dash, label=L"B_sB_s^*\pi", c=:grey)
-    ylims!(-1, 1.5)
+    ylims!(-0.6, 2.5)
     xlabel!("E/GeV")
     savefig("imT.png")
     savefig("iminvT.pdf")
@@ -112,7 +113,7 @@ end
 
 function conshellT(E::Vector{Cdouble}, len, C::Vector{Cdouble}, pNgauss, Lambda, epsilon)
     @time otr = ccall(Libdl.dlsym(libscript, :onshellT), Ptr{ComplexF64}, (Ptr{Cdouble}, Cuint, Ptr{Cdouble}, Cuint, Cdouble, Cdouble), E, len, C, pNgauss, Lambda, epsilon)
-    yup = 1e3
+    yup = 50
     ot = transpose(copy(unsafe_wrap(Array, otr, (len, 4), own=false)))
     plot(dpi=400, legend=:topleft)
     # level = getEvec(C[1])
@@ -132,7 +133,7 @@ function conshellT(E::Vector{Cdouble}, len, C::Vector{Cdouble}, pNgauss, Lambda,
     # ylims!(0, upper)
     xlabel!("E/GeV")
     ylabel!(L"|T_{\alpha\beta}|" * "/GeV")
-    ylims!(0, yup)
+    # ylims!(0, yup)
     println(E[end])
     xlims!(E[1], E[end])
     savefig("onshellT.png")
@@ -224,7 +225,7 @@ function conshellV(E::Vector{Cdouble}, len, C::Vector{Cdouble}, pNgauss, Lambda,
     ot = copy(transpose(unsafe_wrap(Array, otr, (len, 4), own=false)))
     level = getEvec(C[1])
     vls = filter(e -> e > E[1] && e < E[end], level)
-    p = plot(dpi=400 )
+    p = plot(dpi=400)
     # vline(vls, s=:dash, c=:grey, label=L"$E_i$", dpi=400)
     vline!(p, delta, s=:dash, label="thresholds", lw=0.8)
     vline!(p, [m_Xb11P], s=:dash, label=L"\chi_{b1}(1P)")
@@ -260,7 +261,7 @@ end
 
 function detImVG(E::Vector{Cdouble}, len, C::Vector{Cdouble}, pNgauss, Lambda, epsilon)
     @time dtr = ccall(Libdl.dlsym(libscript, :Det), Ptr{ComplexF64}, (Ptr{Cdouble}, Cuint, Ptr{Cdouble}, Cuint, Cdouble, Cdouble), E, len, C, pNgauss, Lambda, epsilon)
-    yup = 1e3
+    yup = 60
     Det = copy(unsafe_wrap(Array, dtr, len, own=false))
     # plot(E, real.(Det), label=L"det($1-VG$)",dpi=400)
     # level = getEvec(C[1])
@@ -595,9 +596,9 @@ end
 
 function getV(E)
     dtr = ccall(dlsym(libscript, :getV), Ptr{ComplexF64}, (Cdouble, Csize_t, Cdouble, Cdouble), E, pNgauss, Lambda, epsi)
-	V = copy(transpose(unsafe_wrap(Array, dtr, (2 * pNgauss + 2, 2 * pNgauss + 2), own=false)))
-	cfree(reinterpret(Ptr{Cvoid}, dtr))
-	return V
+    V = copy(transpose(unsafe_wrap(Array, dtr, (2 * pNgauss + 2, 2 * pNgauss + 2), own=false)))
+    cfree(reinterpret(Ptr{Cvoid}, dtr))
+    return V
 end
 
 if "--analyticity" in ARGS
@@ -755,5 +756,28 @@ if "--V3d" in ARGS
     zlabel!("abs(V)")
     zlims!(0, 3000)
     savefig("surface.png")
+end
+
+if "--quadrature" in ARGS
+    using QuadGK
+    xim, wim = gauss(20, 0, 1)
+    xre, wre = gauss(40, 0, 1)
+    x = [-1 .+ xim .* 0.2im; (-1 + 0.2im) .+ xre .* 2; (1 + 0.2im) .+ xim .* -0.2im]
+    w = [wim .* 0.2im; wre .* 2; wim .* -0.2im]
+	A = 0.053938
+	B = 0.001367
+	C = -0.234736-0.000001im
+	f(x) = 1/xsqrt(A-B*x)/(xsqrt(A-B*x) + C)
+    dtr = ccall(Libdl.dlsym(libscript, :getIntegrand), Ptr{ComplexF64}, (), )
+	data = copy(unsafe_wrap(Array, dtr, 80, own=false))
+	cfree(reinterpret(Ptr{Cvoid}, dtr))
+	t = -1
+	println("t: $t")
+	println("xsqrt: $(xsqrt(A-B*t))")
+	println("xsqrt+C: $(xsqrt(A-B*t)+C)")
+	t = -1 + 0.00000000001im
+	println("t: $t")
+	println("xsqrt: $(xsqrt(A-B*t))")
+	println("xsqrt+C: $(xsqrt(A-B*t)+C)")
 end
 

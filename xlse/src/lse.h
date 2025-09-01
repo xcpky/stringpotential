@@ -171,7 +171,7 @@ DEFINE_V_TEST(1, 1)
     {                                                                                                                          \
 	auto E = self->E;                                                                                                      \
 	E += m11 + m12;                                                                                                        \
-	auto res = OMEANA_##suffix(E, p, pprime) ;                                                                              \
+	auto res = 100;                                                                              \
 	return res;                                                                                                            \
     }
 
