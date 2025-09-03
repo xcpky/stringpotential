@@ -515,7 +515,7 @@ int oTsing(void *arg) {
         ose11[i] = lse->onshellT[1][1];
 #else
         auto T = (double complex(*)[2 * ngauss + 2]) lse->TOME->data;
-        res[0][i] = T[ngauss][ngauss];
+        res[0][i] = T[2 * ngauss + 1][2 * ngauss + 1];
         res[1][i] = matrix_get(lse->VOME, ngauss, ngauss);
         // res[i] = lse->onshellT[0][0];
         // size_t idx = ngauss * 2 * (ngauss + 1) + ngauss;

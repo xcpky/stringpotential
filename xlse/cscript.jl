@@ -50,10 +50,10 @@ function imT(E::Vector{Cdouble}, len, C::Vector{Cdouble}, pNgauss, Lambda, epsil
     for i in 1:len
         m = [ot[1, i] ot[2, i]; ot[3, i] ot[4, i]]
         if abs(det(m)) < 1e-8
-            invT[1, i] = 0 + 1im
-            invT[2, i] = 0 + 1im
-            invT[3, i] = 0 + 1im
-            invT[4, i] = 0 + 2im
+            invT[1, i] = 0 
+            invT[2, i] = 0
+            invT[3, i] = 0 
+            invT[4, i] = 0
             continue
         end
         invm = inv(m)
@@ -69,8 +69,8 @@ function imT(E::Vector{Cdouble}, len, C::Vector{Cdouble}, pNgauss, Lambda, epsil
     plot!(E, imag.(invT[4, :]), label="Im " * L"T_{22}", lw=1.0, alpha=0.7)
     plot!(E, ρ.(E, 1), label=L"\rho_1(E)\Theta(E-m_B-m_{B^*})", s=:dash, lw=1.5)
     plot!(E, ρ.(E, 2), label=L"\rho_2(E)\Theta(E-m_{B_s} - m_{B_s^*})", s=:dash, lw=1.5)
-    vline!([m_pi + m_B - m_B_star], s=:dash, label=L"BB\pi", c=:grey)
-    ylims!(-0.6, 2.5)
+	vline!(delta, label="thresholds", s=:dash, c=:grey)
+    ylims!(-0.6, 1.5)
     xlabel!("E/GeV")
     savefig("imT.png")
     savefig("iminvT.pdf")
@@ -94,16 +94,15 @@ function imTsing(E::Vector{Cdouble}, len, C::Vector{Cdouble}, pNgauss, Lambda, e
         return k / 8 / pi / e
     end
     plot(dpi=400, legend=:bottomright)
-    plot!(E, imag.(invT[1, :]), label="Im " * L"T^{-1}_{11}", alpha=0.5, lw=1)
+    plot!(E, imag.(invT[1, :]), label="Im " * L"T^{-1}_{22}", alpha=0.5, lw=1)
     # plot!(E, imag.(invT[2, :]), label="Im "*L"T^{-1}_{12}")
     # plot!(E, imag.(invT[3, :]), label="Im "*L"T^{-1}_{21}")
     # plot!(E, imag.(invT[4, :]), label="Im "*L"T^{-1}_{22}", alpha=0.5, lw=1, s=:dot)
     plot!(E, ρ.(E, 1), label=L"\rho_1(E)\Theta(E-m_B-m_{B^*})", alpha=0.8, s=:dash)
+    plot!(E, ρ.(E, 2), label=L"\rho_2(E)\Theta(E-m_B-m_{B^*})", alpha=0.8, s=:dash)
     # plot!(E, imag.(invT[2, :]))
     # plot!(E, ρ.(E, 2), label=L"\rho_2(E)\Theta(E-m_{B_s} - m_{B_s^*})")
-    vline!(delta, s=:dash, label="threshold")
-    vline!([m_pi + m_B - m_B_star], s=:dash, label=L"BB\pi", c=:grey)
-    vline!([m_pi], s=:dash, label=L"BB^*\pi", c=:grey)
+	vline!(delta, label="thresholds", s=:dash, c=:grey)
     ylims!(-2, 1.5)
     xlabel!("E/GeV")
     savefig("imTsing.png")
@@ -158,7 +157,7 @@ function conshellT_single(E::Vector{Cdouble}, len, C::Vector{Cdouble}, pNgauss, 
     # plot!(E, abs.(ot[4, :]), label=L"$T_{22}$")
     # plot!(E, abs.(ot[2, :]), label=L"$T_{12}$")
     # ylims!(0, upper)
-    # ylims!(0, 1e3)
+    ylims!(0, 3e3)
     println(E[end])
     xlims!(E[1], E[end])
     # ylims!(0, 50)

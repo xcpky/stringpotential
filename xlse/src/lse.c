@@ -462,9 +462,9 @@ int lse_tmat(LSE *self) {
 
 int lse_tmat_single(LSE *self) {
     const size_t n = self->pNgauss + 1;
-    auto V = gsl_matrix_complex_submatrix(self->VOME, 0, 0, n, n);
-    auto G = gsl_matrix_complex_submatrix(self->G, 0, 0, n, n);
-    auto T = gsl_matrix_complex_submatrix(self->TOME, 0, 0, n, n);
+    auto V = gsl_matrix_complex_submatrix(self->VOME, n, n, n, n);
+    auto G = gsl_matrix_complex_submatrix(self->G, n, n, n, n);
+    auto T = gsl_matrix_complex_submatrix(self->TOME, n, n, n, n);
     gsl_matrix_complex *VG [[gnu::cleanup(matfree)]] =
         gsl_matrix_complex_alloc(n, n);
     // gsl_matrix_complex *I_minus_VG [[gnu::cleanup(matfree)]] =
@@ -501,7 +501,7 @@ int lse_tmat_single(LSE *self) {
     }
     gsl_blas_zgemm(CblasNoTrans, CblasNoTrans, alpha, inv_I_minus_VG, &V.matrix,
                    beta, &T.matrix);
-    self->onshellT[0][0] = gsl_matrix_get(&T.matrix, n - 6, n - 8);
+    self->onshellT[0][0] = gsl_matrix_get(&T.matrix, n - 1, n - 1);
     return GSL_SUCCESS;
 }
 
