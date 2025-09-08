@@ -230,19 +230,13 @@ struct OME *ome_malloc() {
 }
 
 double complex V(double E, double complex p, double complex pprime) {
-    return OMEANA_00(E, p, pprime);
-    double m0 = m_pi;
-    auto A = p * p + pprime * pprime + m0 * m0;
-    auto B = 2 * p * pprime;
-    auto C = omega_00(p, pprime) - E;
-    auto D = omegaprime_00(p, pprime) - E;
-    auto a = csqrt(A - B);
-    auto b = csqrt(A + B);
-    // return 1/(a-C)/(a-D);
-    // return b*b ;
-    // return clog(b*b + b*C + b*D + C*D);
-    // return clog(C +D );
-    // return (b + C) * (b + D) / (a + C) / (a + D);
+    return ANA_00(E, p, pprime, m_pi);
+}
+
+double complex Vquad(double E, double complex p, double complex pprime) {
+    static struct OME ome = {0};
+    ome_build(&ome);
+    return Vpiu(ome, E, p, pprime, m_B_star, m_B, m_B_star, m_B, m_pi, 1);
 }
 
 double complex *V3d(double E, size_t pNgauss, double Lambda, double epsilon) {
@@ -515,7 +509,7 @@ int oTsing(void *arg) {
         ose11[i] = lse->onshellT[1][1];
 #else
         auto T = (double complex(*)[2 * ngauss + 2]) lse->TOME->data;
-        res[0][i] = T[2 * ngauss + 1][2 * ngauss + 1];
+        res[0][i] = T[ngauss][ngauss];
         res[1][i] = matrix_get(lse->VOME, ngauss, ngauss);
         // res[i] = lse->onshellT[0][0];
         // size_t idx = ngauss * 2 * (ngauss + 1) + ngauss;
@@ -572,17 +566,20 @@ int oV(void *arg) {
     double complex *ose01 = (double complex *)res->ose01;
     double complex *ose10 = (double complex *)res->ose10;
     double complex *ose11 = (double complex *)res->ose11;
-    int64_t xoffset = -2;
-    int64_t yoffset = -4;
+    int64_t xoffset = 0;
+    int64_t yoffset = 0;
     // printf("start: %lu, len: %lu\n", foo.start, foo.len);
     for (size_t i = foo.start; i < foo.start + foo.len; i += 1) {
         lse_refresh(lse, foo.E[i], foo.C, foo.rs);
         lse_vmat(lse);
         auto V = (double complex(*)[2 * ngauss + 2]) lse->VOME->data;
-        ose00[i] = V[ngauss + xoffset][ngauss + yoffset];
-        ose01[i] = V[ngauss + xoffset][2 * ngauss + 1 + yoffset];
-        ose10[i] = V[2 * ngauss + 1 + xoffset][ngauss + yoffset];
-        ose11[i] = V[2 * ngauss + 1 + xoffset][2 * ngauss + 1 + yoffset];
+        ose00[i] = matrix_get(lse->VOME, ngauss + xoffset, ngauss + yoffset);
+        ose01[i] =
+            matrix_get(lse->VOME, ngauss + xoffset, 2 * ngauss + 1 + yoffset);
+        ose10[i] =
+            matrix_get(lse->VOME, 2 * ngauss + 1 + xoffset, ngauss + yoffset);
+        ose11[i] = matrix_get(lse->VOME, 2 * ngauss + 1 + xoffset,
+                              2 * ngauss + 1 + yoffset);
         // ose00[i] = OME_00(lse->ome, foo.E[i] + m11 + m12, 0.003525,
         // 0.003525); ose01[i] = OME_00(lse->ome, foo.E[i] + m11 + m12,
         // 0.003525, 0.003525); ose10[i] = OME_00(lse->ome, foo.E[i] + m11 +

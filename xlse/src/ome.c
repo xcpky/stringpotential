@@ -4,6 +4,10 @@
 #include <stdio.h>
 
 void ome_build(struct OME *self) {
+    if (self->set == 1) {
+        return;
+    }
+    self->set = 1;
     gsl_integration_glfixed_table *tableim =
         gsl_integration_glfixed_table_alloc(DIMIM);
     gsl_integration_glfixed_table *tablere =
@@ -198,8 +202,8 @@ double complex juliana(double complex E, double complex p,
     auto B = 2 * p * pprime;
     auto D = 2 * m_B_star + (p * p + pprime * pprime) / (2 * m_B_star) - E;
     auto C = 2 * m_B + (p * p + pprime * pprime) / (2 * m_B) - E;
-    auto a = xsqrt(A - B);
-    auto b = xsqrt(A + B);
+    auto a = xsqrtright(A - B);
+    auto b = xsqrtright(A + B);
     // auto ret = -1*((D+C)*(a-b)+2*B-(A- D*D)*clog((b + D)/(a + D)) - (A-
     // C*C)*clog((b + C)/(a + C))); return ret/B/B; return
     // -(p*p+pprime*pprime)*Delta0_00(E, p, pprime, m_pi) +

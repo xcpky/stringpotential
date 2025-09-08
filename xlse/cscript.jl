@@ -9,7 +9,9 @@ using Plots
 using LaTeXStrings
 include("constants.jl")
 
-xsqrt(x) = imag(x) >= 0 ? sqrt(x+0im) : -sqrt(x-0im)
+xsqrt(x) = imag(x) >= 0 ? sqrt(x + 0im) : -sqrt(x - 0im)
+xsqrtup(x) = imag(x) >= 0 && real(x) < 0 ? -sqrt(x + 0im) : sqrt(x - 0im)
+# xsqrt(x) = imag(x) < 0 && real(x) < 0 ? -sqrt(x - 0im) : sqrt(x + 0im);
 
 epsi = 1e-9
 Lambda = 2.0
@@ -21,6 +23,20 @@ Erange = LinRange(m_Xb11P - 0.1, 0.7, 1000)
 # onshellRange = LinRange(-0.7, 0.6, 1000)
 # onshellRange = LinRange(0., 0.190229863, 8000)
 
+V(E, p, pprime) = ccall(dlsym(libscript, :V), ComplexF64, (Cdouble, ComplexF64, ComplexF64), E, p, pprime)
+Vquad(E, p, pprime) = ccall(dlsym(libscript, :Vquad), ComplexF64, (Cdouble, ComplexF64, ComplexF64), E, p, pprime)
+function integrand(x, e)
+    p1 = xsqrt(2 * mu[1] * (e - m_B - m_B_star))
+    p2 = 1
+    A = p1^2 + p2^2 + m_pi^2
+    B = 2 * p1 * p2
+    C = 2 * m_B + (p1^2 + p2^2) / 2 / m_B - e - 1e-7im
+    D = 2 * m_B_star + (p1^2 + p2^2) / 2 / m_B_star - e - 1e-7im
+    Eg = sqrt(A - B * x)
+    Da = 1 / (Eg + C)
+    Db = 1 / (Eg + D)
+    return g_pi^2 / f_pi^2 / 24 * (Da + Db) * (2 * p1 * p2 * x - (p1^2 + p2^2)) / 2 / Eg
+end
 function onshell(E::Vector{Cdouble}, len, pNgauss, Lambda, epsilon)
     @time otr = ccall(Libdl.dlsym(libscript, :onshell), Ptr{ComplexF64}, (Ptr{Cdouble}, Cuint, Cuint, Cdouble, Cdouble), E, len, pNgauss, Lambda, epsilon)
     ot = transpose(copy(unsafe_wrap(Array, otr, (len, 2), own=false)))
@@ -50,9 +66,9 @@ function imT(E::Vector{Cdouble}, len, C::Vector{Cdouble}, pNgauss, Lambda, epsil
     for i in 1:len
         m = [ot[1, i] ot[2, i]; ot[3, i] ot[4, i]]
         if abs(det(m)) < 1e-8
-            invT[1, i] = 0 
+            invT[1, i] = 0
             invT[2, i] = 0
-            invT[3, i] = 0 
+            invT[3, i] = 0
             invT[4, i] = 0
             continue
         end
@@ -69,7 +85,7 @@ function imT(E::Vector{Cdouble}, len, C::Vector{Cdouble}, pNgauss, Lambda, epsil
     plot!(E, imag.(invT[4, :]), label="Im " * L"T_{22}", lw=1.0, alpha=0.7)
     plot!(E, ρ.(E, 1), label=L"\rho_1(E)\Theta(E-m_B-m_{B^*})", s=:dash, lw=1.5)
     plot!(E, ρ.(E, 2), label=L"\rho_2(E)\Theta(E-m_{B_s} - m_{B_s^*})", s=:dash, lw=1.5)
-	vline!(delta, label="thresholds", s=:dash, c=:grey)
+    vline!(delta, label="thresholds", s=:dash, c=:grey)
     ylims!(-0.6, 1.5)
     xlabel!("E/GeV")
     savefig("imT.png")
@@ -102,7 +118,7 @@ function imTsing(E::Vector{Cdouble}, len, C::Vector{Cdouble}, pNgauss, Lambda, e
     plot!(E, ρ.(E, 2), label=L"\rho_2(E)\Theta(E-m_B-m_{B^*})", alpha=0.8, s=:dash)
     # plot!(E, imag.(invT[2, :]))
     # plot!(E, ρ.(E, 2), label=L"\rho_2(E)\Theta(E-m_{B_s} - m_{B_s^*})")
-	vline!(delta, label="thresholds", s=:dash, c=:grey)
+    vline!(delta, label="thresholds", s=:dash, c=:grey)
     ylims!(-2, 1.5)
     xlabel!("E/GeV")
     savefig("imTsing.png")
@@ -224,28 +240,24 @@ function conshellV(E::Vector{Cdouble}, len, C::Vector{Cdouble}, pNgauss, Lambda,
     ot = copy(transpose(unsafe_wrap(Array, otr, (len, 4), own=false)))
     level = getEvec(C[1])
     vls = filter(e -> e > E[1] && e < E[end], level)
-    p = plot(dpi=400)
+    p = plot(dpi=400, layout=(1, 2))
     # vline(vls, s=:dash, c=:grey, label=L"$E_i$", dpi=400)
-    vline!(p, delta, s=:dash, label="thresholds", lw=0.8)
-    vline!(p, [m_Xb11P], s=:dash, label=L"\chi_{b1}(1P)")
-    vline!(p, [m_Xb12P], s=:dash, label=L"\chi_{b1}(2P)")
-    vline!(p, [m_Xb13P], s=:dash, label=L"\chi_{b1}(3P)")
-    vline!(p, [m_pi + m_B - m_B_star], s=:dash, label=L"BB\pi")
-    vline!(p, [-0.010], s=:dash)
-    plot!(p, E, abs.(ot[1, :]), label=L"real($V_{11}$)", dpi=400)
-    xlabel!(p, "real, E/GeV")
-    plot!(E, abs.(ot[3, :]), label=L"$V_{21}$")
-    plot!(E, abs.(ot[4, :]), label=L"$V_{22}$")
-    plot!(E, abs.(ot[2, :]), label=L"$V_{12}$", dpi=400)
-    # xlims!(E[1], E[end])
-    # vline!(p[2], delta, s=:dash, label="thresholds", lw=0.8)
-    # vline!(p[2], [m_Xb11P], s=:dash, label=L"\chi_{b1}(1P)")
-    # vline!(p[2], [m_Xb12P], s=:dash, label=L"\chi_{b1}(2P)")
-    # vline!(p[2], [m_Xb13P], s=:dash, label=L"\chi_{b1}(3P)")
-    # vline!(p[2], [m_pi + m_B - m_B_star], s=:dash, label=L"BB\pi")
-    # vline!(p[2], [-0.02], s=:dash)
-    # plot!(p[2], E, imag.(ot[1, :]), label=L"imag($V_{11}$)", dpi=400)
-    # xlabel!(p[2], "imag, E/GeV")
+    vline!(p[1], delta, s=:dash, label="thresholds", lw=0.8)
+    vline!(p[1], [m_Xb11P], s=:dash, label=L"\chi_{b1}(1P)")
+    vline!(p[1], [m_Xb12P], s=:dash, label=L"\chi_{b1}(2P)")
+    vline!(p[1], [m_Xb13P], s=:dash, label=L"\chi_{b1}(3P)")
+    plot!(p[1], E, real.(ot[1, :]), label=L"real($V_{11}$)", dpi=400)
+    xlabel!(p[1], "real, E/GeV")
+    # plot!(E, abs.(ot[3, :]), label=L"$V_{21}$")
+    # plot!(E, abs.(ot[4, :]), label=L"$V_{22}$")
+    # plot!(E, abs.(ot[2, :]), label=L"$V_{12}$")
+    xlims!(E[1], E[end])
+    vline!(p[2], delta, s=:dash, label="thresholds", lw=0.8)
+    vline!(p[2], [m_Xb11P], s=:dash, label=L"\chi_{b1}(1P)")
+    vline!(p[2], [m_Xb12P], s=:dash, label=L"\chi_{b1}(2P)")
+    vline!(p[2], [m_Xb13P], s=:dash, label=L"\chi_{b1}(3P)")
+    plot!(p[2], E, imag.(ot[1, :]), label=L"imag($V_{11}$)", dpi=400)
+    xlabel!(p[2], "imag, E/GeV")
     # plot!(E, abs.(ot[3, :]), label=L"$V_{21}$")
     # plot!(E, abs.(ot[4, :]), label=L"$V_{22}$")
     # plot!(E, abs.(ot[2, :]), label=L"$V_{12}$", dpi=400)
@@ -548,7 +560,6 @@ z0(E, m, p1, p2, m0) = ((E - 2m - (p1^2 + p2^2) / (2m))^2 - m0^2 - p1^2 - p2^2) 
 z0E(p1, p2, m0) = (p1^2 + p2^2 + m0^2) / (2p2 * p1)
 if "--OME" in ARGS
     ome = ccall(dlsym(libscript, :ome_malloc), Ptr{Cvoid}, ())
-    V(E, p, pprime) = ccall(dlsym(libscript, :V), ComplexF64, (Ptr{Cvoid}, Cdouble, Cdouble, Cdouble), ome, E, p, pprime)
     quad(E, p, pprime) = ccall(dlsym(libscript, :quad), ComplexF64, (ComplexF64, ComplexF64, ComplexF64), E, p, pprime)
     ana(E, p, pprime) = ccall(dlsym(libscript, :juliana), ComplexF64, (ComplexF64, ComplexF64, ComplexF64), E, p, pprime)
     Erange = LinRange(-0.801, 0.298, 4000)
@@ -763,20 +774,93 @@ if "--quadrature" in ARGS
     xre, wre = gauss(40, 0, 1)
     x = [-1 .+ xim .* 0.2im; (-1 + 0.2im) .+ xre .* 2; (1 + 0.2im) .+ xim .* -0.2im]
     w = [wim .* 0.2im; wre .* 2; wim .* -0.2im]
-	A = 0.053938
-	B = 0.001367
-	C = -0.234736-0.000001im
-	f(x) = 1/xsqrt(A-B*x)/(xsqrt(A-B*x) + C)
-    dtr = ccall(Libdl.dlsym(libscript, :getIntegrand), Ptr{ComplexF64}, (), )
-	data = copy(unsafe_wrap(Array, dtr, 80, own=false))
-	cfree(reinterpret(Ptr{Cvoid}, dtr))
-	t = -1
-	println("t: $t")
-	println("xsqrt: $(xsqrt(A-B*t))")
-	println("xsqrt+C: $(xsqrt(A-B*t)+C)")
-	t = -1 + 0.00000000001im
-	println("t: $t")
-	println("xsqrt: $(xsqrt(A-B*t))")
-	println("xsqrt+C: $(xsqrt(A-B*t)+C)")
+    A = 0.053938
+    B = 0.001367
+    C = -0.234736 - 0.000001im
+    f(x) = 1 / xsqrt(A - B * x) / (xsqrt(A - B * x) + C)
+    dtr = ccall(Libdl.dlsym(libscript, :getIntegrand), Ptr{ComplexF64}, (),)
+    data = copy(unsafe_wrap(Array, dtr, 80, own=false))
+    cfree(reinterpret(Ptr{Cvoid}, dtr))
+    t = -1
+    println("t: $t")
+    println("xsqrt: $(xsqrt(A-B*t))")
+    println("xsqrt+C: $(xsqrt(A-B*t)+C)")
+    t = -1 + 0.00000000001im
+    println("t: $t")
+    println("xsqrt: $(xsqrt(A-B*t))")
+    println("xsqrt+C: $(xsqrt(A-B*t)+C)")
+end
+
+if "--cut" in ARGS
+    using QuadGK
+    E = LinRange(m11 + m12 - 0.3, m11 + m12 + 0.3, 500)
+    p1 = xsqrt.(2 * mu[1] .* (E .- (m11 + m12)))
+    p2 = 1
+    vana = Vquad.(E, p1, 1)
+    using QuadGK
+    varray = Array{ComplexF64}(undef, length(E))
+    for i in eachindex(varray)
+        varray[i] = quadgk(x -> integrand(x, E[i]), -1, 1)[1]
+    end
+    p = plot(
+        layout=(1, 2),
+        dpi=400,
+        size=(1000, 450),
+        plot_title="Comparison of Integration Contours", # Main title
+        titlefontsize=14,
+        legendfontsize=10,
+        tickfontsize=8,
+        guidefontsize=12,
+        framestyle=:box, # Adds a full box frame around plots
+        legend=:bottomright,
+    )
+
+    # --- 3. Plotting: Add detailed labels and distinct styles ---
+
+    # Subplot 1: Real Part
+    plot!(p[1], E, real.(vana),
+        title="Real Part",
+        xlabel="Energy (E)",
+        ylabel="Re[V(E)]",
+        label="Contour A", # More concise label
+        color=:blue,
+        linestyle=:solid,
+        linewidth=2,
+    )
+    plot!(p[1], E, real.(varray),
+        label="Contour B",
+        color=:red,
+        linestyle=:dash,
+        linewidth=2,
+    )
+
+    # Subplot 2: Imaginary Part
+    plot!(p[2], E, imag.(vana),
+        title="Imaginary Part",
+        xlabel="Energy (E)",
+        ylabel="Im[V(E)]",
+        label="Contour A",
+        color=:blue,
+        linestyle=:solid,
+        linewidth=2,
+        show=true, # The legend will only be shown on this subplot
+    )
+    plot!(p[2], E, imag.(varray),
+        label="Contour B",
+        color=:red,
+        linestyle=:dash,
+        linewidth=2,
+    )
+
+    # --- 4. Saving the final plot ---
+    savefig(p, "cut.png")
+    savefig(p, "cut.pdf")
+    # p = plot(layout=(1, 2), dpi=400, size=(1000,500))
+    #    plot!(p[1], E, real.(vana), label="Re[cut goes down]")
+    #    plot!(p[2], E, imag.(vana), label="Im[cut goes down]")
+    #    plot!(p[1], E, real.(varray), label="Re[cut goes left(standard)]")
+    #    plot!(p[2], E, imag.(varray), label="Im[cut goes left(standard)]")
+    #    savefig("cut.png")
+    #    savefig("cut.pdf")
 end
 

@@ -17,7 +17,7 @@
 
 double complex delta0lim(double complex E, double complex p, double m0,
                          double m1, double m2) {
-  auto sq = xsqrt(p * p + m0 * m0);
+  auto sq = xsqrtright(p * p + m0 * m0);
   auto omega = m1 + m2 + p * p / 2 / m2 - E;
   auto omegap = 2 * m_B_star_s + p * p / 2 / m_B_star_s - E;
   auto ret = 1 / sq / (sq + omega);
@@ -38,9 +38,9 @@ double complex delta01(double complex E, double complex p1, double complex p2,
   printf("D0: %s\n", formatC(D0));
   auto E0 = -(m2 + m4 + p1 * p1 / 2 / m2 + p2 * p2 / 2 / m4 - E - I * EPSILON);
   printf("E0: %s\n", formatC(E0));
-  auto a0 = xsqrt(B0 + C0);
+  auto a0 = xsqrtright(B0 + C0);
   printf("a0: %s\n", formatC(a0));
-  auto b0 = xsqrt(B0 - C0);
+  auto b0 = xsqrtright(B0 - C0);
   printf("b0: %s\n", formatC(b0));
   auto xlog1 = xlog((a0 - D0) / (b0 - D0));
   auto xlog2 = xlog((a0 - E0) / (b0 - E0));
@@ -66,9 +66,9 @@ double complex delta11(double complex E, double complex p1, double complex p2,
   printf("C1: %s\n\n", formatC(C1));
   auto D1 = m2 + m4 + p1 * p1 / 2 / m2 + p2 * p2 / 2 / m4 - E - I * EPSILON;
   printf("D1: %s\n\n", formatC(D1));
-  auto a1 = xsqrt(A1 - B1);
+  auto a1 = xsqrtright(A1 - B1);
   printf("a1: %s\n\n", formatC(a1));
-  auto b1 = xsqrt(A1 + B1);
+  auto b1 = xsqrtright(A1 + B1);
   printf("b1: %s\n\n", formatC(b1));
   auto CplusDtimesaminusb = (C1 + D1) * (a1 - b1);
   printf("(C+D)*(a-b): %s\n\n", formatC(CplusDtimesaminusb));
