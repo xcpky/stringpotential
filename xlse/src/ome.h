@@ -118,7 +118,7 @@ static inline double complex Epi(double complex z, double complex p1,
     auto B = -2 * p1 * p2;
 	return xsqrtleft(A + B*z);
     if (fabs(cimag(B)) < 1e-8) {
-        return xsqrtright(cabs(A + B * z) + 0I);
+        return xsqrtright(creal(A + B * z) + 0I);
     } else {
         return creal(A) >= 0 ? xsqrtleft(A + B * z) : xsqrtright(A + B * z);
     }

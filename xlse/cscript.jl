@@ -9,8 +9,9 @@ using Plots
 using LaTeXStrings
 include("constants.jl")
 
-xsqrt(x) = imag(x) >= 0 ? sqrt(x + 0im) : -sqrt(x - 0im)
+xsqrtright(x) = imag(x) >= 0 ? sqrt(x + 0im) : -sqrt(x - 0im)
 xsqrtup(x) = imag(x) >= 0 && real(x) < 0 ? -sqrt(x + 0im) : sqrt(x - 0im)
+xsqrtleft(x) = sqrt(Complex(x + 0im))
 # xsqrt(x) = imag(x) < 0 && real(x) < 0 ? -sqrt(x - 0im) : sqrt(x + 0im);
 
 epsi = 1e-9
@@ -26,16 +27,29 @@ Erange = LinRange(m_Xb11P - 0.1, 0.7, 1000)
 V(E, p, pprime) = ccall(dlsym(libscript, :V), ComplexF64, (Cdouble, ComplexF64, ComplexF64), E, p, pprime)
 Vquad(E, p, pprime) = ccall(dlsym(libscript, :Vquad), ComplexF64, (Cdouble, ComplexF64, ComplexF64), E, p, pprime)
 function integrand(x, e)
-    p1 = xsqrt(2 * mu[1] * (e - m_B - m_B_star))
+    p1 = xsqrtright(2 * mu[1] * (e - m_B - m_B_star))
     p2 = 1
     A = p1^2 + p2^2 + m_pi^2
     B = 2 * p1 * p2
     C = 2 * m_B + (p1^2 + p2^2) / 2 / m_B - e - 1e-7im
     D = 2 * m_B_star + (p1^2 + p2^2) / 2 / m_B_star - e - 1e-7im
-    Eg = sqrt(A - B * x)
+    Eg = sqrt(Complex(A - B * x))
+    if abs(imag(B)) < 1e-8
+        Eg = sqrt(real(A - B * x))
+    elseif real(A) > 0
+        Eg = xsqrtleft(A - B * x)
+    elseif real(A) <= 0
+        Eg = xsqrtright(A - B * x)
+    end
     Da = 1 / (Eg + C)
     Db = 1 / (Eg + D)
     return g_pi^2 / f_pi^2 / 24 * (Da + Db) * (2 * p1 * p2 * x - (p1^2 + p2^2)) / 2 / Eg
+end
+function EG(p1, p2, m0)
+	A = p1^2 + p2^2 + m0^2
+	B = 2 * p1 * p2
+	x = LinRange(-1,1,100)
+	return A .- B .* x
 end
 function onshell(E::Vector{Cdouble}, len, pNgauss, Lambda, epsilon)
     @time otr = ccall(Libdl.dlsym(libscript, :onshell), Ptr{ComplexF64}, (Ptr{Cdouble}, Cuint, Cuint, Cdouble, Cdouble), E, len, pNgauss, Lambda, epsilon)
@@ -777,90 +791,37 @@ if "--quadrature" in ARGS
     A = 0.053938
     B = 0.001367
     C = -0.234736 - 0.000001im
-    f(x) = 1 / xsqrt(A - B * x) / (xsqrt(A - B * x) + C)
+    f(x) = 1 / xsqrtright(A - B * x) / (xsqrtright(A - B * x) + C)
     dtr = ccall(Libdl.dlsym(libscript, :getIntegrand), Ptr{ComplexF64}, (),)
     data = copy(unsafe_wrap(Array, dtr, 80, own=false))
     cfree(reinterpret(Ptr{Cvoid}, dtr))
     t = -1
     println("t: $t")
-    println("xsqrt: $(xsqrt(A-B*t))")
-    println("xsqrt+C: $(xsqrt(A-B*t)+C)")
+    println("xsqrt: $(xsqrtright(A-B*t))")
+    println("xsqrt+C: $(xsqrtright(A-B*t)+C)")
     t = -1 + 0.00000000001im
     println("t: $t")
-    println("xsqrt: $(xsqrt(A-B*t))")
-    println("xsqrt+C: $(xsqrt(A-B*t)+C)")
+    println("xsqrt: $(xsqrtright(A-B*t))")
+    println("xsqrt+C: $(xsqrtright(A-B*t)+C)")
 end
 
 if "--cut" in ARGS
     using QuadGK
     E = LinRange(m11 + m12 - 0.3, m11 + m12 + 0.3, 500)
-    p1 = xsqrt.(2 * mu[1] .* (E .- (m11 + m12)))
+    p1 = xsqrtright.(2 * mu[1] .* (E .- (m11 + m12)))
     p2 = 1
-    vana = Vquad.(E, p1, 1)
+    vana = V.(E, p1, 1)
     using QuadGK
     varray = Array{ComplexF64}(undef, length(E))
     for i in eachindex(varray)
         varray[i] = quadgk(x -> integrand(x, E[i]), -1, 1)[1]
     end
-    p = plot(
-        layout=(1, 2),
-        dpi=400,
-        size=(1000, 450),
-        plot_title="Comparison of Integration Contours", # Main title
-        titlefontsize=14,
-        legendfontsize=10,
-        tickfontsize=8,
-        guidefontsize=12,
-        framestyle=:box, # Adds a full box frame around plots
-        legend=:bottomright,
-    )
-
-    # --- 3. Plotting: Add detailed labels and distinct styles ---
-
-    # Subplot 1: Real Part
-    plot!(p[1], E, real.(vana),
-        title="Real Part",
-        xlabel="Energy (E)",
-        ylabel="Re[V(E)]",
-        label="Contour A", # More concise label
-        color=:blue,
-        linestyle=:solid,
-        linewidth=2,
-    )
-    plot!(p[1], E, real.(varray),
-        label="Contour B",
-        color=:red,
-        linestyle=:dash,
-        linewidth=2,
-    )
-
-    # Subplot 2: Imaginary Part
-    plot!(p[2], E, imag.(vana),
-        title="Imaginary Part",
-        xlabel="Energy (E)",
-        ylabel="Im[V(E)]",
-        label="Contour A",
-        color=:blue,
-        linestyle=:solid,
-        linewidth=2,
-        show=true, # The legend will only be shown on this subplot
-    )
-    plot!(p[2], E, imag.(varray),
-        label="Contour B",
-        color=:red,
-        linestyle=:dash,
-        linewidth=2,
-    )
-
-    # --- 4. Saving the final plot ---
-    savefig(p, "cut.png")
-    savefig(p, "cut.pdf")
-    # p = plot(layout=(1, 2), dpi=400, size=(1000,500))
-    #    plot!(p[1], E, real.(vana), label="Re[cut goes down]")
-    #    plot!(p[2], E, imag.(vana), label="Im[cut goes down]")
-    #    plot!(p[1], E, real.(varray), label="Re[cut goes left(standard)]")
-    #    plot!(p[2], E, imag.(varray), label="Im[cut goes left(standard)]")
-    #    savefig("cut.png")
-    #    savefig("cut.pdf")
+    p = plot(layout=(1, 2), dpi=400, size=(1000, 500))
+    plot!(p[1], E, real.(vana), label="Re[cut goes down]")
+    plot!(p[2], E, imag.(vana), label="Im[cut goes down]")
+    plot!(p[1], E, real.(varray), label="Re[cut goes left(standard)]")
+    plot!(p[2], E, imag.(varray), label="Im[cut goes left(standard)]")
+    savefig("cut.png")
+    savefig("cut.pdf")
 end
 
