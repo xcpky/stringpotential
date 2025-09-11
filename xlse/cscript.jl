@@ -18,7 +18,7 @@ Lambda = 2.0
 pNgauss = 64
 data = Nothing
 C = [-1.010589943548671, 0, -1.220749787118462, 0]
-Erange = LinRange(-0.15, 0.5, 1000)
+Erange = LinRange(-0.47, 0.5, 1000)
 # Erange = LinRange(-0.1, 2, 1000)
 # onshellRange = LinRange(-0.7, 0.6, 1000)
 # onshellRange = LinRange(0., 0.190229863, 8000)
@@ -119,8 +119,8 @@ function imTsing(E::Vector{Cdouble}, len, C::Vector{Cdouble}, pNgauss, Lambda, e
     # plot!(E, imag.(invT[4, :]), label="Im "*L"T^{-1}_{22}", alpha=0.5, lw=1, s=:dot)
     plot!(E, ρ.(E, 1), label=L"\rho_1(E)\Theta(E-m_B-m_{B^*})", alpha=0.8, s=:dash)
     plot!(E, ρ.(E, 2), label=L"\rho_2(E)\Theta(E-m_B-m_{B^*})", alpha=0.8, s=:dash)
-    plot!(E, real.(v1))
-    plot!(E, imag.(v1), label="imag")
+    # plot!(E, real.(v1))
+    # plot!(E, imag.(v1), label="imag")
     # plot!(E, imag.(invT[2, :]))
     # plot!(E, ρ.(E, 2), label=L"\rho_2(E)\Theta(E-m_{B_s} - m_{B_s^*})")
     vline!(delta, label="thresholds", s=:dash, c=:grey)
@@ -736,7 +736,6 @@ end
 o1(p1) = 2 * m_B + (p1^2 + p1^2) / (2m_B)
 o2(p1) = 2 * m_B_star + (p1^2 + p1^2) / (2m_B_star)
 if "--delt" in ARGS
-    V(E, p, pprime)::ComplexF64 = ccall(dlsym(libscript, :V), ComplexF64, (Cdouble, ComplexF64, ComplexF64), E, p, pprime)
     E = Erange
     k = sqrt.(Complex.(2 * mu[1] .* E))
     delt = Array{ComplexF64}(undef, length(E))
@@ -800,17 +799,17 @@ if "--cut" in ARGS
     using QuadGK
     E = LinRange(m11 + m12 - 0.3, m11 + m12 + 0.3, 500)
     p1 = xsqrt.(2 * mu[1] .* (E .- (m11 + m12)))
-    p2 = 1
-    vana = Vquad.(E, p1, p2)
+    p2 = 1e-6
+    # vana = Vquad.(E, p1, p2)
     v1 = V.(E, p1, p2)
     using QuadGK
-    varray = Array{ComplexF64}(undef, length(E))
-    for i in eachindex(varray)
-        varray[i] = quadgk(x -> integrand(x, E[i]), -1, 1)[1]
-    end
+    # varray = Array{ComplexF64}(undef, length(E))
+    # for i in eachindex(varray)
+    #     varray[i] = quadgk(x -> integrand(x, E[i]), -1, 1)[1]
+    # end
     p = plot(layout=(1, 2), dpi=400, size=(1000, 500))
-    plot!(p[1], E, real.(vana), label="Re[quadrature]")
-    plot!(p[2], E, imag.(vana), label="Im[quadrature]")
+    # plot!(p[1], E, real.(vana), label="Re[quadrature]")
+    # plot!(p[2], E, imag.(vana), label="Im[quadrature]")
     plot!(p[1], E, real.(v1), label="Re[analytical expression]")
     plot!(p[2], E, imag.(v1), label="Im[analytical expression]")
     vline!(p[1], [m11 + m12], label="threshold", c=:grey, s=:dash)
