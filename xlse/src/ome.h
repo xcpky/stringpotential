@@ -5,7 +5,7 @@
 #include <math.h>
 #include <stdio.h>
 #define FSQUARE(F) (F) * (F)
-#define EPSILON (1e-6)
+#define EPSILON (1e-5)
 #define DIMIM (20)
 #define DIMRE (40)
 #define ZI (0.2)
@@ -14,7 +14,7 @@
 
 // #define DEBUG
 #define RECOIL
-// #define PIIIII
+#define PIIIII
 //
 double complex ln1(double complex E, double complex p1, double complex p2,
                    double m0, double m1, double m2);
@@ -25,15 +25,15 @@ static inline double complex csquare(double complex x) { return x * x; }
 static inline double fsquare(double x) { return x * x; }
 
 struct OME {
-    int set;
-    double complex xxpiup[2 * DIMIM + DIMRE];
-    double complex wwpiup[2 * DIMIM + DIMRE];
-    double complex xxpidn[2 * DIMIM + DIMRE];
-    double complex wwpidn[2 * DIMIM + DIMRE];
-    double xxz[DIMRE];
-    double wwz[DIMRE];
-    double xx0ii[DIMRE];
-    double ww0ii[DIMRE];
+  int set;
+  double complex xxpiup[2 * DIMIM + DIMRE];
+  double complex wwpiup[2 * DIMIM + DIMRE];
+  double complex xxpidn[2 * DIMIM + DIMRE];
+  double complex wwpidn[2 * DIMIM + DIMRE];
+  double xxz[DIMRE];
+  double wwz[DIMRE];
+  double xx0ii[DIMRE];
+  double ww0ii[DIMRE];
 };
 
 void ome_build(struct OME *self);
@@ -44,84 +44,84 @@ void printp(struct OME *self);
 static inline double complex omega_00(double complex p, double complex pprime) {
 #ifdef RECOIL
 
-    return 2 * m_B + (p * p + pprime * pprime) / (2 * m_B);
+  return 2 * m_B + (p * p + pprime * pprime) / (2 * m_B);
 #else
-    return 2 * m_B;
+  return 2 * m_B;
 #endif // RECOIL
 }
 
 static inline double complex omega_01(double complex p, double complex pprime) {
 #ifdef RECOIL
-    return m_B + pprime * pprime / (2 * m_B) + m_B_s + p * p / (2 * m_B_s);
+  return m_B + pprime * pprime / (2 * m_B) + m_B_s + p * p / (2 * m_B_s);
 #else
-    return m_B + m_B_s;
+  return m_B + m_B_s;
 #endif
 }
 
 static inline double complex omega_10(double complex p, double complex pprime) {
 #ifdef RECOIL
-    return m_B_s + pprime * pprime / (2 * m_B_s) + m_B + p * p / (2 * m_B);
+  return m_B_s + pprime * pprime / (2 * m_B_s) + m_B + p * p / (2 * m_B);
 #else
-    return m_B_s + m_B;
+  return m_B_s + m_B;
 #endif
 }
 
 static inline double complex omega_11(double complex p, double complex pprime) {
 #ifdef RECOIL
-    return 2 * m_B_s + (p * p + pprime * pprime) / (2 * m_B_s);
+  return 2 * m_B_s + (p * p + pprime * pprime) / (2 * m_B_s);
 #else
-    return 2 * m_B_s;
+  return 2 * m_B_s;
 #endif
 }
 
 static inline double complex omegaprime_00(double complex p,
                                            double complex pprime) {
 #ifdef RECOIL
-    return 2 * m_B_star + (p * p + pprime * pprime) / (2 * m_B_star);
+  return 2 * m_B_star + (p * p + pprime * pprime) / (2 * m_B_star);
 #else
-    return 2 * m_B_star;
+  return 2 * m_B_star;
 #endif
 }
 
 static inline double complex omegaprime_01(double complex p,
                                            double complex pprime) {
 #ifdef RECOIL
-    return m_B_star + pprime * pprime / (2 * m_B_star) + m_B_star_s +
-           p * p / (2 * m_B_star_s);
+  return m_B_star + pprime * pprime / (2 * m_B_star) + m_B_star_s +
+         p * p / (2 * m_B_star_s);
 #else
-    return m_B_star + m_B_star_s;
+  return m_B_star + m_B_star_s;
 #endif
 }
 
 static inline double complex omegaprime_10(double complex p,
                                            double complex pprime) {
 #ifdef RECOIL
-    return m_B_star_s + pprime * pprime / (2 * m_B_star_s) + m_B_star +
-           p * p / (2 * m_B_star);
+  return m_B_star_s + pprime * pprime / (2 * m_B_star_s) + m_B_star +
+         p * p / (2 * m_B_star);
 #else
-    return m_B_star_s + m_B_star;
+  return m_B_star_s + m_B_star;
 #endif
 }
 
 static inline double complex omegaprime_11(double complex p,
                                            double complex pprime) {
 #ifdef RECOIL
-    return 2 * m_B_star_s + (p * p + pprime * pprime) / (2 * m_B_star_s);
+  return 2 * m_B_star_s + (p * p + pprime * pprime) / (2 * m_B_star_s);
 #else
-    return 2 * m_B_star_s;
+  return 2 * m_B_star_s;
 #endif
 }
 
 static inline double complex Epi(double complex z, double complex p1,
                                  double complex p2, double m0) {
-    auto A = p1 * p1 + p2 * p2 + m0 * m0;
-    auto B = -2 * p1 * p2;
-	return xsqrtleft(A + B*z);
-    if (fabs(cimag(B)) < 1e-8) {
-        return xsqrtright(creal(A + B * z) + 0I);
-    } else {
-        return creal(A) >= 0 ? xsqrtleft(A + B * z) : xsqrtright(A + B * z);
-    }
+  auto A = p1 * p1 + p2 * p2 + m0 * m0;
+  auto B = -2 * p1 * p2;
+  return xsqrtleft(A + B * z);
+  if (fabs(cimag(B)) < 1e-8) {
+    return xsqrtright(cabs(A + B * z) + 0I);
+  } else {
+    return creal(A) >= 0 ? xsqrtleft(A + B * z) : xsqrtright(A + B * z);
+  }
 }
 
 static inline double complex Dij(double complex E, double complex z,
@@ -129,20 +129,20 @@ static inline double complex Dij(double complex E, double complex z,
                                  double complex mi, double complex mj,
                                  double m0) {
 #ifdef RECOIL
-    return E - (mi + p1 * p1 / (2 * mi)) - (mj + p2 * p2 / (2 * mj)) -
-           Epi(z, p1, p2, m0) + I * EPSILON;
+  return E - (mi + p1 * p1 / (2 * mi)) - (mj + p2 * p2 / (2 * mj)) -
+         Epi(z, p1, p2, m0) + I * EPSILON;
 #else
-    return E - mi - mj - Epi(z, p1, p2, m0) + I * EPSILON;
+  return E - mi - mj - Epi(z, p1, p2, m0) + I * EPSILON;
 #endif
 }
 
 static inline double complex p1p2(double complex p1, double complex p2,
                                   double complex z) {
 #ifdef DEBUG
-    // return 1;
-    return 1;
+  // return 1;
+  return 1;
 #else
-    return p1 * p1 + p2 * p2 - 2 * p1 * p2 * z;
+  return p1 * p1 + p2 * p2 - 2 * p1 * p2 * z;
 #endif
 }
 
@@ -150,11 +150,11 @@ static inline double complex TOPTintegrand(double complex E, double complex z,
                                            double complex p1, double complex p2,
                                            double complex m1, double complex m2,
                                            double m0) {
-    auto D1 = Dij(E, z, p1, p2, m1, m2, m0);
+  auto D1 = Dij(E, z, p1, p2, m1, m2, m0);
 #ifdef DEBUG
-    return (1 / D1) / (2 * Epi(z, p1, p2, m0)) * p1p2(p1, p2, z);
+  return (1 / D1) / (2 * Epi(z, p1, p2, m0)) * p1p2(p1, p2, z);
 #else
-    return FACPI * 1 / D1 / (2 * Epi(z, p1, p2, m0)) * p1p2(p1, p2, z);
+  return FACPI * 1 / D1 / (2 * Epi(z, p1, p2, m0)) * p1p2(p1, p2, z);
 #endif
 }
 
@@ -162,31 +162,31 @@ static inline double complex z0(double complex E, double complex m1,
                                 double complex m2, double complex p1,
                                 double complex p2, double m0) {
 #ifdef RECOIL
-    auto res = (csquare(E - m1 - m2 - p1 * p1 / 2 / m1 - p2 * p2 / 2 / m2 +
-                        I * EPSILON) -
-                m0 * m0 - p1 * p1 - p2 * p2) /
-               (-2 * p2 * p1);
+  auto res = (csquare(E - m1 - m2 - p1 * p1 / 2 / m1 - p2 * p2 / 2 / m2 +
+                      I * EPSILON) -
+              m0 * m0 - p1 * p1 - p2 * p2) /
+             (-2 * p2 * p1);
 #else
-    auto res =
-        (csquare(E - m1 - m2 + I * EPSILON) - m0 * m0 - p1 * p1 - p2 * p2) /
-        (-2 * p2 * p1);
+  auto res =
+      (csquare(E - m1 - m2 + I * EPSILON) - m0 * m0 - p1 * p1 - p2 * p2) /
+      (-2 * p2 * p1);
 #endif
 #ifdef DEBUG
-    printf("z0: %s\n", formatC(res));
-    printf("Dij: %e\n",
-           cabs(xsqrt(p1 * p1 + p2 * p2 - 2 * p1 * p2 * res + m0 * m0) + m1 +
-                m2 + p1 * p1 / 2 / m1 + p2 * p2 / 2 / m2 - E - I * EPSILON));
+  printf("z0: %s\n", formatC(res));
+  printf("Dij: %e\n",
+         cabs(xsqrt(p1 * p1 + p2 * p2 - 2 * p1 * p2 * res + m0 * m0) + m1 + m2 +
+              p1 * p1 / 2 / m1 + p2 * p2 / 2 / m2 - E - I * EPSILON));
 #endif
-    if (cabs(Dij(E, res, p1, p2, m1, m2, m0)) < 1e-6) {
-        return res;
-    } else {
-        return 5;
-    }
+  if (cabs(Dij(E, res, p1, p2, m1, m2, m0)) < 1e-6) {
+    return res;
+  } else {
+    return 5;
+  }
 }
 
 static inline double complex z0E(double complex p1, double complex p2,
                                  double m0) {
-    return (p1 * p1 + p2 * p2 + m0 * m0) / (2 * p2 * p1);
+  return (p1 * p1 + p2 * p2 + m0 * m0) / (2 * p2 * p1);
 }
 
 double complex Vpiu(struct OME ome, double complex E, double complex p1,
@@ -200,52 +200,52 @@ static inline double complex quadreal(struct OME ome, double complex E,
                                       double complex p1, double complex p2,
                                       double complex m1, double complex m2,
                                       double m0, double fac) {
-    double complex res = 0;
-    for (size_t i = 0; i < DIMRE; i += 1) {
-        auto z = ome.xxz[i];
-        auto w = ome.wwz[i];
-        // auto D1 = Dij(E, z, p1, p2, m1 - I * gam1 / 2, m3 - I * gam3 / 2,
-        // m0); auto D2 = Dij(E, z, p1, p2, m2 - I * gam2 / 2, m4 - I * gam4 /
-        // 2, m0); auto Dint = FACPI * fac * (1 / D1 + 1 / D2) / (2 * Epi(z, p1,
-        // p2, m0)) * p1p2(p1, p2, z);
-        auto Dint = fac * TOPTintegrand(E, z, p1, p2, m1, m2, m0);
-        res += Dint * w;
-    }
-    return res;
+  double complex res = 0;
+  for (size_t i = 0; i < DIMRE; i += 1) {
+    auto z = ome.xxz[i];
+    auto w = ome.wwz[i];
+    // auto D1 = Dij(E, z, p1, p2, m1 - I * gam1 / 2, m3 - I * gam3 / 2,
+    // m0); auto D2 = Dij(E, z, p1, p2, m2 - I * gam2 / 2, m4 - I * gam4 /
+    // 2, m0); auto Dint = FACPI * fac * (1 / D1 + 1 / D2) / (2 * Epi(z, p1,
+    // p2, m0)) * p1p2(p1, p2, z);
+    auto Dint = fac * TOPTintegrand(E, z, p1, p2, m1, m2, m0);
+    res += Dint * w;
+  }
+  return res;
 }
 static inline double complex quadup(struct OME ome, double complex E,
                                     double complex p1, double complex p2,
                                     double complex m1, double complex m2,
                                     double m0, double fac) {
-    double complex res = 0;
-    for (size_t i = 0; i < 2 * DIMIM + DIMRE; i += 1) {
-        auto z = ome.xxpiup[i];
-        auto w = ome.wwpiup[i];
-        // auto D1 = Dij(E, z, p1, p2, m1 - I * gam1 / 2, m3 - I * gam3 / 2,
-        // m0); auto D2 = Dij(E, z, p1, p2, m2 - I * gam2 / 2, m4 - I * gam4 /
-        // 2, m0); auto Dint = FACPI * fac * (1 / D1 + 1 / D2) / (2 * Epi(z, p1,
-        // p2, m0)) * p1p2(p1, p2, z);
-        auto Dint = fac * TOPTintegrand(E, z, p1, p2, m1, m2, m0);
-        res += Dint * w;
-    }
-    return res;
+  double complex res = 0;
+  for (size_t i = 0; i < 2 * DIMIM + DIMRE; i += 1) {
+    auto z = ome.xxpiup[i];
+    auto w = ome.wwpiup[i];
+    // auto D1 = Dij(E, z, p1, p2, m1 - I * gam1 / 2, m3 - I * gam3 / 2,
+    // m0); auto D2 = Dij(E, z, p1, p2, m2 - I * gam2 / 2, m4 - I * gam4 /
+    // 2, m0); auto Dint = FACPI * fac * (1 / D1 + 1 / D2) / (2 * Epi(z, p1,
+    // p2, m0)) * p1p2(p1, p2, z);
+    auto Dint = fac * TOPTintegrand(E, z, p1, p2, m1, m2, m0);
+    res += Dint * w;
+  }
+  return res;
 }
 static inline double complex quaddn(struct OME ome, double complex E,
                                     double complex p1, double complex p2,
                                     double complex m1, double complex m2,
                                     double m0, double fac) {
-    double complex res = 0;
-    for (size_t i = 0; i < 2 * DIMIM + DIMRE; i += 1) {
-        auto z = ome.xxpidn[i];
-        auto w = ome.wwpidn[i];
-        // auto D1 = Dij(E, z, p1, p2, m1 - I * gam1 / 2, m3 - I * gam3 / 2,
-        // m0); auto D2 = Dij(E, z, p1, p2, m2 - I * gam2 / 2, m4 - I * gam4 /
-        // 2, m0); auto Dint = FACPI * fac * (1 / D1 + 1 / D2) / (2 * Epi(z, p1,
-        // p2, m0)) * p1p2(p1, p2, z);
-        auto Dint = fac * TOPTintegrand(E, z, p1, p2, m1, m2, m0);
-        res += Dint * w;
-    }
-    return res;
+  double complex res = 0;
+  for (size_t i = 0; i < 2 * DIMIM + DIMRE; i += 1) {
+    auto z = ome.xxpidn[i];
+    auto w = ome.wwpidn[i];
+    // auto D1 = Dij(E, z, p1, p2, m1 - I * gam1 / 2, m3 - I * gam3 / 2,
+    // m0); auto D2 = Dij(E, z, p1, p2, m2 - I * gam2 / 2, m4 - I * gam4 /
+    // 2, m0); auto Dint = FACPI * fac * (1 / D1 + 1 / D2) / (2 * Epi(z, p1,
+    // p2, m0)) * p1p2(p1, p2, z);
+    auto Dint = fac * TOPTintegrand(E, z, p1, p2, m1, m2, m0);
+    res += Dint * w;
+  }
+  return res;
 }
 
 static inline double complex quadii(struct OME ome, double complex E,
@@ -253,102 +253,99 @@ static inline double complex quadii(struct OME ome, double complex E,
                                     double complex m1, double complex m2,
                                     double m0, double fac, double complex _z,
                                     double complex offset) {
-    double complex res = 0;
-    for (size_t i = 0; i < DIMRE; i += 1) {
-        auto z = ome.xx0ii[i] * _z + offset;
-        auto w = ome.ww0ii[i] * _z;
-        // auto D1 = Dij(E, z, p1, p2, m1 - I * gam1 / 2, m3 - I * gam3 / 2,
-        // m0); auto D2 = Dij(E, z, p1, p2, m2 - I * gam2 / 2, m4 - I * gam4 /
-        // 2, m0); auto Dint = FACPI * fac * (1 / D1 + 1 / D2) / (2 * Epi(z, p1,
-        // p2, m0)) * p1p2(p1, p2, z);
-        auto Dint = fac * TOPTintegrand(E, z, p1, p2, m1, m2, m0);
-        res += Dint * w;
-    }
-    return res;
+  double complex res = 0;
+  for (size_t i = 0; i < DIMRE; i += 1) {
+    auto z = ome.xx0ii[i] * _z + offset;
+    auto w = ome.ww0ii[i] * _z;
+    // auto D1 = Dij(E, z, p1, p2, m1 - I * gam1 / 2, m3 - I * gam3 / 2,
+    // m0); auto D2 = Dij(E, z, p1, p2, m2 - I * gam2 / 2, m4 - I * gam4 /
+    // 2, m0); auto Dint = FACPI * fac * (1 / D1 + 1 / D2) / (2 * Epi(z, p1,
+    // p2, m0)) * p1p2(p1, p2, z);
+    auto Dint = fac * TOPTintegrand(E, z, p1, p2, m1, m2, m0);
+    res += Dint * w;
+  }
+  return res;
 }
 
 static inline double complex OME_00(struct OME ome, double complex E,
                                     double complex p, double complex pprime) {
-#ifdef PIIIII
-    return Vpiu(ome, E, p, pprime, m_B_star, gamma_B_star, m_B, 0, m_B_star,
-                gamma_B_star, m_B, 0, m_pi, 1);
+#ifdef PIIIIII
+  return Vpiu(ome, E, p, pprime, m_B_star, gamma_B_star, m_B, 0, m_B_star,
+              gamma_B_star, m_B, 0, m_pi, 1);
 #else
-    return Vpiu(ome, E, p, pprime, m_B_star, m_B, m_B_star, m_B, m_pi, 3) +
-           Vpiu(ome, E, p, pprime, m_B_star, m_B, m_B_star, m_B, m_eta, 1. / 3);
+  return Vpiu(ome, E, p, pprime, m_B_star, m_B, m_B_star, m_B, m_pi, 3) +
+         Vpiu(ome, E, p, pprime, m_B_star, m_B, m_B_star, m_B, m_eta, 1. / 3);
 #endif
 }
 
 static inline double complex OME_01(struct OME ome, double complex E,
                                     double complex p, double complex pprime) {
-#ifdef PIIIII
-    return Vpiu(ome, E, p, pprime, m_B_star_s, gamma_B_star_s, m_B_s, 0,
-                m_B_star, gamma_B_star, m_B, 0, m_pi, 1);
+#ifdef PIIIIII
+  return Vpiu(ome, E, p, pprime, m_B_star_s, gamma_B_star_s, m_B_s, 0, m_B_star,
+              gamma_B_star, m_B, 0, m_pi, 1);
 #else
-    return Vpiu(ome, E, p, pprime, m_B_star_s, m_B_s, m_B_star, m_B, m_K,
-                pow(2, 3. / 2));
+  return Vpiu(ome, E, p, pprime, m_B_star_s, m_B_s, m_B_star, m_B, m_K,
+              pow(2, 3. / 2));
 #endif
 }
 
 static inline double complex OME_10(struct OME ome, double complex E,
                                     double complex p, double complex pprime) {
-#ifdef PIIIII
+#ifdef PIIIIII
 
-    return Vpiu(ome, E, p, pprime, m_B_star, gamma_B_star, m_B, 0, m_B_star_s,
-                gamma_B_star_s, m_B_s, 0, m_pi, 1);
+  return Vpiu(ome, E, p, pprime, m_B_star, gamma_B_star, m_B, 0, m_B_star_s,
+              gamma_B_star_s, m_B_s, 0, m_pi, 1);
 #else
-    return Vpiu(ome, E, p, pprime, m_B_star, m_B, m_B_star_s, m_B_s, m_K,
-                pow(2, 3. / 2));
+  return Vpiu(ome, E, p, pprime, m_B_star, m_B, m_B_star_s, m_B_s, m_K,
+              pow(2, 3. / 2));
 #endif
 }
 
 static inline double complex OME_11(struct OME ome, double complex E,
                                     double complex p, double complex pprime) {
-#ifdef PIIIII
+#ifdef PIIIIII
 
-    return Vpiu(ome, E, p, pprime, m_B_star_s, gamma_B_star_s, m_B_s, 0,
-                m_B_star_s, gamma_B_star_s, m_B_s, 0, m_pi, 1);
+  return Vpiu(ome, E, p, pprime, m_B_star_s, gamma_B_star_s, m_B_s, 0,
+              m_B_star_s, gamma_B_star_s, m_B_s, 0, m_pi, 1);
 #else
-    return Vpiu(ome, E, p, pprime, m_B_star_s, m_B_s, m_B_star_s, m_B_s, m_eta,
-                4. / 3);
+  return Vpiu(ome, E, p, pprime, m_B_star_s, m_B_s, m_B_star_s, m_B_s, m_eta,
+              4. / 3);
 #endif
 }
 
 #define DEFINE_DELTA0(suffix)                                                  \
-    static inline double complex Delta0_##suffix(                              \
-        double complex e, double complex p, double complex pprime,             \
-        double m0) {                                                           \
-        auto A = p * p + pprime * pprime + m0 * m0;                            \
-        auto B = 2 * p * pprime;                                               \
-        auto C = e - omega_##suffix(pprime, p) + I * EPSILON;                  \
-        auto D = e - omegaprime_##suffix(p, pprime) + I * EPSILON;             \
-        auto a = Epi(1, p, pprime, m0);                                        \
-        auto b = Epi(-1, p, pprime, m0);                                       \
-        return (xlog(b - C) - xlog(a - C) + xlog(b - D) - xlog(a - D)) / B;    \
-    }
+  static inline double complex Delta0_##suffix(                                \
+      double complex e, double complex p, double complex pprime, double m0) {  \
+    auto A = p * p + pprime * pprime + m0 * m0;                                \
+    auto B = 2 * p * pprime;                                                   \
+    auto C = e - omega_##suffix(pprime, p) + I * EPSILON;                      \
+    auto D = e - omegaprime_##suffix(p, pprime) + I * EPSILON;                 \
+    auto a = Epi(1, p, pprime, m0);                                            \
+    auto b = Epi(-1, p, pprime, m0);                                           \
+    return xlog((b - C) / (a - C)) / B + xlog((b - D) / (a - D)) / B;          \
+  }
 
 #define DEFINE_DELTA1(suffix)                                                  \
-    static inline double complex Delta1_##suffix(                              \
-        double complex E, double complex p, double complex pprime,             \
-        double m0) {                                                           \
-        auto A = p * p + pprime * pprime + m0 * m0;                            \
-        auto B = 2 * p * pprime;                                               \
-        auto C = omega_##suffix(pprime, p) - E - I * EPSILON;                  \
-        auto D = omegaprime_##suffix(p, pprime) - E - I * EPSILON;             \
-        auto a = Epi(1, p, pprime, m0);                                        \
-        auto b = Epi(-1, p, pprime, m0);                                       \
-        auto ret = -((C + D) * (a - b) + 2 * B +                               \
-                     (A - C * C) * (xlog(a + C) - xlog(b + C)) +               \
-                     (A - D * D) * (xlog(a + D) - xlog(b + D)));               \
-        return ret / B / B;                                                    \
-    }
+  static inline double complex Delta1_##suffix(                                \
+      double complex E, double complex p, double complex pprime, double m0) {  \
+    auto A = p * p + pprime * pprime + m0 * m0;                                \
+    auto B = 2 * p * pprime;                                                   \
+    auto C = omega_##suffix(pprime, p) - E - I * EPSILON;                      \
+    auto D = omegaprime_##suffix(p, pprime) - E - I * EPSILON;                 \
+    auto a = Epi(1, p, pprime, m0);                                            \
+    auto b = Epi(-1, p, pprime, m0);                                           \
+    auto ret = -((C + D) * (a - b) / B / B + 2 / B +                           \
+                 (A - C * C) * xlog((a + C) / (b + C)) / B / B +               \
+                 (A - D * D) * xlog((a + D) / (b + D)) / B / B);               \
+    return ret;                                                                \
+  }
 #define DEFINE_ANA(suffix)                                                     \
-    static inline double complex ANA_##suffix(                                 \
-        double complex E, double complex p, double complex pprime,             \
-        double m0) {                                                           \
-        return FACPI * (2 * p * pprime * Delta1_##suffix(E, p, pprime, m0) -   \
-                        (p * p + pprime * pprime) *                            \
-                            Delta0_##suffix(E, p, pprime, m0));                \
-    }
+  static inline double complex ANA_##suffix(                                   \
+      double complex E, double complex p, double complex pprime, double m0) {  \
+    return FACPI *                                                             \
+           (2 * p * pprime * Delta1_##suffix(E, p, pprime, m0) -               \
+            (p * p + pprime * pprime) * Delta0_##suffix(E, p, pprime, m0));    \
+  }
 
 double complex juliana(double complex E, double complex p,
                        double complex pprime);
@@ -371,37 +368,36 @@ DEFINE_ANA(11);
 static inline double complex OMEANA_00(double complex E, double complex p,
                                        double complex pprime) {
 #ifdef PIIIII
-    return ANA_00(E, p, pprime, m_pi);
+  return ANA_00(E, p, pprime, m_pi);
 #else
-    return 3 * ANA_00(E, p, pprime, m_pi) +
-           1. / 3 * ANA_00(E, p, pprime, m_eta);
+  return 3 * ANA_00(E, p, pprime, m_pi) + 1. / 3 * ANA_00(E, p, pprime, m_eta);
 #endif
 }
 
 static inline double complex OMEANA_01(double complex E, double complex p,
                                        double complex pprime) {
 #ifdef PIIIII
-    return ANA_01(E, p, pprime, m_pi);
+  return ANA_01(E, p, pprime, m_pi);
 #else
-    return 2 * sqrt(2) * ANA_01(E, p, pprime, m_K);
+  return 2 * sqrt(2) * ANA_01(E, p, pprime, m_K);
 #endif
 }
 
 static inline double complex OMEANA_10(double complex E, double complex p,
                                        double complex pprime) {
 #ifdef PIIIII
-    return ANA_10(E, p, pprime, m_pi);
+  return ANA_10(E, p, pprime, m_pi);
 #else
-    return 2 * sqrt(2) * ANA_10(E, p, pprime, m_K);
+  return 2 * sqrt(2) * ANA_10(E, p, pprime, m_K);
 #endif
 }
 
 static inline double complex OMEANA_11(double complex E, double complex p,
                                        double complex pprime) {
 #ifdef PIIIII
-    return ANA_11(E, p, pprime, m_pi);
+  return ANA_11(E, p, pprime, m_pi);
 #else
-    return 4. / 3 * ANA_11(E, p, pprime, m_eta);
+  return 4. / 3 * ANA_11(E, p, pprime, m_eta);
 #endif
 }
 
