@@ -15,34 +15,46 @@ xsqrtleft(x) = sqrt(Complex(x + 0im))
 # xsqrt(x) = imag(x) < 0 && real(x) < 0 ? -sqrt(x - 0im) : sqrt(x + 0im);
 
 epsi = 1e-9
-Lambda = 2.0
+Lambda = 4.0
 pNgauss = 64
 data = Nothing
 C = [-1.010589943548671, 0, -1.220749787118462, 0]
-Erange = LinRange(-0.47, 0.5, 1000)
+Erange = LinRange(-0.37, 0.5, 1000)
 # Erange = LinRange(-0.1, 2, 1000)
 # onshellRange = LinRange(-0.7, 0.6, 1000)
 # onshellRange = LinRange(0., 0.190229863, 8000)
 
 V(E, p, pprime) = ccall(dlsym(libscript, :V), ComplexF64, (Cdouble, ComplexF64, ComplexF64), E, p, pprime)
 Vquad(E, p, pprime) = ccall(dlsym(libscript, :Vquad), ComplexF64, (Cdouble, ComplexF64, ComplexF64), E, p, pprime)
-function integrand(x, e)
-    p1 = xsqrtright(2 * mu[1] * (e - m_B - m_B_star))
-    p2 = 1
+function integrand(e, p1, p2, x)
     A = p1^2 + p2^2 + m_pi^2
     B = 2 * p1 * p2
-    C = 2 * m_B + (p1^2 + p2^2) / 2 / m_B - e - 1e-7im
-    D = 2 * m_B_star + (p1^2 + p2^2) / 2 / m_B_star - e - 1e-7im
-    Eg = xsqrt(A - B * x)
+    C = (p1^2 + p2^2) / 2 / m_B - e - (m_B_star - m_B) - 1e-7im
+    # D = 2 * m_B_star + (p1^2 + p2^2) / 2 / m_B_star - e - 1e-7im
+    Eg = xsqrtleft(A - B * x)
     Da = 1 / (Eg + C)
-    Db = 1 / (Eg + D)
-    return g_pi^2 / f_pi^2 / 24 * (Da + Db) * (2 * p1 * p2 * x - (p1^2 + p2^2)) / 2 / Eg
+    return Da / Eg
 end
+
+function quadrate(e, p1, p2)
+    A = p1^2 + p2^2 + m_pi^2
+    B = 2 * p1 * p2
+    a = 1.3abs(A / B)
+    x, w = gauss(64, 0, 1)
+    xpath = [-1 .+ x .* (a * im); (-1 + a * im) .+ x .* 2; (1 + a * im) .+ x .* (-a * im)]
+    wpath = [w .* (a * im); w .* 2; w .* (-a * im)]
+    res = 0
+    for i in eachindex(xpath)
+        res += integrand(e, p1, p2, xpath[i]) * wpath[i]
+    end
+	return res;
+end
+
 function EG(p1, p2, m0)
-	A = p1^2 + p2^2 + m0^2
-	B = 2 * p1 * p2
-	x = LinRange(-1,1,100)
-	return A .- B .* x
+    A = p1^2 + p2^2 + m0^2
+    B = 2 * p1 * p2
+    x = LinRange(-1, 1, 100)
+    return A .- B .* x
 end
 function onshell(E::Vector{Cdouble}, len, pNgauss, Lambda, epsilon)
     @time otr = ccall(Libdl.dlsym(libscript, :onshell), Ptr{ComplexF64}, (Ptr{Cdouble}, Cuint, Cuint, Cdouble, Cdouble), E, len, pNgauss, Lambda, epsilon)
@@ -116,11 +128,11 @@ function imTsing(E::Vector{Cdouble}, len, C::Vector{Cdouble}, pNgauss, Lambda, e
         # return k
         return k / 8 / pi / e
     end
-    p1 = xsqrt.(2 * mu[1] .* (E ))
+    p1 = xsqrtleft.(2 * mu[1] .* (E))
     p2 = 0.0006
     v1 = V.(E .+ (m11 + m12), p1, p2)
     plot(dpi=400, legend=:bottomright)
-    plot!(E, imag.(invT[1, :]), label="Im " * L"T^{-1}_{22}", alpha=0.5, lw=1)
+    plot!(E, imag.(invT[1, :]), label="Im " * L"T^{-1}_{11}", alpha=0.5, lw=1)
     # plot!(E, imag.(invT[2, :]), label="Im "*L"T^{-1}_{12}")
     # plot!(E, imag.(invT[3, :]), label="Im "*L"T^{-1}_{21}")
     # plot!(E, imag.(invT[4, :]), label="Im "*L"T^{-1}_{22}", alpha=0.5, lw=1, s=:dot)
@@ -131,6 +143,7 @@ function imTsing(E::Vector{Cdouble}, len, C::Vector{Cdouble}, pNgauss, Lambda, e
     # plot!(E, imag.(invT[2, :]))
     # plot!(E, ρ.(E, 2), label=L"\rho_2(E)\Theta(E-m_{B_s} - m_{B_s^*})")
     vline!(delta, label="thresholds", s=:dash, c=:grey)
+	# vline!([-m_eta^2/2/mu[1]], label=L"m_\eta")
     # ylims!(-2, 1.5)
     xlabel!("E/GeV")
     savefig("imTsing.png")
@@ -140,7 +153,7 @@ end
 
 function conshellT(E::Vector{Cdouble}, len, C::Vector{Cdouble}, pNgauss, Lambda, epsilon)
     @time otr = ccall(Libdl.dlsym(libscript, :onshellT), Ptr{ComplexF64}, (Ptr{Cdouble}, Cuint, Ptr{Cdouble}, Cuint, Cdouble, Cdouble), E, len, C, pNgauss, Lambda, epsilon)
-    yup = 50
+    yup = 1e2
     ot = transpose(copy(unsafe_wrap(Array, otr, (len, 4), own=false)))
     plot(dpi=400, legend=:topleft)
     # level = getEvec(C[1])
@@ -160,7 +173,7 @@ function conshellT(E::Vector{Cdouble}, len, C::Vector{Cdouble}, pNgauss, Lambda,
     # ylims!(0, upper)
     xlabel!("E/GeV")
     ylabel!(L"|T_{\alpha\beta}|" * "/GeV")
-    # ylims!(0, yup)
+    ylims!(0, yup)
     println(E[end])
     xlims!(E[1], E[end])
     savefig("onshellT.png")
@@ -185,7 +198,7 @@ function conshellT_single(E::Vector{Cdouble}, len, C::Vector{Cdouble}, pNgauss, 
     # plot!(E, abs.(ot[4, :]), label=L"$T_{22}$")
     # plot!(E, abs.(ot[2, :]), label=L"$T_{12}$")
     # ylims!(0, upper)
-    ylims!(0, 3e3)
+    # ylims!(0, 3e3)
     println(E[end])
     xlims!(E[1], E[end])
     # ylims!(0, 50)
@@ -234,10 +247,10 @@ function conshellG(E::Vector{Cdouble}, len, C::Vector{Cdouble}, pNgauss, Lambda,
     vline!([m_Xb11P], s=:dash, label=L"\chi_{b1}(1P)")
     vline!([m_Xb12P], s=:dash, label=L"\chi_{b1}(2P)")
     vline!([m_Xb13P], s=:dash, label=L"\chi_{b1}(3P)")
-    plot!(E, imag.(ot[1, :]), label=L"$G_{11}$", dpi=400)
+    plot!(E, abs.(ot[1, :]), label=L"$G_{11}$", dpi=400)
     # plot!(E, imag.(ot[3,:]), label=L"$G_{21}$")
-    plot!(E, imag.(ot[4, :]), label=L"$G_{22}$")
-    plot!(E, imag.(ot[2, :]), label=L"$G_{12}$")
+    plot!(E, abs.(ot[4, :]), label=L"$G_{22}$")
+    plot!(E, abs.(ot[2, :]), label=L"$G_{12}$")
     # ylims!(0, upper)
     xlims!(E[1], E[end])
     # ylims!(0,10)
@@ -805,10 +818,10 @@ end
 if "--cut" in ARGS
     using QuadGK
     E = LinRange(m11 + m12 - 0.3, m11 + m12 + 0.3, 500)
-    p1 = xsqrt.(2 * mu[1] .* (E .- (m11 + m12)))
-    p2 = 1e-6
+    p1 = xsqrtleft.(2 * mu[1] .* (E .- (m11 + m12)))
+    p2 = 1
     # vana = Vquad.(E, p1, p2)
-    v1 = V.(E, p1, p2)
+    v1 = V.(E, p1, p1)
     using QuadGK
     # varray = Array{ComplexF64}(undef, length(E))
     # for i in eachindex(varray)
@@ -821,8 +834,8 @@ if "--cut" in ARGS
     plot!(p[2], E, imag.(v1), label="Im[analytical expression]")
     vline!(p[1], [m11 + m12], label="threshold", c=:grey, s=:dash)
     vline!(p[2], [m11 + m12], label="threshold", c=:grey, s=:dash)
-    vline!(p[1], label=L"2\mu E + p^2 + m_{pi}^2 = 0", [(p2^2 + m_pi^2)/(-2mu[1]) + m11 + m12])
-    vline!(p[2], label=L"2\mu E + p^2 + m_{pi}^2 = 0", [(p2^2 + m_pi^2)/(-2mu[1]) + m11 + m12])
+    # vline!(p[1], label=L"2\mu E + p^2 + m_{pi}^2 = 0", [(p2^2 + m_pi^2) / (-2mu[1]) + m11 + m12])
+    # vline!(p[2], label=L"2\mu E + p^2 + m_{pi}^2 = 0", [(p2^2 + m_pi^2) / (-2mu[1]) + m11 + m12])
     savefig("cut.png")
     savefig("cut.pdf")
 end
