@@ -572,7 +572,6 @@ int oV(void *arg) {
     for (size_t i = foo.start; i < foo.start + foo.len; i += 1) {
         lse_refresh(lse, foo.E[i], foo.C, foo.rs);
         lse_vmat(lse);
-        auto V = (double complex(*)[2 * ngauss + 2]) lse->VOME->data;
         ose00[i] = matrix_get(lse->VOME, ngauss + xoffset, ngauss + yoffset);
         ose01[i] =
             matrix_get(lse->VOME, ngauss + xoffset, 2 * ngauss + 1 + yoffset);
@@ -580,12 +579,6 @@ int oV(void *arg) {
             matrix_get(lse->VOME, 2 * ngauss + 1 + xoffset, ngauss + yoffset);
         ose11[i] = matrix_get(lse->VOME, 2 * ngauss + 1 + xoffset,
                               2 * ngauss + 1 + yoffset);
-        // ose00[i] = OME_00(lse->ome, foo.E[i] + m11 + m12, 0.003525,
-        // 0.003525); ose01[i] = OME_00(lse->ome, foo.E[i] + m11 + m12,
-        // 0.003525, 0.003525); ose10[i] = OME_00(lse->ome, foo.E[i] + m11 +
-        // m12, 0.003525, 0.003525); ose11[i] = OME_00(lse->ome, foo.E[i] + m11
-        // + m12, 0.003525, 0.003525); ose00[i] = OMEANA_00(foo.E[i] + m11 + m12
-        // , lse->x0[0], lse->x0[0]);
     }
     return 0;
 }

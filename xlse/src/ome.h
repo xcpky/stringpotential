@@ -10,12 +10,13 @@
 #define DIMRE (40)
 #define ZI (0.2)
 #define FACPI (g_b * g_b / f_pi / f_pi / 24)
+#define DELTA0 0
+#define DELTA1 1
 #include <complex.h>
 
 // #define DEBUG
 #define RECOIL
 // #define PIIIII
-// #define ETA
 //
 double complex ln1(double complex E, double complex p1, double complex p2,
                    double m0, double m1, double m2);
@@ -320,8 +321,8 @@ static inline double complex OME_11(struct OME ome, double complex E,
         double m0) {                                                           \
         auto A = p * p + pprime * pprime + m0 * m0;                            \
         auto B = 2 * p * pprime;                                               \
-        auto C = omega_##suffix(pprime, p) - e - I * EPSILON;                  \
-        auto D = omegaprime_##suffix(p, pprime) - e - I * EPSILON;             \
+        auto C = omega_##suffix(pprime, p) - e + I * EPSILON;                  \
+        auto D = omegaprime_##suffix(p, pprime) - e + I * EPSILON;             \
         auto a = Epi(1, p, pprime, m0);                                        \
         auto b = Epi(-1, p, pprime, m0);                                       \
         auto log1 = (xlog((a + C)) - xlog((b + C))) / B;                       \
@@ -335,8 +336,8 @@ static inline double complex OME_11(struct OME ome, double complex E,
         double m0) {                                                           \
         auto A = p * p + pprime * pprime + m0 * m0;                            \
         auto B = 2 * p * pprime;                                               \
-        auto C = omega_##suffix(pprime, p) - E - I * EPSILON;                  \
-        auto D = omegaprime_##suffix(p, pprime) - E - I * EPSILON;             \
+        auto C = omega_##suffix(pprime, p) - E + I * EPSILON;                  \
+        auto D = omegaprime_##suffix(p, pprime) - E + I * EPSILON;             \
         auto a = Epi(1, p, pprime, m0);                                        \
         auto b = Epi(-1, p, pprime, m0);                                       \
         auto log1 = (xlog((a + C)) - xlog((b + C))) / B;                       \
@@ -350,9 +351,10 @@ static inline double complex OME_11(struct OME ome, double complex E,
     static inline double complex ANA_##suffix(                                 \
         double complex E, double complex p, double complex pprime,             \
         double m0) {                                                           \
-        return FACPI * (2 * p * pprime * Delta1_##suffix(E, p, pprime, m0) -   \
-                        (p * p + pprime * pprime) *                            \
-                            Delta0_##suffix(E, p, pprime, m0));                \
+        return FACPI *                                                         \
+               (DELTA1 * 2 * p * pprime * Delta1_##suffix(E, p, pprime, m0) -  \
+                DELTA0 * (p * p + pprime * pprime) *                           \
+                    Delta0_##suffix(E, p, pprime, m0));                        \
     }
 
 double complex juliana(double complex E, double complex p,
@@ -390,7 +392,7 @@ static inline double complex OMEANA_01(double complex E, double complex p,
 #ifdef PIIIII
     return ANA_01(E, p, pprime, m_pi);
 #elif defined(ETA)
-    return ANA_00(E, p, pprime, m_eta);
+    return ANA_01(E, p, pprime, m_eta);
 #else
     return 2 * sqrt(2) * ANA_01(E, p, pprime, m_K);
 #endif
@@ -401,7 +403,7 @@ static inline double complex OMEANA_10(double complex E, double complex p,
 #ifdef PIIIII
     return ANA_10(E, p, pprime, m_pi);
 #elif defined(ETA)
-    return ANA_00(E, p, pprime, m_eta);
+    return ANA_10(E, p, pprime, m_eta);
 #else
     return 2 * sqrt(2) * ANA_10(E, p, pprime, m_K);
 #endif
@@ -412,7 +414,7 @@ static inline double complex OMEANA_11(double complex E, double complex p,
 #ifdef PIIIII
     return ANA_11(E, p, pprime, m_pi);
 #elif defined(ETA)
-    return ANA_00(E, p, pprime, m_eta);
+    return ANA_11(E, p, pprime, m_eta);
 #else
     return 4. / 3 * ANA_11(E, p, pprime, m_eta);
 #endif
