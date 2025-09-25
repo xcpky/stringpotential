@@ -22,7 +22,7 @@ double complex *onshellG(double *E, size_t len, double C[4], size_t pNgauss, dou
 double complex *onshellV(double *E, size_t len, double C[4], size_t pNgauss, double Lambda, double epsilon);
 double complex *onshellTV(double *E, size_t len, double C[4], size_t pNgauss, double Lambda, double epsilon);
 double complex *traceG(double *E, size_t len, double C[4], size_t pNgauss, double Lambda, double epsilon);
-double complex *Det(double *E, size_t len, double C[4], size_t pNgauss, double Lambda, double epsilon);
+double complex *Det(double *E, size_t len, double C[4], uint64_t rs, size_t pNgauss, double Lambda, double epsilon);
 double complex *Both(double *E, size_t len, double C[4], size_t pNgauss, double Lambda, double epsilon);
 double complex V(double E, double complex p, double complex pprime);
 double complex *V3d(double E, size_t pNgauss, double Lambda, double epsilon);

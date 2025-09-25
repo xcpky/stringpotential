@@ -20,7 +20,8 @@ pNgauss = 64
 data = Nothing
 C = [-1.010589943548671, 0, -1.220749787118462, 0]
 Erange = LinRange(m_Xb11P - 0.1, m_Xb14P + 0.1, 1000)
-Erange = LinRange(-1e-3, 1e-3, 1000)
+# Erange = LinRange(-1e-7, 1e-7, 1000)
+# Erange = LinRange(-0.00085, -0.00075, 1000)
 
 # Erange = LinRange(0.16, 0.17, 1000)
 # Erange = LinRange(-0.1, 2, 1000)
@@ -59,7 +60,7 @@ function analytic(e, p1, p2)
     C = 2 * m_B + p1^2 / 2 / m_B + p2^2 / 2 / m_B - e + im * epsi
     a = xsqrtleft(A - B)
     b = xsqrtleft(A + B)
-	log1 = (log((a + C) / (b + C))) / B
+    log1 = (log((a + C) / (b + C))) / B
     return -2 * log1
 end
 
@@ -167,7 +168,7 @@ end
 function conshellT(E::Vector{Cdouble}, len, C::Vector{Cdouble}, pNgauss, Lambda, epsilon)
     @time otr = ccall(Libdl.dlsym(libscript, :onshellT), Ptr{ComplexF64}, (Ptr{Cdouble}, Cuint, Ptr{Cdouble}, Cuint, Cdouble, Cdouble), E, len, C, pNgauss, Lambda, epsilon)
     ot = transpose(copy(unsafe_wrap(Array, otr, (len, 4), own=false)))
-    plot(dpi=400, legend=:topleft)
+    plot(dpi=400)
     # level = getEvec(C[1])
     # vls = filter(e -> e > E[1] && e < E[end], level)
     # vline(vls, s=:dash, c=:grey, label=L"$E_i$")
@@ -176,11 +177,11 @@ function conshellT(E::Vector{Cdouble}, len, C::Vector{Cdouble}, pNgauss, Lambda,
     vline!([m_Xb12P], s=:dash, label=L"\chi_{b1}(2P)")
     vline!([m_Xb13P], s=:dash, label=L"\chi_{b1}(3P)")
     vline!([m_Xb14P], s=:dash, label=L"\chi_{b1}(4P)")
-	# vline!([-m_pi^2/8mu[1] ], label = L"(p+p')^2 + m_pi = 0")
+    # vline!([-m_pi^2/8mu[1] ], label = L"(p+p')^2 + m_pi = 0")
 	yup = 1.1maximum(abs.(ot))
-	# yup = 1e3
+    # yup = 1e3
     plot!(E, abs.(ot[1, :]), label=L"|$T_{11}$|", dpi=400)
-    # plot!(E, abs.(ot[3, :]), label=L"|$T_{21}$|")
+    plot!(E, abs.(ot[3, :]), label=L"|$T_{21}$|")
     plot!(E, abs.(ot[4, :]), label=L"|$T_{22}$|")
     annotate!(0.01, -0.075 * yup, text(L"BB^*", 8))
     annotate!(delta[2] + 0.01, -0.075 * yup, text(L"B_sB_s^*", 8))
@@ -188,7 +189,7 @@ function conshellT(E::Vector{Cdouble}, len, C::Vector{Cdouble}, pNgauss, Lambda,
     # ylims!(0, upper)
     xlabel!("E/GeV")
     ylabel!(L"|T_{\alpha\beta}|" * "/GeV")
-    ylims!(0, yup)
+    # ylims!(0, yup)
     println(E[end])
     xlims!(E[1], E[end])
     savefig("onshellT.png")
@@ -310,29 +311,30 @@ function conshellV(E::Vector{Cdouble}, len, C::Vector{Cdouble}, pNgauss, Lambda,
     return ot
 end
 
-function detImVG(E::Vector{Cdouble}, len, C::Vector{Cdouble}, pNgauss, Lambda, epsilon)
-    @time dtr = ccall(Libdl.dlsym(libscript, :Det), Ptr{ComplexF64}, (Ptr{Cdouble}, Cuint, Ptr{Cdouble}, Cuint, Cdouble, Cdouble), E, len, C, pNgauss, Lambda, epsilon)
-    yup = 60
+function detImVG(E::Vector{Cdouble}, len, C::Vector{Cdouble}, rs, pNgauss, Lambda, epsilon)
+    @time dtr = ccall(Libdl.dlsym(libscript, :Det), Ptr{ComplexF64}, (Ptr{Cdouble}, Cuint, Ptr{Cdouble}, UInt64, Cuint, Cdouble, Cdouble), E, len, C, rs, pNgauss, Lambda, epsilon)
     Det = copy(unsafe_wrap(Array, dtr, len, own=false))
+	yup = 1.2maximum(abs.(Det))
+	ylw = 0.8minimum(abs.(Det))
     # plot(E, real.(Det), label=L"det($1-VG$)",dpi=400)
     # level = getEvec(C[1])
     # vls = filter(e -> e > E[1] && e < E[end], level)
     # vline(vls, s=:dash, c=:grey, label=L"$E_i$")
-    plot(dpi=400, legend=:topleft)
+    plot(dpi=400)
     vline!(delta, s=:dash, label="thresholds", lw=0.8)
     vline!([m_Xb11P], s=:dash, label=L"\chi_{b1}(1P)")
     vline!([m_Xb12P], s=:dash, label=L"\chi_{b1}(2P)")
     vline!([m_Xb13P], s=:dash, label=L"\chi_{b1}(3P)")
     vline!([m_Xb14P], s=:dash, label=L"\chi_{b1}(4P)")
-    annotate!(0.01, -0.075 * yup, text(L"BB^*", 8))
-    annotate!(delta[2] + 0.01, -0.075 * yup, text(L"B_sB_s^*", 8))
-    annotate!(m_pi + m_B - m_B_star, -0.019 * yup, text(L"BB\pi", 8))
-    vline!([m_pi + m_B - m_B_star], s=:dash, label=L"BB\pi")
+	annotate!(0.01, -0.075 * (yup-ylw) + ylw, text(L"BB^*", 8))
+	annotate!(delta[2] + 0.01, -0.075 * (yup - ylw) + ylw, text(L"B_sB_s^*", 8))
+    # annotate!(m_pi + m_B - m_B_star, -0.019 * yup, text(L"BB\pi", 8))
+    # vline!([m_pi + m_B - m_B_star], s=:dash, label=L"BB\pi")
     # vline!([m_pi + m_B - m_B_star], s=:dash, label=L"\pi")
     # vline!([m_pi], s=:dash, label=L"m_\pi")
     plot!(E, abs.(Det), label=L"|det($I+VG$)|", dpi=400)
     xlims!(E[1], E[end])
-    ylims!(0, yup)
+    ylims!(ylw, yup)
     xlabel!("E/GeV")
     # ylims!(0, 1e9)
     savefig("det.png")
@@ -556,7 +558,8 @@ if "--Det" in ARGS
     # C = [-4.015485e-01, -1.722080e+00, -1.854979e-01, -2.092185e+00]
     # C = zeros(Float64, 4)
     E = Erange
-    det = detImVG(collect(E), length(E), C, pNgauss, Lambda, epsi)
+	rs = parse(Int, ARGS[2])
+    det = detImVG(collect(E), length(E), C, rs, pNgauss, Lambda, epsi)
     # serialize("detwithoutrecoil.dat", det)
 end
 
@@ -850,8 +853,8 @@ if "--cut" in ARGS
     plot!(p[2], E, imag.(v1), label="Im[analytical expression]")
     vline!(p[1], [m11 + m12], label="threshold", c=:grey, s=:dash)
     vline!(p[2], [m11 + m12], label="threshold", c=:grey, s=:dash)
-	vline!(p[1], [-m_pi^2/8mu[1] + m11 + m12], label=L"(p+p')^2 + m_{\pi}^2 = 0", s=:dash)
-	vline!(p[2], [-m_pi^2/8mu[1] + m11 + m12], label=L"(p+p')^2 + m_{\pi}^2 = 0", s=:dash)
+    vline!(p[1], [-m_pi^2 / 8mu[1] + m11 + m12], label=L"(p+p')^2 + m_{\pi}^2 = 0", s=:dash)
+    vline!(p[2], [-m_pi^2 / 8mu[1] + m11 + m12], label=L"(p+p')^2 + m_{\pi}^2 = 0", s=:dash)
     # vline!(p[1], label=L"2\mu E + p^2 + m_{pi}^2 = 0", [(p2^2 + m_pi^2) / (-2mu[1]) + m11 + m12])
     # vline!(p[2], label=L"2\mu E + p^2 + m_{pi}^2 = 0", [(p2^2 + m_pi^2) / (-2mu[1]) + m11 + m12])
     savefig("cut.png")

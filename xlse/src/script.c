@@ -290,8 +290,8 @@ double complex *traceG(double *E, size_t len, double C[4], size_t pNgauss,
     return res;
 }
 
-double complex *Det(double *E, size_t len, double C[4], size_t pNgauss,
-                    double Lambda, double epsilon) {
+double complex *Det(double *E, size_t len, double C[4], uint64_t rs,
+                    size_t pNgauss, double Lambda, double epsilon) {
     double complex *res = malloc(sizeof(double complex) * len);
     thrd_t tid[NTHREADS];
     argstruct args[NTHREADS];
@@ -302,7 +302,7 @@ double complex *Det(double *E, size_t len, double C[4], size_t pNgauss,
         args[i].Lambda = Lambda;
         args[i].epsilon = epsilon;
         args[i].res = res;
-        args[i].rs = PP;
+        args[i].rs = rs;
         args[i].E = E;
         args[i].id = i;
         for (size_t cc = 0; cc < 4; cc += 1) {

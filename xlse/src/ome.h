@@ -10,7 +10,7 @@
 #define DIMRE (40)
 #define ZI (0.2)
 #define FACPI (g_b * g_b / f_pi / f_pi / 24)
-#define DELTA0 0
+#define DELTA0 1
 #define DELTA1 1
 #include <complex.h>
 
@@ -344,7 +344,8 @@ static inline double complex OME_11(struct OME ome, double complex E,
         auto log2 = (xlog((a + D)) - xlog((b + D))) / B;                       \
         auto B0 = B;                                                           \
         auto ret = -((C + D) * (a - b) / B0 / B + 2 / B +                      \
-                     (A - C * C) * (log1) / B + (A - D * D) * (log2) / B);     \
+                     DELTA0 * (A - C * C) * (log1) / B +                       \
+                     DELTA0 * (A - D * D) * (log2) / B);                       \
         return ret;                                                            \
     }
 #define DEFINE_ANA(suffix)                                                     \
