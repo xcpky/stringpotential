@@ -20,10 +20,8 @@ pNgauss = 64
 data = Nothing
 C = [-1.010589943548671, 0, -1.220749787118462, 0]
 Erange = LinRange(m_Xb11P - 0.1, m_Xb14P + 0.1, 1000)
-# Erange = LinRange(-1e-7, 1e-7, 1000)
-# Erange = LinRange(-0.00085, -0.00075, 1000)
 
-# Erange = LinRange(0.16, 0.17, 1000)
+Erange = LinRange(-1e-3, 1e-3, 1000)
 # Erange = LinRange(-0.1, 2, 1000)
 # onshellRange = LinRange(-0.7, 0.6, 1000)
 # onshellRange = LinRange(0., 0.190229863, 8000)
@@ -178,7 +176,8 @@ function conshellT(E::Vector{Cdouble}, len, C::Vector{Cdouble}, pNgauss, Lambda,
     vline!([m_Xb13P], s=:dash, label=L"\chi_{b1}(3P)")
     vline!([m_Xb14P], s=:dash, label=L"\chi_{b1}(4P)")
     # vline!([-m_pi^2/8mu[1] ], label = L"(p+p')^2 + m_pi = 0")
-	yup = 1.1maximum(abs.(ot))
+    # yup = 1.1maximum(abs.(ot))
+    yup = 1e2
     # yup = 1e3
     plot!(E, abs.(ot[1, :]), label=L"|$T_{11}$|", dpi=400)
     plot!(E, abs.(ot[3, :]), label=L"|$T_{21}$|")
@@ -189,7 +188,7 @@ function conshellT(E::Vector{Cdouble}, len, C::Vector{Cdouble}, pNgauss, Lambda,
     # ylims!(0, upper)
     xlabel!("E/GeV")
     ylabel!(L"|T_{\alpha\beta}|" * "/GeV")
-    # ylims!(0, yup)
+    ylims!(0, yup)
     println(E[end])
     xlims!(E[1], E[end])
     savefig("onshellT.png")
@@ -287,7 +286,9 @@ function conshellV(E::Vector{Cdouble}, len, C::Vector{Cdouble}, pNgauss, Lambda,
     vline!(p[1], [m_Xb11P], s=:dash, label=L"\chi_{b1}(1P)")
     vline!(p[1], [m_Xb12P], s=:dash, label=L"\chi_{b1}(2P)")
     vline!(p[1], [m_Xb13P], s=:dash, label=L"\chi_{b1}(3P)")
+    vline!(p[1], [-m_pi^2 / 8mu[1], -m_eta^2 / 8mu[1]], s=:dash)
     plot!(p[1], E, real.(ot[1, :]), label=L"real($V_{11}$)", dpi=400)
+    plot!(p[1], E, real.(ot[4, :]), label=L"real($V_{22}$)", dpi=400)
     xlabel!(p[1], "real, E/GeV")
     # plot!(E, abs.(ot[3, :]), label=L"$V_{21}$")
     # plot!(E, abs.(ot[4, :]), label=L"$V_{22}$")
@@ -298,6 +299,7 @@ function conshellV(E::Vector{Cdouble}, len, C::Vector{Cdouble}, pNgauss, Lambda,
     vline!(p[2], [m_Xb12P], s=:dash, label=L"\chi_{b1}(2P)")
     vline!(p[2], [m_Xb13P], s=:dash, label=L"\chi_{b1}(3P)")
     plot!(p[2], E, imag.(ot[1, :]), label=L"imag($V_{11}$)", dpi=400)
+    plot!(p[2], E, imag.(ot[4, :]), label=L"imag($V_{22}$)", dpi=400)
     xlabel!(p[2], "imag, E/GeV")
     # plot!(E, abs.(ot[3, :]), label=L"$V_{21}$")
     # plot!(E, abs.(ot[4, :]), label=L"$V_{22}$")
@@ -314,8 +316,8 @@ end
 function detImVG(E::Vector{Cdouble}, len, C::Vector{Cdouble}, rs, pNgauss, Lambda, epsilon)
     @time dtr = ccall(Libdl.dlsym(libscript, :Det), Ptr{ComplexF64}, (Ptr{Cdouble}, Cuint, Ptr{Cdouble}, UInt64, Cuint, Cdouble, Cdouble), E, len, C, rs, pNgauss, Lambda, epsilon)
     Det = copy(unsafe_wrap(Array, dtr, len, own=false))
-	yup = 1.2maximum(abs.(Det))
-	ylw = 0.8minimum(abs.(Det))
+    yup = 1.2maximum(abs.(Det))
+    ylw = 0.8minimum(abs.(Det))
     # plot(E, real.(Det), label=L"det($1-VG$)",dpi=400)
     # level = getEvec(C[1])
     # vls = filter(e -> e > E[1] && e < E[end], level)
@@ -326,8 +328,8 @@ function detImVG(E::Vector{Cdouble}, len, C::Vector{Cdouble}, rs, pNgauss, Lambd
     vline!([m_Xb12P], s=:dash, label=L"\chi_{b1}(2P)")
     vline!([m_Xb13P], s=:dash, label=L"\chi_{b1}(3P)")
     vline!([m_Xb14P], s=:dash, label=L"\chi_{b1}(4P)")
-	annotate!(0.01, -0.075 * (yup-ylw) + ylw, text(L"BB^*", 8))
-	annotate!(delta[2] + 0.01, -0.075 * (yup - ylw) + ylw, text(L"B_sB_s^*", 8))
+    annotate!(0.01, -0.075 * (yup - ylw) + ylw, text(L"BB^*", 8))
+    annotate!(delta[2] + 0.01, -0.075 * (yup - ylw) + ylw, text(L"B_sB_s^*", 8))
     # annotate!(m_pi + m_B - m_B_star, -0.019 * yup, text(L"BB\pi", 8))
     # vline!([m_pi + m_B - m_B_star], s=:dash, label=L"BB\pi")
     # vline!([m_pi + m_B - m_B_star], s=:dash, label=L"\pi")
@@ -458,6 +460,18 @@ function cfree(ptr::Ptr{Cvoid})
     ccall(Libdl.dlsym(libscript, :Free), Cvoid, (Ptr{Cvoid},), ptr)
 end
 
+if "--detcontour" in ARGS
+    rs = parse(Int, ARGS[2])
+    Ere = LinRange(m_Xb11P - 0.1, m_Xb14P + 0.1, 100)
+    Eim = LinRange(-0.2, 0.2, 100)
+    E = [Ere[i] + Eim[j] * im for j in eachindex(Ere), i in eachindex(Eim)]
+    @time dtr = ccall(Libdl.dlsym(libscript, :Det), Ptr{ComplexF64}, (Ptr{Cdouble}, Cuint, Ptr{Cdouble}, Cuint, Cuint, Cdouble, Cdouble), reshape(E, (1, length(E))), length(E), C, rs, pNgauss, Lambda, epsi)
+    Det = copy(unsafe_wrap(Array, dtr, size(E), own=false))
+    contour(Ere, Eim, abs.(Det), dpi=400)
+    savefig("contour.png")
+    cfree(reinterpret(Ptr{Cvoid}, dtr))
+end
+
 if "--poles" in ARGS
     Er = LinRange(-0.9, 0.0, 64)
     Ei = LinRange(-0.01, 0.01, 8)
@@ -558,7 +572,7 @@ if "--Det" in ARGS
     # C = [-4.015485e-01, -1.722080e+00, -1.854979e-01, -2.092185e+00]
     # C = zeros(Float64, 4)
     E = Erange
-	rs = parse(Int, ARGS[2])
+    rs = parse(Int, ARGS[2])
     det = detImVG(collect(E), length(E), C, rs, pNgauss, Lambda, epsi)
     # serialize("detwithoutrecoil.dat", det)
 end
