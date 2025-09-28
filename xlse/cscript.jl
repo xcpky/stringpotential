@@ -21,7 +21,7 @@ data = Nothing
 C = [-1.010589943548671, 0, -1.220749787118462, 0]
 Erange = LinRange(m_Xb11P - 0.1, m_Xb14P + 0.1, 1000)
 
-Erange = LinRange(-1e-3, 1e-3, 1000)
+# Erange = LinRange(-1e-3, 1e-3, 1000)
 # Erange = LinRange(-0.1, 2, 1000)
 # onshellRange = LinRange(-0.7, 0.6, 1000)
 # onshellRange = LinRange(0., 0.190229863, 8000)
