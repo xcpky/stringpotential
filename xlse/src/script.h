@@ -23,6 +23,7 @@ double complex *onshellV(double *E, size_t len, double C[4], size_t pNgauss, dou
 double complex *onshellTV(double *E, size_t len, double C[4], size_t pNgauss, double Lambda, double epsilon);
 double complex *traceG(double *E, size_t len, double C[4], size_t pNgauss, double Lambda, double epsilon);
 double complex *Det(double *E, size_t len, double C[4], uint64_t rs, size_t pNgauss, double Lambda, double epsilon);
+double complex *Det_single(double *E, size_t len, double C[4], uint64_t rs, size_t pNgauss, double Lambda, double epsilon);
 double complex *Both(double *E, size_t len, double C[4], size_t pNgauss, double Lambda, double epsilon);
 double complex V(double E, double complex p, double complex pprime);
 double complex *V3d(double E, size_t pNgauss, double Lambda, double epsilon);
@@ -75,6 +76,7 @@ int oV(void *arg);
 int oTV(void *arg);
 int trG(void *arg);
 int det(void *arg);
+int detsing(void *arg);
 int both(void *arg);
 int poles(void *arg);
 int cst(void *arg);

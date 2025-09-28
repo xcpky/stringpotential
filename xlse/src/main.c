@@ -468,6 +468,21 @@ void testv() {
     getV(-0.1, Ngauss, 4, 1e-6);
 }
 
+void testg() {
+	double Lambda = 2;
+	size_t pNgauss = 64;
+	double epsi = 1e-9;
+	LSE *lse [[gnu::cleanup(lsefree)]] = lse_malloc(pNgauss, Lambda, epsi);
+	lse_refresh(lse, 0.25, (double[4]){0}, PP);
+	lse_gmat(lse);
+	auto g = matrix_get(lse->G, pNgauss, pNgauss);
+	for (size_t i = 0; i < pNgauss; i += 1) {
+		g += matrix_get(lse->G, i, i);
+	}
+	g = -g;
+	printf("onshell G: %f%+f\n", creal(g), cimag(g));
+}
+
 int main(int argc, char *argv[]) {
     if (argc == 1) {
         puts("what do you want?");
@@ -497,6 +512,8 @@ int main(int argc, char *argv[]) {
         test();
     } else if (strcmp(argv[1], "v") == 0) {
         testv();
-    }
+    } else if (strcmp(argv[1], "g") == 0) {
+		testg();
+	}
     return EXIT_SUCCESS;
 }

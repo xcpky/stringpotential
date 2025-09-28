@@ -506,7 +506,7 @@ int lse_tmat_single(LSE *self) {
     gsl_blas_zgemm(CblasNoTrans, CblasNoTrans, alpha, &V.matrix, &G.matrix,
                    beta, VG);
     gsl_matrix_complex_scale(VG,
-                             gsl_complex_rect(-1.0, 0.0)); // I_minus_VG = -VG
+                             gsl_complex_rect(1.0, 0.0)); // I_minus_VG = -VG
     gsl_matrix_complex_add_diagonal(VG, 1 + 0I);
     int signum;
     if (gsl_linalg_complex_LU_decomp(VG, perm, &signum) != GSL_SUCCESS) {
