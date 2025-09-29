@@ -17,6 +17,7 @@
 // #define DEVI (-0.2)
 #define m_B (5.27934)
 #define m_B_star (5.32471 + WIDTH)
+// #define m_B_star (m_B + m_pi + 0.01)
 #define m_B_s (5.36692)
 #define m_B_star_s (5.4154 + WIDTH)
 #define gamma_B_star (1e-6)

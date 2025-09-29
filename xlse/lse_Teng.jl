@@ -1,15 +1,14 @@
 using QuadGK, NLsolve
 using CSV, DataFrames, LaTeXStrings;
-ENV["COLUMNS"] = 160;
+# ENV["COLUMNS"] = 160;
 
-import PyPlot
 
 using Plots;
-default(frame=:box, minorticks=5, size=(500, 350));
+# default(frame=:box, minorticks=5);
 #using BenchmarkTools;
 
-PyPlot.matplotlib.rc("mathtext", fontset="cm")        #computer modern font
-PyPlot.matplotlib.rc("font", family="serif", size=11)  #font similar to LaTeX
+# PyPlot.matplotlib.rc("mathtext", fontset="cm")        #computer modern font
+# PyPlot.matplotlib.rc("font", family="serif", size=11)  #font similar to LaTeX
 
 # using IMinuit
 
@@ -40,7 +39,7 @@ const Fπ = 0.092;
 const facπ = g^2 / 12.0 / Fπ^2;
 const Γc = 83.4e-6; #D*+ width
 const Γ0 = 55.3e-6; #D*0 width
-const Λ = 2.0;
+const Λ = 4.0;
 
 # D*0 width
 Gam1(E, p) = 1e-9;
@@ -131,7 +130,7 @@ xx110, ww110 = gaussC(30, 0, 0.2)
 xx120, ww120 = gaussC(10, 0.2, Λ)
 xx1 = [xx110; xx120]
 ww1 = [ww110; ww120]
-xx1, ww1 = gauss(64, 0, 2)
+xx1, ww1 = gauss(64, 0, Λ)
 xx1 = convert(Array{Complex}, xx1)
 n1 = length(xx1)
 
@@ -164,7 +163,7 @@ function Vmat!(E, rs, c0x, c1x, vmat)
     for i = 1:nn1
         for j = 1:nn1
             # vmat[i, j] = (c0x + c1x) / 2 + Vπu(E, xx11[i], xx11[j], m11, d0sw, m12, Gam1(E, xx11[i]), m11, d0sw, m12, Gam1(E, xx11[j]), m50, 0.5)
-            vmat[i, j] = -1
+			vmat[i, j] = xx11[i]*xx11[j]
         end
     end
 
@@ -207,23 +206,39 @@ function Tmat!(E, rs, c0x, c1x, gam1, vmat, gmat, tmat)
     Gmat!(E, rs, gam1, gmat)
     tmat = inv(I - vmat * gmat) * vmat
 
+    # return det(I - vmat * gmat)
     return tmat[end, end]
 end
 
 Erange = LinRange(m_Xb11P - 0.1, m_Xb14P + 0.1, 1000) .+ (m11 + m12)
 function ot()
     t = [Tmat!(Erange[i], 1, 0, 0, 0, vmat, gmat, tmat) for i in eachindex(Erange)]
-    plot(Erange, abs.(t), dpi=400)
+    plot(dpi=400)
+    yup = 1.2maximum(abs.(t))
+    ylw = 0.8minimum(abs.(t))
+
+    vline!(delta, s=:dash, label="thresholds", lw=0.8)
+    vline!([m_Xb11P], s=:dash, label=L"\chi_{b1}(1P)")
+    vline!([m_Xb12P], s=:dash, label=L"\chi_{b1}(2P)")
+    vline!([m_Xb13P], s=:dash, label=L"\chi_{b1}(3P)")
+    vline!([m_Xb14P], s=:dash, label=L"\chi_{b1}(4P)")
+    plot!(Erange .- (m11 + m12), abs.(t))
+	xlabel!("E/GeV")
+    ylims!(ylw, yup)
+	xlims!(Erange[1]-(m11+m12), Erange[end]-(m11+m12))
     savefig("onshellTeng.png")
 end
 
 function trg()
     g = [tr(Gmat!(Erange[i], 1, 0, gmat)) for i in eachindex(Erange)]
-	plot(dpi=400)
-	plot!(Erange .- (m11+m12), real.(g), label="real")
-	plot!(Erange .- (m11+m12), imag.(g), label="imag")
-	savefig("trgeng.png")
+    plot(dpi=400)
+    vline!([0, m21 + m22 - m11 - m12], label="thresholds", s=:dash)
+    plot!(Erange .- (m11 + m12), real.(g), label="real")
+    plot!(Erange .- (m11 + m12), imag.(g), label="imag")
+    ylims!(-1.5, 0.5)
+    savefig("trgeng.png")
 end
 
 # Gmat!(0.1 + m11 + m12, 1, 0, gmat);
 trg()
+ot()

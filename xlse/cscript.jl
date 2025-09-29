@@ -14,7 +14,7 @@ xsqrtup(x) = imag(x) >= 0 && real(x) < 0 ? -sqrt(x + 0im) : sqrt(x - 0im)
 xsqrtleft(x) = sqrt(Complex(x + 0im))
 # xsqrt(x) = imag(x) < 0 && real(x) < 0 ? -sqrt(x - 0im) : sqrt(x + 0im);
 
-epsi = 1e-9
+epsi = 1e-7
 Lambda = 4.0
 pNgauss = 64
 data = Nothing
@@ -114,8 +114,8 @@ function imT(E::Vector{Cdouble}, len, C::Vector{Cdouble}, pNgauss, Lambda, epsil
     # plot!(E, imag.(invT[2, :]), label="Im "*L"T^{-1}_{12}")
     # plot!(E, imag.(invT[3, :]), label="Im "*L"T^{-1}_{21}")
     plot!(E, imag.(invT[4, :]), label="Im " * L"T_{22}", lw=1.0, alpha=0.7)
-    plot!(E, ρ.(E, 1), label=L"\rho_1(E)\Theta(E-m_B-m_{B^*})", s=:dash, lw=1.5)
-    plot!(E, ρ.(E, 2), label=L"\rho_2(E)\Theta(E-m_{B_s} - m_{B_s^*})", s=:dash, lw=1.5)
+    plot!(E, ρ.(E, 1), label=L"\rho_1(E)\Theta(E-m_B-m_{B^*})", s=:dash, lw=1.0)
+    plot!(E, ρ.(E, 2), label=L"\rho_2(E)\Theta(E-m_{B_s} - m_{B_s^*})", s=:dash, lw=1.0)
     vline!(delta, label="thresholds", s=:dash, c=:grey)
     ylims!(-0.6, 1.5)
     xlabel!("E/GeV")
@@ -156,7 +156,7 @@ function imTsing(E::Vector{Cdouble}, len, C::Vector{Cdouble}, pNgauss, Lambda, e
     # plot!(E, ρ.(E, 2), label=L"\rho_2(E)\Theta(E-m_{B_s} - m_{B_s^*})")
     vline!(delta, label="thresholds", s=:dash, c=:grey)
     # vline!([-m_eta^2/2/mu[1]], label=L"m_\eta")
-    # ylims!(-2, 1.5)
+    ylims!(-0.5, 1.5)
     xlabel!("E/GeV")
     savefig("imTsing.png")
     savefig("iminvTsing.pdf")
@@ -381,7 +381,7 @@ function traceG(E::Vector{Cdouble}, len, C::Vector{Cdouble}, pNgauss, Lambda, ep
     @time dtr = ccall(Libdl.dlsym(libscript, :traceG), Ptr{ComplexF64}, (Ptr{Cdouble}, Cuint, Ptr{Cdouble}, Cuint, Cdouble, Cdouble), E, len, C, pNgauss, Lambda, epsilon)
     trg = -transpose(copy(unsafe_wrap(Array, dtr, (len, 2), own=false)))
     vline(delta, s=:dash, label="thresholds", lw=0.8, xminorticks=true)
-	vline([0.25])
+	# vline([0.25])
     plot!(E, real.(trg[1, :]), label=L"real G_{11}", dpi=400)
     plot!(E, imag.(trg[1, :]), label=L"imag G_{11}", dpi=400)
     # plot!(E, real.(trg[2, :]), label=L"real G_{22}", dpi=400)
@@ -597,8 +597,8 @@ if "--onshellTV" in ARGS
 end
 
 if "--traceG" in ARGS
-    E = LinRange(-2, 1, 1000)
-    data = traceG(collect(E), length(E), C, pNgauss, Lambda, epsi)
+    # E = LinRange(-2, 1, 1000)
+    data = traceG(collect(Erange), length(Erange), C, pNgauss, Lambda, epsi)
 end
 
 if "--Det" in ARGS

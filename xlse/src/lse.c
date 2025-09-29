@@ -15,6 +15,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define IPVG
+// #define IMVG
 #define CONSTQM
 // double complex V_QM(LSE *self, size_t p, size_t pprime) {
 //   double complex res = 0 + 0 * I;
@@ -243,7 +245,9 @@ int lse_gmat(LSE *self) {
         //        cimag((clog((self->Lambda + x0) / (self->Lambda - x0))
         //        - M_PI * I)));
         tmp = tmp - int_val * x0 * x0;
+#ifdef IPVG
         tmp = -tmp;
+#endif
 
         const size_t ii = self->pNgauss + i * (self->pNgauss + 1);
         matrix_set(self->G, ii, ii, tmp * (1 / fsquare(M_PI) / 2));
@@ -252,8 +256,13 @@ int lse_gmat(LSE *self) {
             const size_t pos = m + i * (self->pNgauss + 1);
             double complex denominator =
                 dE - fsquare(self->xi[m]) / 2 / mU + self->epsilon * I;
+#ifdef IPVG
             double complex ele = -fsquare(self->xi[m]) * self->wi[m] / 2 /
                                  fsquare(M_PI) / denominator;
+#elifdef IMVG
+            double complex ele = fsquare(self->xi[m]) * self->wi[m] / 2 /
+                                 fsquare(M_PI) / denominator;
+#endif
 #ifdef DEBUG
             if (m == 12 && i == 0) {
                 puts("\n---------G---------\n");
@@ -435,8 +444,10 @@ int lse_tmat(LSE *self) {
     }
 
     gsl_matrix_complex_memcpy(I_minus_VG, VG);
+#ifdef IMVG
     gsl_matrix_complex_scale(I_minus_VG,
-                             gsl_complex_rect(1.0, 0.0)); // I_minus_VG = -VG
+                             gsl_complex_rect(-1.0, 0.0)); // I_minus_VG = -VG
+#endif
 
     // Add identity matrix: I_minus_VG = I - VG
     gsl_matrix_complex_add_diagonal(I_minus_VG, 1 + 0I);
