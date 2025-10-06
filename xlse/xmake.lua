@@ -2,7 +2,7 @@ add_rules("mode.debug", "mode.release")
 set_languages("gnu23")
 add_cflags("-Wall", "-Wextra", "-DHAVE_INLINE", "-fgnuc-version=8", "-Wconversion")
 set_toolchains("clang")
-add_requires("gsl")
+add_requires("gnu-gsl", {alias = "gsl", system = false})
 -- add_requires("matplotplusplus")
 add_rules("plugin.compile_commands.autoupdate")
 
