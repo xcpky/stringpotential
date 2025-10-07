@@ -5,6 +5,7 @@ using LinearAlgebra
 
 # Load the shared library
 const libscript = Libdl.dlopen(joinpath(@__DIR__, "build/linux/x86_64/release/libscript.so"))
+const DATADIR = joinpath(@__DIR__, "data/");
 using Plots
 using LaTeXStrings
 include("constants.jl")
@@ -14,20 +15,37 @@ xsqrtup(x) = imag(x) >= 0 && real(x) < 0 ? -sqrt(x + 0im) : sqrt(x - 0im)
 xsqrtleft(x) = sqrt(Complex(x + 0im))
 # xsqrt(x) = imag(x) < 0 && real(x) < 0 ? -sqrt(x - 0im) : sqrt(x + 0im);
 
+
+C = Vector{Float64}(undef, 4)
+open(joinpath(DATADIR, "contact.bin"), "r") do io
+    read!(io, C)
+end
 epsi = 1e-7
 Lambda = 4.0
 pNgauss = 64
 data = Nothing
-C = [-1.010589943548671, 0, -1.220749787118462, 0]
-Erange = LinRange(m_Xb11P - 0.1, m_Xb14P + 0.1, 1000)
+Erange = LinRange(m_Xb11P - 0.3, m_Xb14P + 0.3, 1000)
+# Erange = LinRange(-0.0311, -0.031, 1000)
 
 # Erange = LinRange(-1e-3, 1e-3, 1000)
 # Erange = LinRange(-0.1, 2, 1000)
 # onshellRange = LinRange(-0.7, 0.6, 1000)
 # onshellRange = LinRange(0., 0.190229863, 8000)
+#
+lse_malloc(pNgauss, Lambda, epsilon) = ccall(dlsym(libscript, :lse_malloc), Ptr{Cvoid}, (Csize_t, Cdouble, Cdouble), pNgauss, Lambda, epsilon)
+lse_detImVG(lse, E, C::Vector{Float64}, rs) = ccall(dlsym(libscript, :lse_detImVG), ComplexF64, (Ptr{Cvoid}, ComplexF64, Ptr{Float64}, UInt64), lse, E, C, rs)
+lse_detImVGsing(lse, E, C::Vector{Float64}, rs) = ccall(dlsym(libscript, :lse_detImVGsing), ComplexF64, (Ptr{Cvoid}, ComplexF64, Ptr{Float64}, UInt64), lse, E, C, rs)
+lse_cost(lse, C::Vector{Float64}, rs) = ccall(dlsym(libscript, :lse_cost), Float64, (Ptr{Nothing}, Ptr{Float64}, UInt64), lse, C, rs)
+lse_costsing(lse, C::Vector{Float64}, rs) = ccall(dlsym(libscript, :lse_costsing), Float64, (Ptr{Nothing}, Ptr{Float64}, UInt64), lse, C, rs)
+lse_compute(lse, E, C::Vector{Float64}, rs) = ccall(dlsym(libscript, :lse_compute), Float64, (Ptr{Nothing}, ComplexF64, Ptr{Float64}, UInt), lse, E, C, rs)
 
 V(E, p, pprime) = ccall(dlsym(libscript, :V), ComplexF64, (Cdouble, ComplexF64, ComplexF64), E, p, pprime)
 Vquad(E, p, pprime) = ccall(dlsym(libscript, :Vquad), ComplexF64, (Cdouble, ComplexF64, ComplexF64), E, p, pprime)
+wfnew() = ccall(dlsym(libscript, :WF), Ptr{Cvoid}, ())
+wffree(wf::Ptr{Cvoid}) = ccall(dlsym(libscript, :WFend), Cvoid, (Ptr{Cvoid},), wf)
+getwf(wf::Ptr{Cvoid}, p::ComplexF64, n::UInt64) = ccall(dlsym(libscript, :getwf), ComplexF64, (Ptr{Cvoid}, ComplexF64, UInt64), wf, p, n)
+getwfx(wf::Ptr{Cvoid}, r::Float64, n::UInt64) = ccall(dlsym(libscript, :getwfx), ComplexF64, (Ptr{Cvoid}, Float64, UInt64), wf, r, n)
+getphi(r::Float64, n::Int32) = ccall(dlsym(libscript, :getphi), ComplexF64, (Float64, Int32), r, n)
 function integrand(e, p1, p2, x)
     A = p1^2 + p2^2 + m_pi^2
     B = 2 * p1 * p2
@@ -176,8 +194,8 @@ function conshellT(E::Vector{Cdouble}, len, C::Vector{Cdouble}, pNgauss, Lambda,
     vline!([m_Xb13P], s=:dash, label=L"\chi_{b1}(3P)")
     vline!([m_Xb14P], s=:dash, label=L"\chi_{b1}(4P)")
     # vline!([-m_pi^2/8mu[1] ], label = L"(p+p')^2 + m_pi = 0")
-    # yup = 1.1maximum(abs.(ot))
-    yup = 1e2
+    yup = 1.1maximum(abs.(ot))
+    yup = min(50, yup)
     # yup = 1e3
     plot!(E, abs.(ot[1, :]), label=L"|$T_{11}$|", dpi=400)
     plot!(E, abs.(ot[3, :]), label=L"|$T_{21}$|")
@@ -204,9 +222,10 @@ function conshellT_single(E::Vector{Cdouble}, len, C::Vector{Cdouble}, pNgauss, 
     vls = filter(e -> e > E[1] && e < E[end], level)
     # vline(vls, s=:dash, c=:grey, label=L"$E_i$")
     vline!(delta, s=:dash, label="thresholds", lw=0.8)
-    # vline!([m_Xb11P], s=:dash, label=L"\chi_{b1}(1P)")
-    # vline!([m_Xb12P], s=:dash, label=L"\chi_{b1}(2P)")
-    # vline!([m_Xb13P], s=:dash, label=L"\chi_{b1}(3P)")
+    vline!([m_Xb11P], s=:dash, label=L"\chi_{b1}(1P)")
+    vline!([m_Xb12P], s=:dash, label=L"\chi_{b1}(2P)")
+    vline!([m_Xb13P], s=:dash, label=L"\chi_{b1}(3P)")
+    vline!([m_Xb14P], s=:dash, label=L"\chi_{b1}(4P)")
     plot!(E, abs.(ot), label=L"$T_{11}$", dpi=400)
     # vline!([m_pi-m_B_star], s=:dash, c=:grey, label=L"BB\pi")
     # plot!(E, abs.(ot[3, :]), label=L"$T_{21}$")
@@ -214,7 +233,6 @@ function conshellT_single(E::Vector{Cdouble}, len, C::Vector{Cdouble}, pNgauss, 
     # plot!(E, abs.(ot[2, :]), label=L"$T_{12}$")
     # ylims!(0, upper)
     # ylims!(0, 3e3)
-    println(E[end])
     xlims!(E[1], E[end])
     # ylims!(0, 50)
     xlabel!("E/GeV")
@@ -317,6 +335,8 @@ function detImVG(E::Vector{Cdouble}, len, C::Vector{Cdouble}, rs, pNgauss, Lambd
     @time dtr = ccall(Libdl.dlsym(libscript, :Det), Ptr{ComplexF64}, (Ptr{Cdouble}, Cuint, Ptr{Cdouble}, UInt64, Cuint, Cdouble, Cdouble), E, len, C, rs, pNgauss, Lambda, epsilon)
     Det = copy(unsafe_wrap(Array, dtr, len, own=false))
     yup = 1.2maximum(abs.(Det))
+    yup = min(yup, 100)
+    # yup = 3
     ylw = 0.8minimum(abs.(Det))
     # plot(E, real.(Det), label=L"det($1-VG$)",dpi=400)
     # level = getEvec(C[1])
@@ -349,6 +369,7 @@ function detImVG_single(E::Vector{Cdouble}, len, C::Vector{Cdouble}, rs, pNgauss
     @time dtr = ccall(Libdl.dlsym(libscript, :Det_single), Ptr{ComplexF64}, (Ptr{Cdouble}, Cuint, Ptr{Cdouble}, UInt64, Cuint, Cdouble, Cdouble), E, len, C, rs, pNgauss, Lambda, epsilon)
     Det = copy(unsafe_wrap(Array, dtr, len, own=false))
     yup = 1.2maximum(abs.(Det))
+    yup = min(yup, 10)
     ylw = 0.8minimum(abs.(Det))
     # plot(E, real.(Det), label=L"det($1-VG$)",dpi=400)
     # level = getEvec(C[1])
@@ -381,7 +402,7 @@ function traceG(E::Vector{Cdouble}, len, C::Vector{Cdouble}, pNgauss, Lambda, ep
     @time dtr = ccall(Libdl.dlsym(libscript, :traceG), Ptr{ComplexF64}, (Ptr{Cdouble}, Cuint, Ptr{Cdouble}, Cuint, Cdouble, Cdouble), E, len, C, pNgauss, Lambda, epsilon)
     trg = -transpose(copy(unsafe_wrap(Array, dtr, (len, 2), own=false)))
     vline(delta, s=:dash, label="thresholds", lw=0.8, xminorticks=true)
-	# vline([0.25])
+    # vline([0.25])
     plot!(E, real.(trg[1, :]), label=L"real G_{11}", dpi=400)
     plot!(E, imag.(trg[1, :]), label=L"imag G_{11}", dpi=400)
     # plot!(E, real.(trg[2, :]), label=L"real G_{22}", dpi=400)
@@ -467,8 +488,17 @@ function Poles(Er::Vector{Cdouble}, rlen, Ei::Vector{Cdouble}, ilen, C::Vector{C
 end
 
 function minimize(C::Vector{Cdouble}, pNgauss, Lambda, epsilon)
-    @time dtr = ccall(Libdl.dlsym(libscript, :Fit), Ptr{Cdouble}, (Ptr{Cdouble}, Csize_t, Cdouble, Cdouble), C, pNgauss, Lambda, epsilon)
-    data = copy(unsafe_wrap(Array, dtr, 4, own=false))
+    @time dtr = ccall(Libdl.dlsym(libscript, :Fit), Ptr{Cdouble}, (Ptr{Cdouble}, Csize_t, Csize_t, Cdouble, Cdouble), C, length(C) / 4, pNgauss, Lambda, epsilon)
+	data = transpose(copy(unsafe_wrap(Array, dtr, (4 + 1, Int(length(C) // 4)), own=false)))
+    cfree(reinterpret(Ptr{Cvoid}, dtr))
+    return data
+end
+
+function minimizesing(C::Vector{Cdouble}, pNgauss, Lambda, epsilon)
+    @time dtr = ccall(Libdl.dlsym(libscript, :Fitsing), Ptr{Cdouble}, (Ptr{Cdouble}, Csize_t, UInt64, Cdouble, Cdouble), C, length(C) / 4, pNgauss, Lambda, epsilon)
+    data = transpose(copy(unsafe_wrap(Array, dtr, (4 + 1, Int(length(C) // 4)), own=false)))
+    cfree(reinterpret(Ptr{Cvoid}, dtr))
+    println(size(data))
     return data
 end
 
@@ -492,6 +522,30 @@ end
 function cfree(ptr::Ptr{Cvoid})
     ccall(Libdl.dlsym(libscript, :Free), Cvoid, (Ptr{Cvoid},), ptr)
 end
+
+function nonana(E, p, m1, m2, m0)::Vector{ComplexF64}
+    M = m1 + m2
+    poly = Polynomial([E^2 + M^2 + p^4 / 4 / m2 / m2 - 2E * M - E * p^2 / m2 + M * p^2 / m2 - p^2 - m0^2, 2p, (M - E) / m1 + p^2 / 2 / m1 / m2 - 1, 0, 1 / 4 / m1 / m1,])
+    rts = roots(poly)
+    for i in eachindex(rts)
+        if abs(imag(rts[i])) < 1e-6
+            if E - M - real(rts[i])^2 / 2 / m1 - p^2 / 2 / m2 < 0
+                rts[i] = NaN
+            end
+        end
+    end
+    return rts
+end
+
+function getV(E)
+    dtr = ccall(dlsym(libscript, :getV), Ptr{ComplexF64}, (Cdouble, Csize_t, Cdouble, Cdouble), E, pNgauss, Lambda, epsi)
+    V = copy(transpose(unsafe_wrap(Array, dtr, (2 * pNgauss + 2, 2 * pNgauss + 2), own=false)))
+    cfree(reinterpret(Ptr{Cvoid}, dtr))
+    return V
+end
+
+z0(E, m, p1, p2, m0) = ((E - 2m - (p1^2 + p2^2) / (2m))^2 - m0^2 - p1^2 - p2^2) / (-2p2 * p1)
+z0E(p1, p2, m0) = (p1^2 + p2^2 + m0^2) / (2p2 * p1)
 
 if "--detcontour" in ARGS
     rs = parse(Int, ARGS[2])
@@ -575,7 +629,6 @@ end
 if "--onshellV" in ARGS
     # E = 1.48:0.00001:1.499
     # C = [-4.015485e-01, -1.722080e+00, -1.854979e-01, -2.092185e+00]
-    C = [0, 0.0, 0, 0]
     E = Erange
     # E = LinRange(-1.8, -1.6, 10000)
     # E = LinRange(-0.8001, -0.7999, 5000)
@@ -586,7 +639,6 @@ if "--onshellV" in ARGS
 end
 if "--onshellTV" in ARGS
     # E = 1.48:0.00001:1.499
-    C = [-4.015485e-01, -1.722080e+00, -1.854979e-01, -2.092185e+00]
     E = Erange
     # E = LinRange(-1.8, -1.6, 10000)
     # E = LinRange(-0.8001, -0.7999, 5000)
@@ -642,21 +694,50 @@ if "--Fit" in ARGS
 end
 
 if "--cost" in ARGS
-    c = LinRange(-2, 2, 5000)
-    cost(collect(c), length(c), -0.7150819414927397 + 0im, pNgauss, Lambda, epsi)
+    carr = LinRange(-2, 2, 5000)
+    cost(collect(carr), length(carr), -0.7150819414927397 + 0im, pNgauss, Lambda, epsi)
 end
 
 if "--minimize" in ARGS
     # C[1] = -2
-    C = [-2, 0.0, 0, 0]
+    using Random
+    C = randn(100 * 4)
     lse = ccall(dlsym(libscript, :lse_malloc), Ptr{Cvoid}, (Csize_t, Cdouble, Cdouble), pNgauss, Lambda, epsi)
-    c = minimize(C, pNgauss, Lambda, epsi)
+    carr = sortslices(minimize(C, pNgauss, Lambda, epsi), dims=1, by=x -> x[end])
+	c = carr[1, 1:4]
+    open("data/contact.bin", "w") do file
+        write(file, c)
+    end
     println(ccall(dlsym(libscript, :lse_cost), Cdouble, (Ptr{Cvoid}, Ptr{Cdouble}, UInt), lse, c, 3))
     conshellT(collect(Erange), length(Erange), c, pNgauss, Lambda, epsi)
 end
 
-z0(E, m, p1, p2, m0) = ((E - 2m - (p1^2 + p2^2) / (2m))^2 - m0^2 - p1^2 - p2^2) / (-2p2 * p1)
-z0E(p1, p2, m0) = (p1^2 + p2^2 + m0^2) / (2p2 * p1)
+if "--testC" in ARGS
+    using Random
+    Csample = randn(100, 4)
+    for i in 1:100
+        lse = lse_malloc(pNgauss, Lambda, epsi)
+        println(Csample[i, 1:4])
+        println(ccall(dlsym(libscript, :lse_cost), Cdouble, (Ptr{Cvoid}, Ptr{Cdouble}, UInt), lse, Csample[i, 1:4], 3))
+        println()
+    end
+end
+
+if "--minimizesing" in ARGS
+    # C[1] = -2
+    using Random
+    C = randn(4 * 20)
+    lse = ccall(dlsym(libscript, :lse_malloc), Ptr{Cvoid}, (Csize_t, Cdouble, Cdouble), pNgauss, Lambda, epsi)
+    carr = sortslices(minimizesing(C, pNgauss, Lambda, epsi), dims=1, by=x -> x[end])
+    carr = carr[1, 1:4]
+    println(carr[1, end])
+    open("data/contact.bin", "w") do file
+        write(file, carr)
+    end
+    println(ccall(dlsym(libscript, :lse_costsing), Cdouble, (Ptr{Cvoid}, Ptr{Cdouble}, UInt), lse, carr, 3))
+    conshellT_single(collect(Erange), length(Erange), carr, pNgauss, Lambda, epsi)
+end
+
 if "--OME" in ARGS
     ome = ccall(dlsym(libscript, :ome_malloc), Ptr{Cvoid}, ())
     quad(E, p, pprime) = ccall(dlsym(libscript, :quad), ComplexF64, (ComplexF64, ComplexF64, ComplexF64), E, p, pprime)
@@ -687,27 +768,6 @@ if "--OME" in ARGS
     # ylims!(-0.5, maximum(vvec) * 1.1)
     ylims!(-0.5, 5.5)
     savefig("pole1.png")
-end
-
-function nonana(E, p, m1, m2, m0)::Vector{ComplexF64}
-    M = m1 + m2
-    poly = Polynomial([E^2 + M^2 + p^4 / 4 / m2 / m2 - 2E * M - E * p^2 / m2 + M * p^2 / m2 - p^2 - m0^2, 2p, (M - E) / m1 + p^2 / 2 / m1 / m2 - 1, 0, 1 / 4 / m1 / m1,])
-    rts = roots(poly)
-    for i in eachindex(rts)
-        if abs(imag(rts[i])) < 1e-6
-            if E - M - real(rts[i])^2 / 2 / m1 - p^2 / 2 / m2 < 0
-                rts[i] = NaN
-            end
-        end
-    end
-    return rts
-end
-
-function getV(E)
-    dtr = ccall(dlsym(libscript, :getV), Ptr{ComplexF64}, (Cdouble, Csize_t, Cdouble, Cdouble), E, pNgauss, Lambda, epsi)
-    V = copy(transpose(unsafe_wrap(Array, dtr, (2 * pNgauss + 2, 2 * pNgauss + 2), own=false)))
-    cfree(reinterpret(Ptr{Cvoid}, dtr))
-    return V
 end
 
 if "--analyticity" in ARGS
@@ -744,7 +804,7 @@ if "--analyticity" in ARGS
 end
 
 if "--nroots" in ARGS
-    prange = LinRange(0.01, 2, 1000)
+    local prange = LinRange(0.01, 2, 1000)
     E = 0.8
     @time nonanalyticity = [nonana(E + m_B + m_B_star, p, m_B, m_B, m_pi) for p in prange]
     all_points = vcat(nonanalyticity...)
@@ -759,63 +819,6 @@ if "--nroots" in ARGS
             print(count)
         end
     end
-    # x_min, x_max = minimum(real.(all_points)), maximum(real.(all_points))
-    # y_min, y_max = minimum(imag.(all_points)), maximum(imag.(all_points))
-    #
-    # # Add some padding to the limits for better visuals
-    # padding_x = (x_max - x_min) * 0.1
-    # padding_y = (y_max - y_min) * 0.1
-    # xlims_with_padding = (x_min - padding_x, x_max + padding_x)
-    # ylims_with_padding = (y_min - padding_y, y_max + padding_y)
-    #
-    #
-    # # --- 3. Create the Animation ---
-    # # We use the @gif macro to loop through each element of our data array.
-    # println("Generating animation... this may take a moment.")
-    #
-    # data = nonanalyticity
-    # @gif for i in eachindex(nonanalyticity)
-    #
-    #     current_points = data[i]
-    #
-    #     # To connect the four points and form a closed shape, we append the first point to the end
-    #     shape_points = [current_points..., current_points[1]]
-    #
-    #     # Extract the real (x) and imaginary (y) coordinates for plotting
-    #     x_coords = real.(shape_points)
-    #     y_coords = imag.(shape_points)
-    #
-    #     # Create the plot for the current frame
-    #     plot(x_coords, y_coords,
-    #         xlabel="Real Part",
-    #         ylabel="Imaginary Part",
-    #         title="Frame $i of $(length(data))",
-    #
-    #         # Use the pre-calculated limits
-    #         xlims=xlims_with_padding,
-    #         ylims=ylims_with_padding,
-    #
-    #         # Ensure a square aspect ratio, crucial for complex planes
-    #         aspect_ratio=:equal,
-    #
-    #         # Use seriestype=:shape to fill the polygon
-    #         seriestype=:shape,
-    #         fillalpha=0.3,
-    #
-    #         # Also show the individual points clearly
-    #         marker=(:circle, 5, 0.8, :red, stroke(0)),
-    #
-    #         # Style the connecting line
-    #         linewidth=2,
-    #         linecolor=:black,
-    #
-    #         # Disable the legend as it's not needed here
-    #         legend=false
-    #     )
-    #
-    # end fps = 30
-    #
-    # println("Animation saved as 'anim.gif'")
 end
 
 if "--imT" in ARGS
@@ -917,3 +920,73 @@ if "--cut" in ARGS
     savefig("cut.pdf")
 end
 
+if "--testwf" in ARGS
+    using QuadGK
+    wf = wfnew()
+    np = 400
+    plamb = 3
+    prange = LinRange(0, plamb, np)
+    psi = Array{Float64}(undef, 5, np)
+    for n in 1:5
+        for pi in eachindex(prange)
+            psi[n, pi] = imag(getwf(wf, Complex(prange[pi]), UInt(n)))
+        end
+    end
+    plot()
+    plot!(prange, psi[1, :], label="n = 1")
+    plot!(prange, -psi[2, :], label="n = 2")
+    plot!(prange, psi[3, :], label="n = 3")
+    plot!(prange, -psi[4, :], label="n = 4")
+    plot!(prange, -psi[5, :], label="n = 5")
+    savefig("psi.png")
+    x, w = gauss(128, 0, plamb)
+    for n in 1:5
+        norm = 0
+        for i in 1:128
+            local psi = getwf(wf, Complex(x[i]), UInt(n))
+            norm += psi * conj(psi) * w[i] * x[i]^2
+        end
+        println("norm$n: $(norm)")
+    end
+end
+
+if "--testwfx" in ARGS
+    using QuadGK
+    wf = wfnew()
+    rp = 200
+    rlamb = 20
+    xrange = LinRange(0, rlamb, rp)
+    local psi = Array{Float64}(undef, 5, rp)
+    for n in 1:5
+        for i in eachindex(xrange)
+            psi[n, i] = real(getwfx(wf, xrange[i], UInt(n)))
+        end
+    end
+    plot()
+    plot!(xrange, psi[1, :], label="n = 1")
+    plot!(xrange, -psi[2, :], label="n = 2")
+    plot!(xrange, psi[3, :], label="n = 3")
+    plot!(xrange, -psi[4, :], label="n = 4")
+    plot!(xrange, -psi[5, :], label="n = 5")
+    savefig("psi.png")
+    x, w = gauss(rp, 0, rlamb)
+    for n in 1:5
+        norm = 0
+        for i = 1:rp
+            local psi = getwfx(wf, x[i], UInt(n))
+            norm += psi * conj(psi) * w[i] * x[i]^2
+        end
+        println("norm$n: $norm")
+    end
+end
+
+if "--testphi" in ARGS
+    using QuadGK
+    x, w = gauss(200, 0, 20)
+    local norm = 0
+    for i in 1:200
+        local phi = getphi(x[i], Int32(1))
+        norm += phi * conj(phi) * x[i]^2 * w[i]
+    end
+    println("norm: $norm")
+end

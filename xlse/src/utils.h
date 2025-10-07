@@ -3,6 +3,7 @@
 
 #include <complex.h>
 #include <math.h>
+#include <stdint.h>
 
 char *formatC(double complex);
 static inline double complex xsqrtleft(double complex x) { return csqrt(x); }
@@ -34,4 +35,9 @@ static inline double complex xlog(double complex x) {
     }
     return res;
 }
+
+void writec(const char* filename, double complex *data, uint64_t n);
+void readc(const char *filename, double complex *data, uint64_t n);
+void writef(const char* filename, double *data, uint64_t n);
+void readf(const char *filename, double *data, uint64_t n);
 #endif // UTILS_H

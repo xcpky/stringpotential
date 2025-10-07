@@ -2,14 +2,16 @@ add_rules("mode.debug", "mode.release")
 set_languages("gnu23")
 add_cflags("-Wall", "-Wextra", "-DHAVE_INLINE", "-fgnuc-version=8", "-Wconversion")
 set_toolchains("clang")
-add_requires("gnu-gsl", {alias = "gsl", system = false})
+add_requires("gsl", {system = true})
+-- add_requires("gnu-gsl", {alias = "gsl", system = false})
 -- add_requires("matplotplusplus")
 add_rules("plugin.compile_commands.autoupdate")
+add_defines("DATADIR=\"" .. os.projectdir() .. "/data/\"")
 
 target("wavefunction")
 do
 	set_kind("shared")
-	add_files("src/wavefunction.c", "src/constants.c")
+	add_files("src/wavefunction.c")
 	add_packages("gsl")
 	add_links("m")
 end
@@ -18,7 +20,7 @@ target("lse")
 do
 	set_kind("shared")
 	-- add_headerfiles("src/lse.h")
-	add_files("src/lse.c", "src/constants.c", "src/wavefunction.c", "src/ome.c", "src/utils.c")
+	add_files("src/lse.c", "src/wavefunction.c", "src/ome.c", "src/utils.c")
 	add_packages("gsl")
 	add_links("m")
 end
@@ -31,7 +33,7 @@ do
 	add_deps("script")
 	add_packages("gsl")
 	add_links("m")
-	add_files("src/main.c", "src/constants.c", "src/utils.c")
+	add_files("src/main.c", "src/utils.c")
 end
 
 target("script")
@@ -41,7 +43,7 @@ do
 		target:add("defines", " NTHREADS=" .. nproc)
 	end)
 	set_kind("shared")
-	add_files("src/script.c", "src/constants.c", "src/wavefunction.c", "src/lse.c", "src/ome.c")
+	add_files("src/script.c", "src/wavefunction.c", "src/lse.c", "src/ome.c", "src/utils.c")
 	add_packages("gsl")
 	add_links("m")
 end

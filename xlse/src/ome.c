@@ -1,16 +1,17 @@
 #include "ome.h"
+
 #include <complex.h>
 #include <gsl/gsl_integration.h>
 #include <stdio.h>
 
-void ome_build(struct OME *self) {
+void ome_build(struct OME* self) {
     if (self->set == 1) {
         return;
     }
     self->set = 1;
-    gsl_integration_glfixed_table *tableim =
+    gsl_integration_glfixed_table* tableim =
         gsl_integration_glfixed_table_alloc(DIMIM);
-    gsl_integration_glfixed_table *tablere =
+    gsl_integration_glfixed_table* tablere =
         gsl_integration_glfixed_table_alloc(DIMRE);
     for (size_t i = 0; i < DIMIM; i += 1) {
         double im;
@@ -49,9 +50,9 @@ void ome_build(struct OME *self) {
     gsl_integration_glfixed_table_free(tablere);
 }
 
-void ome_free(struct OME *self) { free(self); }
+void ome_free(struct OME* self) { free(self); }
 
-void printp(struct OME *self) {
+void printp(struct OME* self) {
     for (size_t i = 0; i < 2 * DIMIM + DIMRE; i += 1) {
         printf("%s\n", formatC(self->wwpiup[i]));
     }
@@ -164,7 +165,7 @@ double complex Vpiu(struct OME ome, _Complex double E, _Complex double p1,
     return res;
 }
 double complex quad(double complex E, double complex p1, double complex p2) {
-    gsl_integration_glfixed_table *table =
+    gsl_integration_glfixed_table* table =
         gsl_integration_glfixed_table_alloc(DIMRE);
     double xxz[DIMRE];
     double wwz[DIMRE];
@@ -176,9 +177,9 @@ double complex quad(double complex E, double complex p1, double complex p2) {
     double gam3 = 0;
     double gam4 = 0;
     double m1 = m_B;
-    double m2 = m_B_star;
+    double m2 = creal(m_B_star);
     double m3 = m_B;
-    double m4 = m_B_star;
+    double m4 = creal(m_B_star);
     double m0 = m_pi;
     double complex res = 0;
     for (size_t i = 0; i < DIMRE; i += 1) {
@@ -200,10 +201,10 @@ double complex juliana(double complex E, double complex p,
                        double complex pprime) {
     auto A = p * p + pprime * pprime + m_pi * m_pi;
     auto B = 2 * p * pprime;
-    auto D = 2 * m_B_star + (p * p + pprime * pprime) / (2 * m_B_star) - E;
-    auto C = 2 * m_B + (p * p + pprime * pprime) / (2 * m_B) - E;
-    auto a = xsqrtright(A - B);
-    auto b = xsqrtright(A + B);
+    [[maybe_unused]] auto D = 2 * m_B_star + (p * p + pprime * pprime) / (2 * m_B_star) - E;
+    [[maybe_unused]] auto C = 2 * m_B + (p * p + pprime * pprime) / (2 * m_B) - E;
+    [[maybe_unused]] auto a = xsqrtright(A - B);
+    [[maybe_unused]] auto b = xsqrtright(A + B);
     // auto ret = -1*((D+C)*(a-b)+2*B-(A- D*D)*clog((b + D)/(a + D)) - (A-
     // C*C)*clog((b + C)/(a + C))); return ret/B/B; return
     // -(p*p+pprime*pprime)*Delta0_00(E, p, pprime, m_pi) +

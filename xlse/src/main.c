@@ -1,10 +1,4 @@
-#include "autofree.h"
-#include "constants.h"
-#include "lse.h"
-#include "ome.h"
-#include "script.h"
-#include "utils.h"
-#include "wavefunction.h"
+#include <complex.h>
 #include <gsl/gsl_eigen.h>
 #include <gsl/gsl_integration.h>
 #include <gsl/gsl_matrix_double.h>
@@ -15,8 +9,16 @@
 #include <string.h>
 #include <sys/types.h>
 
+#include "autofree.h"
+#include "constants.h"
+#include "lse.h"
+#include "ome.h"
+#include "script.h"
+#include "utils.h"
+#include "wavefunction.h"
+
 double complex delta0lim(double complex E, double complex p, double m0,
-                         double m1, double m2) {
+                         [[maybe_unused]] double m1, [[maybe_unused]] double m2) {
     auto sq = csqrt(p * p + m0 * m0);
     // auto omega = m1 + m2 + p * p / 2 / m2 - E;
     auto omega = 2 * m_B + p * p / 2 / m_B - E - m11 - m12;
@@ -86,7 +88,7 @@ double complex delta11(double complex E, double complex p1, double complex p2,
 void testconvergence() {
     size_t Ngauss = 512;
     double Lambda;
-    WaveFunction *wf [[gnu::cleanup(wffree)]] = WFnew(partialwave, 4, Ngauss);
+    WaveFunction* wf [[gnu::cleanup(wffree)]] = WFnew(partialwave, 4, Ngauss);
     auto self = wf;
     double complex p = 1.3 * I;
     size_t n = 1;
@@ -94,11 +96,11 @@ void testconvergence() {
         scanf("%lf", &Lambda);
         wf_refresh(wf, Lambda);
         const uint64_t Ngauss = self->rNgauss;
-        const uint64_t l = self->l;
-        double *xi = self->xi;
-        double *wi = self->wi;
+        const uint l = self->l;
+        double* xi = self->xi;
+        double* wi = self->wi;
         double complex psi = 0.0;
-        auto nidx = 40;
+        uint nidx = 40;
         double complex quad = 0 + 0 * I;
         printf("nu: %10.6e\n", nu_n(nidx + 1));
         for (size_t i = 0; i < Ngauss; i += 1) {
@@ -114,11 +116,11 @@ void testconvergence() {
     } while (true);
 }
 
-double *linspace(double start, double end, size_t len) {
-    double *res = (double *)malloc(sizeof(double) * len);
-    double step = (end - start) / len;
+double* linspace(double start, double end, size_t len) {
+    double* res = (double*)malloc(sizeof(double) * len);
+    double step = (end - start) / (double)len;
     for (size_t i = 0; i < len; i += 1) {
-        res[i] = start + step * i;
+        res[i] = start + step * (double)i;
     }
     return res;
 }
@@ -133,7 +135,7 @@ void testwf() {
     //   puts("");
     // }
     size_t pNgauss = 64;
-    LSE *lse [[gnu::cleanup(lsefree)]] = lse_malloc(pNgauss, 4, 1e-6);
+    LSE* lse [[gnu::cleanup(lsefree)]] = lse_malloc(pNgauss, 4, 1e-6);
     double complex(*psi)[N_MAX + 1][pNgauss + 1] = lse->psi_n_mat;
     lse_refresh(lse, -0.3, (double[]){1, 1, 1, 1}, PP);
     // printf("%25s %28s\n", "Column 1", "Column 2");
@@ -143,8 +145,8 @@ void testwf() {
     // }
     // delim[54] = '\0';
     // printf("%s\n", delim);
-    const int width = 11;    // Field width for each number
-    const int precision = 4; // Decimal places
+    const int width = 11;     // Field width for each number
+    const int precision = 4;  // Decimal places
 
     for (size_t i = 0; i < N_MAX + 1; i += 1) {
         auto x = psi[0][i][pNgauss];
@@ -163,7 +165,7 @@ void testwf() {
     // }
 }
 
-void printmat(matrix *m) {
+void printmat(matrix* m) {
     auto row = m->size1;
     auto col = m->size2;
     for (size_t i = 0; i < row; i += 1) {
@@ -175,7 +177,7 @@ void printmat(matrix *m) {
     }
 }
 
-void printabsmat(matrix *m) {
+void printabsmat(matrix* m) {
     auto row = m->size1;
     auto col = m->size2;
     for (size_t i = 0; i < row; i += 1) {
@@ -188,12 +190,12 @@ void printabsmat(matrix *m) {
 }
 
 void testwopotential() {
-    LSE *lse [[gnu::cleanup(lsefree)]] = lse_malloc(5, 4, 1e-6);
+    LSE* lse [[gnu::cleanup(lsefree)]] = lse_malloc(5, 4, 1e-6);
     lse_compute(lse, 0.1, (double[]){1, 1, 1, 1}, 1);
     // lse_X(lse);
     // lse_XtX(lse);
     auto pNgauss = lse->pNgauss;
-    auto psi = (double complex(*)[N_MAX + 1][pNgauss + 1]) lse->psi_n_mat;
+    [[maybe_unused]] auto psi = (double complex(*)[N_MAX + 1][pNgauss + 1]) lse->psi_n_mat;
     auto v = V_QM_00(lse, pNgauss, pNgauss);
     printf("%f %f(im)\n", creal(v), cimag(v));
     // for (size_t i = 0; i < N_MAX + 1; i += 1) {
@@ -215,7 +217,7 @@ void testwopotential() {
     // }
 }
 
-double complex qmhelp(LSE *lse, size_t pi, size_t ppi) {
+double complex qmhelp(LSE* lse, size_t pi, size_t ppi) {
     double complex res = 0;
     auto E = lse->E;
     size_t pNgauss = lse->pNgauss;
@@ -235,9 +237,10 @@ double complex qmhelp(LSE *lse, size_t pi, size_t ppi) {
             auto sj = conj(psi[chan1][i][ppi % (pNgauss + 1)]);
             printf("\tpsi[chan0]: %f %f(im)\n", creal(si), cimag(si));
             printf("\tpsi[chan1]: %f %f(im)\n", creal(sj), cimag(sj));
-            printf("\tchan1 = %lu, i = %lu, ppi %% (pNgauss + 1) = "
-                   "%lu\n",
-                   chan1, i, ppi % (pNgauss + 1));
+            printf(
+                "\tchan1 = %lu, i = %lu, ppi %% (pNgauss + 1) = "
+                "%lu\n",
+                chan1, i, ppi % (pNgauss + 1));
             puts("");
         }
     }
@@ -245,7 +248,7 @@ double complex qmhelp(LSE *lse, size_t pi, size_t ppi) {
 }
 
 void testome() {
-    struct OME *ome = malloc(sizeof(*ome));
+    struct OME* ome = malloc(sizeof(*ome));
     ome_build(ome);
     auto x = OME_01(*ome, 0.1, 0.3, 0.8);
     printf("%f%+f\n", creal(x), cimag(x));
@@ -253,7 +256,7 @@ void testome() {
 
 void testlse() {
     const size_t Ngauss = 4;
-    LSE *lse [[gnu::cleanup(lsefree)]] = lse_malloc(Ngauss, 4, 1e-9);
+    LSE* lse [[gnu::cleanup(lsefree)]] = lse_malloc(Ngauss, 4, 1e-9);
     if (!lse) {
         fprintf(stderr, "Failed to create LSE solver\n");
         exit(1);
@@ -269,52 +272,11 @@ void testlse() {
         }
         puts("");
     }
-    // auto Espace = linspace(-2, -0.3, 8);
-    // for (size_t Ei = 0; Ei < 1; Ei += 1) {
-    //   auto E = Espace[Ei];
-    //   lse_compute(lse, E, (double[]){1, 1, 1, 1}, 1);
-    //   // lse_gmat(lse);
-    //   // lse_vmat(lse);
-    //   // puts("G matrix");
-    //   // gsl_matrix_complex_fprintf(stdout, lse->G, "%.2e");
-    //   puts("V matrix");
-    //   printabsmat(lse->VOME);
-    //   puts("T matrix");
-    //   printabsmat(lse->TOME);
-    //   puts("onshell T");
-    //   for (size_t alpha = 0; alpha < 2; alpha += 1) {
-    //     for (size_t beta = 0; beta < 2; beta += 1) {
-    //       auto x = matrix_get(lse->TOME, Ngauss + alpha * (Ngauss + 1),
-    //                           Ngauss + beta * (Ngauss + 1));
-    //       printf("%lu%lu: %.3e %.3e(im)\n", alpha, beta, creal(x),
-    //       cimag(x));
-    //     }
-    //   }
-    // }
-    // puts("det");
-    // auto x = lse_detImVG(lse, E);
-    // printf("%f %f(im)\n", creal(x), cimag(x));
-    // for (size_t pi = 0; pi < Ngauss + 1; pi += 1) {
-    //   auto x = V_QM_00(lse, pi, Ngauss);
-    //   printf("%f %f(im)\n", creal(x), cimag(x));
-    // }
-    // auto s = qmhelp(lse, 0, Ngauss);
-    // gsl_matrix_complex_fprintf(stdout, lse->T, "%.2e");
-    // puts("I - VG matrix");
-    // gsl_matrix_complex_fprintf(stdout, lse->iIVG, "%.2e");
-    // int result = lse_run(lse);
-    // if (result != 0) {
-    //   fprintf(stderr, "LSE solver failed with error code %d\n", result);
-    //   lse_deinit(lse);
-    //   return 1;
-    // }
-    //
-    // printf("LSE solver ran successfully\n");
 }
 
 void testonshellpsi() {
     const size_t Ngauss = 2;
-    LSE *lse [[gnu::cleanup(lsefree)]] = lse_malloc(Ngauss, 4, 1e-9);
+    LSE* lse [[gnu::cleanup(lsefree)]] = lse_malloc(Ngauss, 4, 1e-9);
     if (!lse) {
         fprintf(stderr, "Failed to create LSE solver\n");
         exit(1);
@@ -329,7 +291,7 @@ void testonshellpsi() {
 
 void testonshell() {
     const size_t Ngauss = 2;
-    LSE *lse [[gnu::cleanup(lsefree)]] = lse_malloc(Ngauss, 4, 1e-9);
+    LSE* lse [[gnu::cleanup(lsefree)]] = lse_malloc(Ngauss, 4, 1e-9);
     if (!lse) {
         fprintf(stderr, "Failed to create LSE solver\n");
         exit(1);
@@ -360,9 +322,9 @@ double complex Ofunc(double complex E, double complex p,
                 (E - (m + csquare(p - pprime) / 2 / m) - omega_00(p, pprime)) /
                 (E - (m + csquare(p + pprime) / 2 / m) - omega_00(p, pprime))) +
             clog((E - (m + csquare(p - pprime) / 2 / m) -
-                  omegaprime_00(p, pprime)) /
+                  omegastar_00(p, pprime)) /
                  (E - (m + csquare(p + pprime) / 2 / m) -
-                  omegaprime_00(p, pprime))));
+                  omegastar_00(p, pprime))));
 }
 
 void unitest() {
@@ -370,7 +332,7 @@ void unitest() {
     double Lambda = 4;
     double epsilon = 1e-6;
     double E = 1.2;
-    LSE *lse [[gnu::cleanup(lsefree)]] = lse_malloc(pNgauss, Lambda, epsilon);
+    LSE* lse [[gnu::cleanup(lsefree)]] = lse_malloc(pNgauss, Lambda, epsilon);
     lse_compute(lse, E, (double[]){0, 0, 0, 0}, PP);
     printf("m_B: %.8f  det: %.8f\n", m_B, cabs(lse->det));
     // E = 0.2;
@@ -384,15 +346,15 @@ void unitest() {
     //      pprime)) / (E - (m + csquare(p + pprime) / 2 / m) -
     //      omegaprime_00(p, pprime))));
 }
-void ptrfree(double **ptr) { free(*ptr); }
+void ptrfree(double** ptr) { free(*ptr); }
 void testscript() {
     size_t len = 32;
-    double *E [[gnu::cleanup(ptrfree)]] = malloc(sizeof(double[len]));
+    double* E [[gnu::cleanup(ptrfree)]] = malloc(sizeof(double[len]));
     double start = -2;
     double end = -0.31;
-    double step = (end - start) / len;
+    double step = (end - start) / (double)len;
     for (size_t i = 0; i < len; i += 1) {
-        E[i] = start + step * i;
+        E[i] = start + step * (double)i;
     }
     // free(onshellT(E, len, 32, 4, 1e-6));
 }
@@ -406,7 +368,7 @@ void testpole() {
 void test() {
     double Lambda = 2;
     size_t Ngauss = 64;
-    LSE *lse [[gnu::cleanup(lsefree)]] = lse_malloc(Ngauss, Lambda, 0);
+    LSE* lse [[gnu::cleanup(lsefree)]] = lse_malloc(Ngauss, Lambda, 0);
     double E = 0.1;
     // lse_vmat(lse);
     printf("Energy: %s\n", formatC(E + m11 + m12));
@@ -421,10 +383,10 @@ void test() {
     printf("EE: %s\n", formatC(E));
     printf("p1: %s\n", formatC(p1));
     printf("p2: %s\n", formatC(p2));
-    double complex v1;
-    double complex temp;
-    double complex v0;
-    double complex quadresult, anaresult;
+    [[maybe_unused]] double complex v1;
+    [[maybe_unused]] double complex temp;
+    [[maybe_unused]] double complex v0;
+    [[maybe_unused]] double complex quadresult, anaresult;
     puts("----------------------\n");
     quadresult =
         Vpiu(lse->ome, E, p1, p2, m_B_star, m_B, m_B_star, m_B, m_pi, 1);
@@ -451,10 +413,10 @@ void test() {
     // printf("%s\n", formatC(temp));
     //   }
     size_t ngauss = 64;
-    gsl_integration_glfixed_table *t =
+    gsl_integration_glfixed_table* t =
         gsl_integration_glfixed_table_alloc(ngauss);
     double complex res = 0;
-    double x, w;
+    [[maybe_unused]] double x, w;
     printf("explict quadrature: %s\n", formatC(res));
     gsl_integration_glfixed_table_free(t);
 }
@@ -462,7 +424,7 @@ void test() {
 void testv() {
     double Lambda = 4;
     size_t Ngauss = 64;
-    LSE *lse [[gnu::cleanup(lsefree)]] = lse_malloc(Ngauss, Lambda, 1e-6);
+    LSE* lse [[gnu::cleanup(lsefree)]] = lse_malloc(Ngauss, Lambda, 1e-6);
     lse_refresh(lse, -0.1, (double[4]){0, 0, 0, 0}, PP);
     lse_vmat(lse);
     getV(-0.1, Ngauss, 4, 1e-6);
@@ -472,8 +434,8 @@ void testg() {
     double Lambda = 2;
     size_t pNgauss = 64;
     double epsi = 1e-9;
-	double E = 0.2;
-    LSE *lse [[gnu::cleanup(lsefree)]] = lse_malloc(pNgauss, Lambda, epsi);
+    double E = 0.2;
+    LSE* lse [[gnu::cleanup(lsefree)]] = lse_malloc(pNgauss, Lambda, epsi);
     lse_refresh(lse, E, (double[4]){0}, PP);
     lse_gmat(lse);
     auto g = matrix_get(lse->G, pNgauss, pNgauss);
@@ -481,12 +443,45 @@ void testg() {
         g += matrix_get(lse->G, i, i);
     }
     g = -g;
-	g = matrix_get(lse->G, pNgauss, pNgauss);
-	printf("E: %f\n", E);
+    g = matrix_get(lse->G, pNgauss, pNgauss);
+    printf("E: %f\n", E);
     printf("onshell G: %f%+f\n", creal(g), cimag(g));
 }
 
-int main(int argc, char *argv[]) {
+void testconst() {
+    printf("%f\n", g0 * 1000);
+    printf("%f\n", g1 * 1e3);
+    printf("sigma: %f\n", sqrt(SIGMA) * 1000);
+    printf("gamma: %f\n", ALPHA);
+    printf("1/mu?: %f\n", C_T);
+}
+
+void testcost() {
+	double C[4];
+	readf(DATADIR "contact.bin", C, 4);
+	uint64_t pNgauss = 64;
+	double Lambda = 4;
+	double epsi = 1e-7;
+	LSE *lse [[gnu::cleanup(lsefree)]] = lse_malloc(pNgauss, Lambda, epsi);
+	double c = lse_costsing(lse, C, PP);
+	printf("cost: %f\n", c);
+}
+
+void testdet() {
+	double C[4];
+	readf(DATADIR "contact.bin", C, 4);
+	uint64_t pNgauss = 64;
+	double Lambda = 4;
+	double epsi = 1e-7;
+	LSE *lse [[gnu::cleanup(lsefree)]] = lse_malloc(pNgauss, Lambda, epsi);
+	double complex det = lse_detImVG(lse, m_Xb11P, C, PP);
+	printf("detImVG: %f%+fi\n", creal(det), cimag(det));
+	lse_compute(lse, m_Xb11P, C, PP);
+	det = lse->det;
+	printf("compute: %f%+fi\n", creal(det), cimag(det));
+}
+
+int main(int argc, char* argv[]) {
     if (argc == 1) {
         puts("what do you want?");
         return EXIT_SUCCESS;
@@ -517,6 +512,12 @@ int main(int argc, char *argv[]) {
         testv();
     } else if (strcmp(argv[1], "g") == 0) {
         testg();
-    }
+    } else if (strcmp(argv[1], "const") == 0) {
+        testconst();
+    } else if (strcmp(argv[1], "cost") == 0) {
+		testcost();
+	} else if (strcmp(argv[1], "det") == 0) {
+		testdet();
+	}
     return EXIT_SUCCESS;
 }
