@@ -47,13 +47,15 @@
 #define m_Xb12P (10.224 - (m11 + m12))
 #define m_Xb13P (10.529 - (m11 + m12))
 #define m_Xb14P (10.852 - (m11 + m12))
+#define m_Xb15P (11.114 - (m11 + m12))
+#define m_Xb16P (11.395 - (m11 + m12))
 
 #define a_l (0.06426 * 5.068)
 #define gcoupling (0.898794378386677 / a_l * 10)
 // #define g0 (gcoupling * 0.014926616931653945)
 // #define g1 (gcoupling * 0.006467550544943349)
-#define g0 0.035
-#define g1 0.0183
+#define G0 0.0035
+#define G1 0.0183
 // #define g1 (36. / 1000 * 1.4142135623730951)
 #define delta0 0
 #define delta1 (m21 + m22 - m11 - m12)
@@ -67,8 +69,8 @@
 // wavefunction constants
 #define N_MAX 64
 #define N_TOWER 4
-#define R_1 (0.02 * 5.068)      // GeV^-1
-#define R_N_MAX (N_MAX * 5.068) // GeV^-1
+#define R_1 (0.02 * 5.068)       // GeV^-1
+#define R_N_MAX (N_MAX * 5.068)  // GeV^-1
 // #define C_T (0.19732 * 0.19732 / (0.5 * 4.18) * 5.068)
 #define C_T (1 / m_b * 2)
 #define PI 3.14159265358979323846
@@ -82,6 +84,6 @@ constexpr double complex delta[2] = {delta0, delta1};
 constexpr double mu[2] = {mu0, mu1};
 constexpr double Delta[2][2] = {{1, 0}, {0, 1}};
 constexpr double mdiff[2] = {m_Xb12P - m_Xb11P, m_Xb13P - m_Xb11P};
-constexpr double gab[2] = {g0, g1};
+constexpr double G[2] = {G0, G1};
 
-#endif // !DEBUG
+#endif  // !DEBUG

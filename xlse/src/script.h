@@ -37,11 +37,11 @@ double complex getphi(double r, uint64_t n);
 void WFend(void*);
 void Evec(double*, double);
 void Ntower(size_t*);
-double complex* Poles(double* Er, size_t rlen, double* Ei, size_t ilen, double C[4], size_t pNgauss, double Lambda,
+double complex* Poles(double* Er, size_t rlen, double* Ei, size_t ilen, double *g, size_t glen, double C[4], size_t pNgauss, double Lambda,
                       double epsilon);
-double* Fit(double* C, size_t clen, size_t pNgauss, double Lambda, double epsilon);
+double* Fit(double* C, size_t clen, const double g[NCHANNELS],  size_t pNgauss, double Lambda, double epsilon);
 int thrdfit(void*);
-double* Fitsing(double* C, size_t clen, size_t pNgauss, double Lambda, double epsilon);
+double* Fitsing(double* C, size_t clen, const double g[NCHANNELS], size_t pNgauss, double Lambda, double epsilon);
 int thrdfitsing(void*);
 double* Cost(double* C, size_t len, double complex resonance, size_t pNgauss, double Lambda, double epsilon);
 void Free(void* ptr);

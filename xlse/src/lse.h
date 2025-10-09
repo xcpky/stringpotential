@@ -60,6 +60,8 @@ typedef struct {
     double C01;
     double C10;
     double C11;
+    double g0;
+    double g1;
 } LSE;
 
 typedef enum : uint64_t {
@@ -70,8 +72,8 @@ typedef enum : uint64_t {
 } RS;
 
 LSE* lse_malloc(size_t pNgauss, double Lambda, double epsilon);
-int lse_compute(LSE* self, double complex E, double C[NCHANNELS * NCHANNELS], RS rs);
-int lse_compute_single(LSE* self, double complex E, double C[NCHANNELS * NCHANNELS], RS rs);
+int lse_compute(LSE* self, double complex E, const double C[NCHANNELS * NCHANNELS], const double g[NCHANNELS], RS rs);
+int lse_compute_single(LSE* self, double complex E, const double C[NCHANNELS * NCHANNELS], const double g[NCHANNELS], RS rs);
 void lse_free(LSE* self);
 double complex* lse_get_g_data(LSE* self);
 void lse_get_g_size(LSE* self, unsigned int* rows, unsigned int* cols);
@@ -89,24 +91,24 @@ double* lse_get_E(LSE* self);
 void lse_get_E_size(unsigned int* levels);
 void lse_get_M_size(LSE* self, unsigned int* rows, unsigned int* cols);
 double complex* lse_get_onshellT(LSE* self);
-double complex pole(LSE* lse, double complex E, double C[NCHANNELS * NCHANNELS], RS rs);
+double complex pole(LSE* lse, double complex E, const double C[NCHANNELS * NCHANNELS], const double g[NCHANNELS], RS rs);
 double cost(const gsl_vector* x, void* params);
 double costsing(const gsl_vector* x, void* params);
-void minimize(LSE* lse, double Cin[NCHANNELS * NCHANNELS], double Cout[NCHANNELS * NCHANNELS + 1]);
-void minimizesing(LSE* lse, double Cin[NCHANNELS * NCHANNELS], double Cout[NCHANNELS * NCHANNELS + 1]);
+void minimize(LSE* lse, const double Cin[NCHANNELS * NCHANNELS], double Cout[NCHANNELS * NCHANNELS + 1]);
+void minimizesing(LSE* lse, const double Cin[NCHANNELS * NCHANNELS], double Cout[NCHANNELS * NCHANNELS + 1]);
 
 // LSE methods
 int lse_gmat(LSE* self);
 int lse_vmat(LSE* self);
 int lse_tmat(LSE* self);
 int lse_tmat_single(LSE* self);
-double complex lse_invT(LSE* self, double complex E, double C[NCHANNELS * NCHANNELS], RS rs);
-double complex lse_detImVG(LSE* self, double complex E, double C[NCHANNELS * NCHANNELS], RS rs);
-double complex lse_detImVGsing(LSE* self, double complex E, double C[NCHANNELS * NCHANNELS], RS rs);
-double complex lse_detVG(LSE* self, double complex E, double C[NCHANNELS * NCHANNELS], RS rs);
-double lse_cost(LSE* self, double C[NCHANNELS * NCHANNELS], RS rs);
-double lse_costsing(LSE* self, double C[NCHANNELS * NCHANNELS], RS rs);
-void lse_refresh(LSE* self, double complex E, double C[NCHANNELS * NCHANNELS], RS rs);
+double complex lse_invT(LSE* self, double complex E, const double C[NCHANNELS * NCHANNELS], const double g[NCHANNELS], RS rs);
+double complex lse_detImVG(LSE* self, double complex E, const double C[NCHANNELS * NCHANNELS], const double g[NCHANNELS], RS rs);
+double complex lse_detImVGsing(LSE* self, double complex E, const double C[NCHANNELS * NCHANNELS], const double g[NCHANNELS], RS rs);
+double complex lse_detVG(LSE* self, double complex E, const double C[NCHANNELS * NCHANNELS], const double g[NCHANNELS], RS rs);
+double lse_cost(LSE* self, const double C[NCHANNELS * NCHANNELS],  RS rs);
+double lse_costsing(LSE* self, const double C[NCHANNELS * NCHANNELS],  RS rs);
+void lse_refresh(LSE* self, double complex E, const double C[NCHANNELS * NCHANNELS], const double g[NCHANNELS], RS rs);
 void lse_X(LSE* self);
 void lse_XtX(LSE* self);
 
@@ -122,11 +124,13 @@ double complex V_QM_11(LSE* self, size_t p, size_t pprime);
 #define DEFINE_VQMTEST(alpha, beta)                                                            \
     static inline double complex V_QM_TEST_##alpha##beta(LSE* self, [[maybe_unused]] size_t p, \
                                                          [[maybe_unused]] size_t pprime) {     \
-        double E[6] = {-0.2, -0.8, -1.2, -0.1, -0.5, 0.4};                                     \
+        double E[6] = {m_Xb11P, m_Xb12P, m_Xb13P, m_Xb14P, m_Xb15P, m_Xb16P};                  \
         double complex res = 0;                                                                \
-        for (size_t i = 0; i < N_TOWER; i += 1) {                                              \
-            res += 1 / (self->E - E[i] - self->V0);                                            \
+        for (size_t i = 0; i < 6; i += 1) {                                                    \
+            res += 1 / (self->E - E[i]);                                                       \
         }                                                                                      \
+        [[maybe_unused]] auto g0 = self->g0;                                                   \
+        [[maybe_unused]] auto g1 = self->g1;                                                   \
         return res * g##alpha * g##beta;                                                       \
     }
 
@@ -135,15 +139,15 @@ DEFINE_VQMTEST(0, 1)
 DEFINE_VQMTEST(1, 0)
 DEFINE_VQMTEST(1, 1)
 
-#define DEFINE_V_TEST(alpha, beta)                                                                                 \
-    static inline double complex V_TEST_##alpha##beta(double complex E, double complex p, double complex pprime) { \
-        return csin(E) * (p + pprime * pprime - 1 / p) * g##alpha * g##beta;                                       \
-    }
-
-DEFINE_V_TEST(0, 0)
-DEFINE_V_TEST(0, 1)
-DEFINE_V_TEST(1, 0)
-DEFINE_V_TEST(1, 1)
+// #define DEFINE_V_TEST(alpha, beta)                                                                                 \
+//     static inline double complex V_TEST_##alpha##beta(double complex E, double complex p, double complex pprime) { \
+//         return csin(E) * (p + pprime * pprime - 1 / p) * g##alpha * g##beta;                                       \
+//     }
+//
+// DEFINE_V_TEST(0, 0)
+// DEFINE_V_TEST(0, 1)
+// DEFINE_V_TEST(1, 0)
+// DEFINE_V_TEST(1, 1)
 
 #define DEFINE_VQM(alpha, beta)                                                                     \
     double complex V_QM_##alpha##beta(LSE* self, size_t p, size_t pprime) {                         \
@@ -157,6 +161,8 @@ DEFINE_V_TEST(1, 1)
             res += psi[chan0][i][p % (pNgauss + 1)] * conj(psi[chan1][i][pprime % (pNgauss + 1)]) / \
                    (E - self->E_vec[i] - self->V0);                                                 \
         }                                                                                           \
+        [[maybe_unused]] auto g0 = self->g0;                                                        \
+        [[maybe_unused]] auto g1 = self->g1;                                                        \
         return res * g##alpha * g##beta;                                                            \
     }
 
@@ -166,8 +172,8 @@ DEFINE_V_TEST(1, 1)
                                         [[maybe_unused]] size_t p2i) {                                   \
         [[maybe_unused]] auto E = self->E;                                                               \
         E += m11 + m12;                                                                                  \
-        auto res = V_QM_##suffix(self, p1i, p2i);                                                        \
-        return res + self->C##suffix;                                                                    \
+        auto res = V_QM_TEST_##suffix(self, p1i, p2i);                                                   \
+        return res;                                                                                      \
     }
 
 DEFINE_V_FUNCTION(00);
