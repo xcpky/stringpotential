@@ -1,6 +1,6 @@
 add_rules("mode.debug", "mode.release")
 set_languages("gnu23")
-add_cflags("-Wall", "-Wextra", "-DHAVE_INLINE", "-fgnuc-version=8", "-Wconversion")
+add_cflags("-Wall", "-Wextra", "-DHAVE_INLINE", "-fgnuc-version=8", "-Wconversion", "-Wshadow")
 set_toolchains("clang")
 add_requires("gsl", {system = true})
 -- add_requires("gnu-gsl", {alias = "gsl", system = false})

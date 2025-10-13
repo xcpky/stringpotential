@@ -6,6 +6,7 @@
 #include <gsl/gsl_multimin.h>
 #include <gsl/gsl_multiroots.h>
 #include <gsl/gsl_permutation.h>
+#include <gsl/gsl_vector_complex_double.h>
 #include <gsl/gsl_vector_double.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -20,7 +21,7 @@
 constexpr int max_iter = 4000;
 #define IPVG
 // #define IMVG
-#define CONSTQM
+// #define CONSTQM
 // double complex V_QM(LSE *self, size_t p, size_t pprime) {
 //   double complex res = 0 + 0 * I;
 //   __auto_type E = self->E;
@@ -171,9 +172,7 @@ void lse_refresh(LSE* self, double complex E, const double C[NCHANNELS * NCHANNE
             }
         }
     }
-#endif /* ifdef TPO                                                              \
-                                                                               \ \
-   */
+#endif
     for (int i = 0; i < NCHANNELS; i++) {
         const double complex dE = E - delta[i];
         const double mU = mu[i];
@@ -185,18 +184,86 @@ void lse_refresh(LSE* self, double complex E, const double C[NCHANNELS * NCHANNE
         }
         for (size_t j = 0; j < N_MAX; j += 1) {
 #ifdef TESTQM
-            psi[i][j][self->pNgauss] = psi_test(self->x0[i]);
+            if (creal(dE) > 0 && fabs(cimag(dE)) < 1e-7) {
+                psi[i][j][self->pNgauss] = psi_test(self->x0[i]);
+            } else {
+                psi[i][j][self->pNgauss] = 0;
+            }
 #elifdef CONSTQM
-            psi[i][j][self->pNgauss] = 1;
+            if (creal(dE) > 0 && fabs(cimag(dE)) < 1e-7) {
+                psi[i][j][self->pNgauss] = 1;
+            } else {
+                psi[i][j][self->pNgauss] = 0;
+            }
 #else
-            // if (creal(dE) < 0) {
-            //     psi[i][j][self->pNgauss] =
-            //         psi_n_ftcomplex(self->wf, 1e-2, j + 1);
-            // } else {
-            //     psi[i][j][self->pNgauss] =
-            //         psi_n_ftcomplex(self->wf, self->x0[i], j + 1);
-            // }
-            psi[i][j][self->pNgauss] = psi_n_ftcomplex(self->wf, self->x0[i], j + 1);
+            if (creal(dE) > 0 && fabs(cimag(dE)) < 1e-7) {
+                psi[i][j][self->pNgauss] =
+                    psi_n_ftcomplex(self->wf, self->x0[i], j + 1);
+            } else {
+                psi[i][j][self->pNgauss] = 0;
+            }
+            // psi[i][j][self->pNgauss] = psi_n_ftcomplex(self->wf, self->x0[i], j + 1);
+#endif
+        }
+    }
+}
+
+void lse_refreshm(LSE* self, double complex p, const double C[NCHANNELS * NCHANNELS], const double g[NCHANNELS]) {
+    // self->Lambda = Lambda;
+    self->E = p * p / 2 / mu[1];
+    self->V0 = C[0];
+    self->C00 = C[1];
+    self->C01 = C[2];
+    self->C10 = C[2];
+    self->C11 = C[3];
+    self->g0 = g[0];
+    self->g1 = g[1];
+
+    double complex(*psi)[N_MAX + 1][self->pNgauss + 1] = self->psi_n_mat;
+#ifdef TPO
+
+    double complex(*v)[2][N_MAX + 1] = self->v;
+    v[0][0][N_MAX] = C[1];
+    v[0][1][N_MAX] = C[2];
+    v[1][0][N_MAX] = C[2];
+    v[1][1][N_MAX] = C[3];
+    for (size_t alpha = 0; alpha < 2; alpha += 1) {
+        for (size_t beta = 0; beta < 2; beta += 1) {
+            for (size_t i = 0; i < N_MAX; i += 1) {
+                v[alpha][beta][i] =
+                    gab[alpha] * gab[beta] / (E - self->E_vec[i] - self->V0);
+            }
+        }
+    }
+#endif /* ifdef TPO                                                              \
+                                                                               \ \
+   */
+    for (int i = 0; i < 1; i++) {
+        self->x0[i] = p;
+        for (size_t j = 0; j < N_MAX; j += 1) {
+#ifdef TESTQM
+            auto dE = self->E;
+            if (creal(dE) > 0 && fabs(cimag(dE)) < 1e-7) {
+                psi[i][j][self->pNgauss] = psi_test(self->x0[i]);
+            } else {
+                psi[i][j][self->pNgauss] = 0;
+            }
+#elifdef CONSTQM
+            auto dE = self->E;
+            if (creal(dE) > 0 && fabs(cimag(dE)) < 1e-7) {
+                psi[i][j][self->pNgauss] = 1;
+            } else {
+                psi[i][j][self->pNgauss] = 0;
+            }
+            // psi[i][j][self->pNgauss] = 1;
+#else
+            auto dE = self->E;
+            if (creal(dE) > 0 && fabs(cimag(dE)) < 1e-7) {
+                psi[i][j][self->pNgauss] =
+                    psi_n_ftcomplex(self->wf, self->x0[i], j + 1);
+            } else {
+                psi[i][j][self->pNgauss] = 0;
+            }
 #endif
         }
     }
@@ -724,6 +791,66 @@ double complex lse_detImVGsing(LSE* self, double complex E, const double C[NCHAN
     lse_gmat(self);
     lse_vmat(self);
     // const size_t n = 2 * (self->pNgauss + 1);
+    size_t n;
+    if (creal(self->E) > 0 && fabs(cimag(self->E)) < 1e-5) {
+        n = self->pNgauss + 1;
+    } else {
+        n = self->pNgauss;
+    }
+    auto V = gsl_matrix_complex_submatrix(self->VOME, 0, 0, n, n);
+    auto G = gsl_matrix_complex_submatrix(self->G, 0, 0, n, n);
+
+    // Step 1: Compute VG = V * G
+    gsl_matrix_complex* VG [[gnu::cleanup(matfree)]] =
+        gsl_matrix_complex_alloc(n, n);
+    if (!VG)
+        return -1;
+    gsl_matrix_complex_set_zero(VG);
+
+    // Use GSL BLAS wrapper for matrix multiplication: VG = V * G
+    gsl_complex alpha = gsl_complex_rect(1.0, 0.0);
+    gsl_complex beta = gsl_complex_rect(0.0, 0.0);
+    gsl_blas_zgemm(CblasNoTrans, CblasNoTrans, alpha, &V.matrix, &G.matrix, beta,
+                   VG);
+
+    // Step 2: Compute I - VG
+    gsl_matrix_complex* IVG [[gnu::cleanup(matfree)]] =
+        gsl_matrix_complex_alloc(n, n);
+    if (!IVG) {
+        return -1;
+    }
+
+    gsl_matrix_complex_memcpy(IVG, VG);
+#ifdef IMVG
+    gsl_matrix_complex_scale(IVG,
+                             gsl_complex_rect(-1.0, 0.0));  // I_minus_VG = -VG
+#endif
+
+    // Add identity matrix: I_minus_VG = I - VG
+    gsl_matrix_complex_add_diagonal(IVG, 1 + 0I);
+    // gsl_matrix_complex_memcpy(self->reg, I_minus_VG);
+
+    // Step 3: Invert (I - VG) using LU decomposition
+    gsl_permutation* perm [[gnu::cleanup(permfree)]] = gsl_permutation_alloc(n);
+    if (!perm) {
+        return -1;
+    }
+
+    int signum;
+    if (gsl_linalg_complex_LU_decomp(IVG, perm, &signum) !=
+        GSL_SUCCESS) {
+        return -1;
+    }
+    // printf("det: %.9f\n", cabs(gsl_linalg_complex_LU_det(I_minus_VG,
+    // signum)));
+    return gsl_linalg_complex_LU_det(IVG, signum);
+}
+
+double complex lse_detImVGsingm(LSE* self, double complex p, const double C[NCHANNELS * NCHANNELS], const double g[NCHANNELS]) {
+    lse_refreshm(self, p, C, g);
+    lse_gmat(self);
+    lse_vmat(self);
+    // const size_t n = 2 * (self->pNgauss + 1);
     const size_t n = self->pNgauss + 1;
     auto V = gsl_matrix_complex_submatrix(self->VOME, 0, 0, n, n);
     auto G = gsl_matrix_complex_submatrix(self->G, 0, 0, n, n);
@@ -773,6 +900,7 @@ double complex lse_detImVGsing(LSE* self, double complex E, const double C[NCHAN
     // signum)));
     return gsl_linalg_complex_LU_det(IVG, signum);
 }
+
 double complex lse_detVG(LSE* self, double complex E, const double C[NCHANNELS * NCHANNELS], const double g[NCHANNELS], RS rs) {
     lse_refresh(self, E, C, g, rs);
     lse_gmat(self);
@@ -911,7 +1039,7 @@ double* lse_get_E(LSE* self) { return self->E_vec; }
 void lse_get_E_size(unsigned int* levels) { *levels = (unsigned int)N_MAX; }
 
 struct detparams {
-    LSE* lse;
+    void* lse;
     double C[NCHANNELS * NCHANNELS];
     double g[NCHANNELS];
     RS rs;
@@ -920,6 +1048,66 @@ int detImVG(const gsl_vector* x, void* params, gsl_vector* f) {
     struct detparams* detp = params;
     double complex E = gsl_vector_get(x, 0) + gsl_vector_get(x, 1) * I;
     auto det = lse_detImVG(detp->lse, E, detp->C, detp->g, detp->rs);
+    gsl_vector_set(f, 0, creal(det));
+    gsl_vector_set(f, 1, cimag(det));
+    return GSL_SUCCESS;
+}
+
+int detIJ(const gsl_vector* x, void* params, gsl_vector* f) {
+    constexpr double E[6] = {m_Xb11P, m_Xb12P, m_Xb13P, m_Xb14P, m_Xb15P, m_Xb16P};
+    double complex p = gsl_vector_get(x, 0) + gsl_vector_get(x, 1) * I;
+    struct detparams* detp = params;
+    LSE* lse = detp->lse;
+    const auto n = lse->pNgauss + 1;
+    matrix* tau = gsl_matrix_complex_alloc(6, 6);
+    auto g = lse->g0;
+    gsl_matrix_complex_set_zero(tau);
+    auto dE = p * p;
+    for (uint64_t i = 0; i < 6; i += 1) {
+        matrix_set(tau, i, i, g * g / (dE - E[i]));
+    }
+    lse_refreshm(lse, p, detp->C, detp->g);
+    lse_gmat(lse);
+    double complex(*psi)[N_MAX + 1][n] = lse->psi_n_mat;
+    auto J = matrix_alloc(6, 6);
+    for (uint64_t i = 0; i < 6; i += 1) {
+        for (uint64_t j = 0; j < 6; j += 1) {
+            double complex ele = 0;
+            for (uint64_t pi = 0; pi < n; pi += 1) {
+                auto G = matrix_get(lse->G, pi, pi);
+                ele += conj(psi[0][i][pi]) * G * psi[0][j][pi];
+            }
+            matrix_set(J, i, j, ele);
+        }
+    }
+    auto IJ = matrix_alloc(6, 6);
+    gsl_matrix_complex_set_identity(IJ);
+#ifdef IPVG
+    gsl_blas_zgemm(CblasNoTrans, CblasNoTrans, 1, tau, J, 1, IJ);
+#else
+    gsl_blas_zgemm(CblasNoTrans, CblasNoTrans, -1, tau, J, 1, IJ);
+#endif
+
+    gsl_permutation* perm [[gnu::cleanup(permfree)]] = gsl_permutation_alloc(n);
+    if (!perm) {
+        return -1;
+    }
+
+    int signum;
+    if (gsl_linalg_complex_LU_decomp(IJ, perm, &signum) !=
+        GSL_SUCCESS) {
+        return -1;
+    }
+    auto det = gsl_linalg_complex_LU_det(IJ, signum);
+    gsl_vector_set(f, 0, creal(det));
+    gsl_vector_set(f, 1, cimag(det));
+    return GSL_SUCCESS;
+}
+
+int detImVGm(const gsl_vector* x, void* params, gsl_vector* f) {
+    struct detparams* detp = params;
+    double complex p = gsl_vector_get(x, 0) + gsl_vector_get(x, 1) * I;
+    auto det = lse_detImVGsingm(detp->lse, p, detp->C, detp->g);
     gsl_vector_set(f, 0, creal(det));
     gsl_vector_set(f, 1, cimag(det));
     return GSL_SUCCESS;
@@ -952,7 +1140,43 @@ double complex pole(LSE* lse, double complex E, const double C[NCHANNELS * NCHAN
     if (status == GSL_SUCCESS) {
         double re = gsl_vector_get(s->x, 0);
         double im = gsl_vector_get(s->x, 1);
-        if (re > -2.8 && re < 0.8 && fabs(im) < 1.7) {
+        if (fabs(re) < 2 && fabs(im) < 1.7) {
+            res = re + im * I;
+        }
+    }
+    gsl_vector_free(x);
+    gsl_multiroot_fsolver_free(s);
+    return res;
+}
+
+double complex polem(LSE* lse, double complex E, const double C[NCHANNELS * NCHANNELS], const double g[NCHANNELS], RS rs) {
+    const gsl_multiroot_fsolver_type* T = gsl_multiroot_fsolver_hybrid;
+    struct detparams detp = {
+        .lse = lse,
+        .C = {C[0], C[1], C[2], C[3]},
+        .g = {g[0], g[1]},
+        .rs = rs,
+    };
+    gsl_multiroot_function F = {&detImVGm, 2, &detp};
+    gsl_vector* x = gsl_vector_alloc(2);
+    gsl_vector_set(x, 0, creal(E));
+    gsl_vector_set(x, 1, cimag(E));
+    gsl_multiroot_fsolver* s = gsl_multiroot_fsolver_alloc(T, 2);
+    gsl_multiroot_fsolver_set(s, &F, x);
+    int status;
+    uint iter = 0;
+    do {
+        iter += 1;
+        status = gsl_multiroot_fsolver_iterate(s);
+        if (status)
+            break;
+        status = gsl_multiroot_test_residual(s->f, 1e-4);
+    } while (status == GSL_CONTINUE && iter < max_iter);
+    double complex res = NAN * NAN * I;
+    if (status == GSL_SUCCESS) {
+        double re = gsl_vector_get(s->x, 0);
+        double im = gsl_vector_get(s->x, 1);
+        if (fabs(re) < 2 && fabs(im) < 2.) {
             res = re + im * I;
         }
     }

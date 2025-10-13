@@ -137,7 +137,7 @@ void testwf() {
     size_t pNgauss = 64;
     LSE* lse [[gnu::cleanup(lsefree)]] = lse_malloc(pNgauss, 4, 1e-6);
     double complex(*psi)[N_MAX + 1][pNgauss + 1] = lse->psi_n_mat;
-    lse_refresh(lse, -0.3, (double[]){1, 1, 1, 1}, PP);
+    lse_refresh(lse, -0.3, (double[]){1, 1, 1, 1}, G, PP);
     // printf("%25s %28s\n", "Column 1", "Column 2");
     // char delim[55];
     // for (size_t i = 0; i < 54; i += 1) {
@@ -191,7 +191,7 @@ void printabsmat(matrix* m) {
 
 void testwopotential() {
     LSE* lse [[gnu::cleanup(lsefree)]] = lse_malloc(5, 4, 1e-6);
-    lse_compute(lse, 0.1, (double[]){1, 1, 1, 1}, 1);
+    lse_compute(lse, 0.1, (double[]){1, 1, 1, 1}, G, 1);
     // lse_X(lse);
     // lse_XtX(lse);
     auto pNgauss = lse->pNgauss;
@@ -261,7 +261,7 @@ void testlse() {
         fprintf(stderr, "Failed to create LSE solver\n");
         exit(1);
     }
-    lse_compute(lse, 0.1, (double[]){0, 0, 0, 0}, 3);
+    lse_compute(lse, 0.1, (double[]){0, 0, 0, 0}, G, 3);
     auto row = Ngauss + 1;
     auto col = Ngauss + 1;
     auto m = lse->VOME;
@@ -286,7 +286,7 @@ void testonshellpsi() {
     puts("");
     puts("");
     puts("");
-    lse_refresh(lse, E, (double[]){1, 1, 1, 1}, 1);
+    lse_refresh(lse, E, (double[]){1, 1, 1, 1}, G, 1);
 }
 
 void testonshell() {
@@ -296,7 +296,7 @@ void testonshell() {
         fprintf(stderr, "Failed to create LSE solver\n");
         exit(1);
     }
-    lse_refresh(lse, -0.578802970, (double[]){1, 1, 1, 1}, 1);
+    lse_refresh(lse, -0.578802970, (double[]){1, 1, 1, 1}, G, 1);
     __auto_type q = lse->x0[0];
     printf("(%.12e) + Im(%.12e)\n", creal(q), cimag(q));
     q = lse->x0[1];
@@ -304,7 +304,7 @@ void testonshell() {
     lse_vmat(lse);
     __auto_type onshellV = matrix_get(lse->VOME, Ngauss, Ngauss);
     printf("(%.12e) + Im(%.12e)\n", creal(onshellV), cimag(onshellV));
-    lse_refresh(lse, -0.578802965, (double[]){1, 1, 1, 1}, 1);
+    lse_refresh(lse, -0.578802965, (double[]){1, 1, 1, 1}, G, 1);
     lse_vmat(lse);
     q = lse->x0[0];
     printf("(%.12e) + Im(%.12e)\n", creal(q), cimag(q));
@@ -333,7 +333,7 @@ void unitest() {
     double epsilon = 1e-6;
     double E = 1.2;
     LSE* lse [[gnu::cleanup(lsefree)]] = lse_malloc(pNgauss, Lambda, epsilon);
-    lse_compute(lse, E, (double[]){0, 0, 0, 0}, PP);
+    lse_compute(lse, E, (double[]){0, 0, 0, 0}, G, PP);
     printf("m_B: %.8f  det: %.8f\n", m_B, cabs(lse->det));
     // E = 0.2;
     E += m11 + m12;
@@ -362,7 +362,7 @@ void testscript() {
 void testpole() {
     double Er[3] = {-1, 0, 1};
     double Ei[3] = {-1, 0, 1};
-    free(Poles(Er, 3, Ei, 3, (double[]){1, 1, 1, 1}, 64, 4, 1e-6));
+    free(Poles(Er, 3, Ei, 3, (double*)G, 2, (double[]){1, 1, 1, 1}, 64, 4, 1e-6));
 }
 
 void test() {
@@ -372,7 +372,7 @@ void test() {
     double E = 0.1;
     // lse_vmat(lse);
     printf("Energy: %s\n", formatC(E + m11 + m12));
-    lse_refresh(lse, E, (double[4]){0, 0, 0, 0}, PP);
+    lse_refresh(lse, E, (double[4]){0, 0, 0, 0}, G, PP);
     lse_gmat(lse);
     E += 2 * m_B + m_pi;
     // E += -0.3+m11 + m12;
@@ -425,9 +425,13 @@ void testv() {
     double Lambda = 4;
     size_t Ngauss = 64;
     LSE* lse [[gnu::cleanup(lsefree)]] = lse_malloc(Ngauss, Lambda, 1e-6);
-    lse_refresh(lse, -0.1, (double[4]){0, 0, 0, 0}, PP);
+    lse_refresh(lse, -0.1 + 0.03 * I, (double[4]){0, 0, 0, 0}, G, PP);
     lse_vmat(lse);
-    getV(-0.1, Ngauss, 4, 1e-6);
+    // getV(-0.1, Ngauss, 4, 1e-6);
+	auto v = matrix_get(lse->VOME, Ngauss, Ngauss);
+	printf("onshell-V: %s\n", formatC(v));
+	v = matrix_get(lse->VOME, Ngauss - 29, Ngauss);
+	printf("half onshell-V: %s\n", formatC(v));
 }
 
 void testg() {
@@ -436,7 +440,7 @@ void testg() {
     double epsi = 1e-9;
     double E = 0.2;
     LSE* lse [[gnu::cleanup(lsefree)]] = lse_malloc(pNgauss, Lambda, epsi);
-    lse_refresh(lse, E, (double[4]){0}, PP);
+    lse_refresh(lse, E, (double[4]){0}, G, PP);
     lse_gmat(lse);
     auto g = matrix_get(lse->G, pNgauss, pNgauss);
     for (size_t i = 0; i < pNgauss; i += 1) {
@@ -449,36 +453,37 @@ void testg() {
 }
 
 void testconst() {
-    printf("%f\n", g0 * 1000);
-    printf("%f\n", g1 * 1e3);
+    printf("%f\n", G[0] * 1000);
+    printf("%f\n", G[1] * 1e3);
     printf("sigma: %f\n", sqrt(SIGMA) * 1000);
     printf("gamma: %f\n", ALPHA);
     printf("1/mu?: %f\n", C_T);
+    printf("2*mu: %f\n", mu0);
 }
 
 void testcost() {
-	double C[4];
-	readf(DATADIR "contact.bin", C, 4);
-	uint64_t pNgauss = 64;
-	double Lambda = 4;
-	double epsi = 1e-7;
-	LSE *lse [[gnu::cleanup(lsefree)]] = lse_malloc(pNgauss, Lambda, epsi);
-	double c = lse_costsing(lse, C, PP);
-	printf("cost: %f\n", c);
+    double C[4];
+    readf(DATADIR "contact.bin", C, 4);
+    uint64_t pNgauss = 64;
+    double Lambda = 4;
+    double epsi = 1e-7;
+    LSE* lse [[gnu::cleanup(lsefree)]] = lse_malloc(pNgauss, Lambda, epsi);
+    double c = lse_costsing(lse, C, PP);
+    printf("cost: %f\n", c);
 }
 
 void testdet() {
-	double C[4];
-	readf(DATADIR "contact.bin", C, 4);
-	uint64_t pNgauss = 64;
-	double Lambda = 4;
-	double epsi = 1e-7;
-	LSE *lse [[gnu::cleanup(lsefree)]] = lse_malloc(pNgauss, Lambda, epsi);
-	double complex det = lse_detImVG(lse, m_Xb11P, C, PP);
-	printf("detImVG: %f%+fi\n", creal(det), cimag(det));
-	lse_compute(lse, m_Xb11P, C, PP);
-	det = lse->det;
-	printf("compute: %f%+fi\n", creal(det), cimag(det));
+    double C[4];
+    readf(DATADIR "contact.bin", C, 4);
+    uint64_t pNgauss = 64;
+    double Lambda = 4;
+    double epsi = 1e-7;
+    LSE* lse [[gnu::cleanup(lsefree)]] = lse_malloc(pNgauss, Lambda, epsi);
+    double complex det = lse_detImVG(lse, m_Xb11P, C, G, PP);
+    printf("detImVG: %f%+fi\n", creal(det), cimag(det));
+    lse_compute(lse, m_Xb11P, C, G, PP);
+    det = lse->det;
+    printf("compute: %f%+fi\n", creal(det), cimag(det));
 }
 
 int main(int argc, char* argv[]) {
@@ -515,9 +520,9 @@ int main(int argc, char* argv[]) {
     } else if (strcmp(argv[1], "const") == 0) {
         testconst();
     } else if (strcmp(argv[1], "cost") == 0) {
-		testcost();
-	} else if (strcmp(argv[1], "det") == 0) {
-		testdet();
-	}
+        testcost();
+    } else if (strcmp(argv[1], "det") == 0) {
+        testdet();
+    }
     return EXIT_SUCCESS;
 }

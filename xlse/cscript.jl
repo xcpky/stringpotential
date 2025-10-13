@@ -2,6 +2,8 @@ using Libdl
 using Serialization
 using Polynomials
 using LinearAlgebra
+using Clustering
+using Statistics
 
 # Load the shared library
 const libscript = Libdl.dlopen(joinpath(@__DIR__, "build/linux/x86_64/release/libscript.so"))
@@ -24,7 +26,7 @@ epsi = 1e-7
 Lambda = 4.0
 pNgauss = 64
 data = Nothing
-Erange = LinRange(m_Xb11P - 0.3, m_Xb16P + 0.05, 1000)
+Erange = LinRange(m_Xb11P - 0.3, m_Xb16P + 0.85, 1000)
 # Erange = LinRange(-0.0311, -0.031, 1000)
 
 # Erange = LinRange(-1e-3, 1e-3, 1000)
@@ -228,10 +230,10 @@ function conshellT_single(E::Vector{Cdouble}, len, C::Vector{Cdouble}, pNgauss, 
     vline!([m_Xb14P], s=:dash, label=L"\chi_{b1}(4P)")
     vline!([m_Xb15P], s=:dash, label=L"\chi_{b1}(5P)")
     vline!([m_Xb16P], s=:dash, label=L"\chi_{b1}(6P)")
-	yup = maximum(abs.(ot))
-	yup = min(yup, 10)
+    yup = maximum(abs.(ot))
+    yup = min(yup, 10)
     plot!(E, abs.(ot), label=L"$T_{11}$", dpi=400)
-	ylims!(0, yup)
+    ylims!(0, yup)
     # vline!([m_pi-m_B_star], s=:dash, c=:grey, label=L"BB\pi")
     # plot!(E, abs.(ot[3, :]), label=L"$T_{21}$")
     # plot!(E, abs.(ot[4, :]), label=L"$T_{22}$")
@@ -340,7 +342,7 @@ function detImVG(E::Vector{Cdouble}, len, C::Vector{Cdouble}, rs, pNgauss, Lambd
     @time dtr = ccall(Libdl.dlsym(libscript, :Det), Ptr{ComplexF64}, (Ptr{Cdouble}, Cuint, Ptr{Cdouble}, UInt64, Cuint, Cdouble, Cdouble), E, len, C, rs, pNgauss, Lambda, epsilon)
     Det = copy(unsafe_wrap(Array, dtr, len, own=false))
     yup = 1.2maximum(abs.(Det))
-    yup = min(yup, 100)
+    # yup = min(yup, 100)
     # yup = 3
     ylw = 0.8minimum(abs.(Det))
     # plot(E, real.(Det), label=L"det($1-VG$)",dpi=400)
@@ -377,7 +379,7 @@ function detImVG_single(E::Vector{Cdouble}, len, C::Vector{Cdouble}, rs, pNgauss
     Det = copy(unsafe_wrap(Array, dtr, len, own=false))
     yup = 1.2maximum(abs.(Det))
     yup = min(yup, 1e2)
-	# println(yup)
+    # println(yup)
     ylw = 0.8minimum(abs.(Det))
     # plot(E, real.(Det), label=L"det($1-VG$)",dpi=400)
     # level = getEvec(C[1])
@@ -466,30 +468,20 @@ function Both(E::Vector{Cdouble}, len, C::Vector{Cdouble}, pNgauss, Lambda, epsi
     return data
 end
 
-function Poles(Er::Vector{Cdouble}, rlen, Ei::Vector{Cdouble}, ilen, C::Vector{Cdouble}, pNgauss, Lambda, epsilon)
-    @time dtr = ccall(Libdl.dlsym(libscript, :Poles), Ptr{ComplexF64}, (Ptr{Cdouble}, Csize_t, Ptr{Cdouble}, Csize_t, Ptr{Cdouble}, Csize_t, Cdouble, Cdouble), Er, rlen, Ei, ilen, C, pNgauss, Lambda, epsilon)
-    data = copy(unsafe_wrap(Array, dtr, rlen * ilen * 4, own=false))
-    data = transpose(reshape(data, (rlen * ilen, 4)))
-    poles = [filter(!isnan, data[i, :]) for i in 1:4]
+function Poles(Er::Vector{Cdouble}, rlen, Ei::Vector{Cdouble}, ilen, g::Vector{Float64}, glen, C::Vector{Cdouble}, pNgauss, Lambda, epsilon)
+    @time dtr = ccall(Libdl.dlsym(libscript, :Poles), Ptr{ComplexF64}, (Ptr{Cdouble}, Csize_t, Ptr{Cdouble}, Csize_t, Ptr{Cdouble}, Csize_t, Ptr{Cdouble}, Csize_t, Cdouble, Cdouble), Er, rlen, Ei, ilen, g, glen, C, pNgauss, Lambda, epsilon)
+	data = permutedims(copy(unsafe_wrap(Array, dtr, (ilen, rlen, glen, 4), own=false)), (4,3,2,1))
+    # data = transpose(reshape(data, (rlen * ilen, 4)))
+    # poles = [filter(!isnan, data[i, :]) for i in 1:4]
+	poles = clusterpoles(data)
+	plot(legend=false)
+	for i in 1:glen
+		scatter!(real.(poles[4][i]), imag.(poles[4][i]), markersize=1, markerstrokewidth=0)
+	end
     cfree(reinterpret(Ptr{Cvoid}, dtr))
     # scatter(real.(poles[1]), imag.(poles[1]), dpi=400, label=L"RS_{--}", markersize=3, markerstrokewidth=0, legend=:outertopright)
     # scatter!(real.(poles[2]), imag.(poles[2]), dpi=400, label=L"RS_{+-}", markersize=3, markerstrokewidth=0)
     # scatter!(real.(poles[3]), imag.(poles[3]), dpi=400, label=L"RS_{-+}", markersize=3, markerstrokewidth=0)
-    scatter(real.(poles[4]), imag.(poles[4]), dpi=400, label=L"RS_{++}", markersize=3, markerstrokewidth=0)
-    level = getEvec(-1.01059)
-    upper = -1e6
-    lower = 1e6
-    for i in 1:4
-        upper = max(maximum(real.(poles[i])), upper)
-        lower = min(minimum(real.(poles[i])), lower)
-    end
-    # println(level)
-    vls = filter(e -> e > lower - 0.2 && e < upper + 0.2, level)
-    vline!(vls, s=:dash, c=:grey, label=L"$E_i$")
-    vline!(delta, s=:dash, label="thresholds", lw=0.8)
-    vline!([m_Xb11P], s=:dash, label=L"\chi_{b1}(1P)")
-    vline!([m_Xb12P], s=:dash, label=L"\chi_{b1}(2P)")
-    vline!([m_Xb13P], s=:dash, label=L"\chi_{b1}(3P)")
     xlabel!("Re")
     ylabel!("Im")
     savefig("pole.png")
@@ -497,9 +489,53 @@ function Poles(Er::Vector{Cdouble}, rlen, Ei::Vector{Cdouble}, ilen, C::Vector{C
     return poles
 end
 
+function Polesm(Er::Vector{Cdouble}, rlen, Ei::Vector{Cdouble}, ilen, g::Vector{Float64}, glen, C::Vector{Cdouble}, pNgauss, Lambda, epsilon)
+    @time dtr = ccall(Libdl.dlsym(libscript, :Polesm), Ptr{ComplexF64}, (Ptr{Cdouble}, Csize_t, Ptr{Cdouble}, Csize_t, Ptr{Cdouble}, Csize_t, Ptr{Cdouble}, Csize_t, Cdouble, Cdouble), Er, rlen, Ei, ilen, g, glen, C, pNgauss, Lambda, epsilon)
+	data = permutedims(copy(unsafe_wrap(Array, dtr, (ilen, rlen, glen, 1), own=false)), (4,3,2,1))
+    # data = transpose(reshape(data, (rlen * ilen, 4)))
+    # poles = [filter(!isnan, data[i, :]) for i in 1:4]
+	poles = clusterpoles(data)
+	plot(legend=false)
+	for i in 1:glen
+		scatter!(real.(poles[1][i]), imag.(poles[1][i]), markersize=1, markerstrokewidth=0)
+	end
+    cfree(reinterpret(Ptr{Cvoid}, dtr))
+    # scatter(real.(poles[1]), imag.(poles[1]), dpi=400, label=L"RS_{--}", markersize=3, markerstrokewidth=0, legend=:outertopright)
+    # scatter!(real.(poles[2]), imag.(poles[2]), dpi=400, label=L"RS_{+-}", markersize=3, markerstrokewidth=0)
+    # scatter!(real.(poles[3]), imag.(poles[3]), dpi=400, label=L"RS_{-+}", markersize=3, markerstrokewidth=0)
+	# ylims!(-0.08, 0.08)
+    xlabel!("Re")
+    ylabel!("Im")
+	title!(L"$V = g^2\sum_{n=1}^6\frac{\psi_n(p)\psi_n^*(p')}{E - E_{\chi_{b1}(nP)}}$")
+    savefig("polem.png")
+    savefig("polem.pdf")
+    return poles
+end
+
+function clusterpoles(roots::Array{ComplexF64,4}; eps=1e-4)
+    n_a, n_g = size(roots, 1), size(roots, 2)
+    clusters = [Vector{Vector{ComplexF64}}(undef, n_g) for _ in 1:n_a]
+	# println(size(clusters))
+    for a in 1:n_a, g in 1:n_g
+        z = vec(roots[a, g, :, :])
+        z = z[isfinite.(real.(z)).&isfinite.(imag.(z))]
+        if isempty(z)
+            clusters[a][g] = ComplexF64[]
+            continue
+        end
+        pts = permutedims(hcat(real.(z), imag.(z)))
+        res = dbscan(pts, eps)
+        labels = res.assignments
+        nclust = maximum(labels)
+        centers = [mean(z[labels.==k]) for k in 1:nclust]
+        clusters[a][g] = centers
+    end
+    return clusters
+end
+
 function minimize(C::Vector{Cdouble}, pNgauss, Lambda, epsilon)
     @time dtr = ccall(Libdl.dlsym(libscript, :Fit), Ptr{Cdouble}, (Ptr{Cdouble}, Csize_t, Csize_t, Cdouble, Cdouble), C, length(C) / 4, pNgauss, Lambda, epsilon)
-	data = transpose(copy(unsafe_wrap(Array, dtr, (4 + 1, Int(length(C) // 4)), own=false)))
+    data = transpose(copy(unsafe_wrap(Array, dtr, (4 + 1, Int(length(C) // 4)), own=false)))
     cfree(reinterpret(Ptr{Cvoid}, dtr))
     return data
 end
@@ -548,7 +584,7 @@ function nonana(E, p, m1, m2, m0)::Vector{ComplexF64}
 end
 
 function getV(E)
-    dtr = ccall(dlsym(libscript, :getV), Ptr{ComplexF64}, (Cdouble, Csize_t, Cdouble, Cdouble), E, pNgauss, Lambda, epsi)
+    dtr = ccall(dlsym(libscript, :getV), Ptr{ComplexF64}, (ComplexF64, Csize_t, Cdouble, Cdouble), E, pNgauss, Lambda, epsi)
     V = copy(transpose(unsafe_wrap(Array, dtr, (2 * pNgauss + 2, 2 * pNgauss + 2), own=false)))
     cfree(reinterpret(Ptr{Cvoid}, dtr))
     return V
@@ -570,9 +606,11 @@ if "--detcontour" in ARGS
 end
 
 if "--poles" in ARGS
-    Er = LinRange(-0.9, 0.0, 64)
-    Ei = LinRange(-0.01, 0.01, 8)
-    data = Poles(collect(Er), length(Er), collect(Ei), length(Ei), C, 64, Lambda, epsi)
+	squa = 3
+    Er = LinRange(-squa, squa, 40)
+    Ei = LinRange(-squa, squa, 40)
+	local g = LinRange(0, 10, 80)
+	data = Poles(collect(Er), length(Er), collect(Ei), length(Ei), collect(g), length(g), C, 64, Lambda, epsi)
     # cs = collect(LinRange(0.05, 1.4, 22))
     # po = []
     # for c in cs
@@ -582,6 +620,14 @@ if "--poles" in ARGS
     # end
     # scatter(cs, po, dpi=400)
     # savefig("tmp.png")
+end
+
+if "--polesm" in ARGS
+	squa = 2.10
+    Er = LinRange(-squa, squa, 50)
+    Ei = LinRange(-squa, squa, 50)
+	local g = LinRange(0, 1.6, 100)
+	data = Polesm(collect(Er), length(Er), collect(Ei), length(Ei), collect(g), length(g), C, 64, Lambda, epsi)
 end
 
 if "--onshellT" in ARGS
@@ -714,7 +760,7 @@ if "--minimize" in ARGS
     C = randn(100 * 4)
     lse = ccall(dlsym(libscript, :lse_malloc), Ptr{Cvoid}, (Csize_t, Cdouble, Cdouble), pNgauss, Lambda, epsi)
     carr = sortslices(minimize(C, pNgauss, Lambda, epsi), dims=1, by=x -> x[end])
-	c = carr[1, 1:4]
+    c = carr[1, 1:4]
     open("data/contact.bin", "w") do file
         write(file, c)
     end

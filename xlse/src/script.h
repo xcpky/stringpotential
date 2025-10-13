@@ -27,7 +27,7 @@ double complex* Det_single(double* E, size_t len, double C[4], uint64_t rs, size
 double complex* Both(double* E, size_t len, double C[4], size_t pNgauss, double Lambda, double epsilon);
 double complex V(double E, double complex p, double complex pprime);
 double complex* V3d(double E, size_t pNgauss, double Lambda, double epsilon);
-double complex* getV(double E, size_t pNgauss, double Lambda, double epsilon);
+double complex* getV(double complex E, size_t pNgauss, double Lambda, double epsilon);
 double complex* getIntegrand();
 struct OME* ome_malloc();
 void* WF();
@@ -37,9 +37,9 @@ double complex getphi(double r, uint64_t n);
 void WFend(void*);
 void Evec(double*, double);
 void Ntower(size_t*);
-double complex* Poles(double* Er, size_t rlen, double* Ei, size_t ilen, double *g, size_t glen, double C[4], size_t pNgauss, double Lambda,
-                      double epsilon);
-double* Fit(double* C, size_t clen, const double g[NCHANNELS],  size_t pNgauss, double Lambda, double epsilon);
+double complex* Poles(double* Er, size_t rlen, double* Ei, size_t ilen, double* g, size_t glen, double C[4], size_t pNgauss, double Lambda, double epsilon);
+double complex* Polesm(double* Er, size_t rlen, double* Ei, size_t ilen, double* g, size_t glen, double C[4], size_t pNgauss, double Lambda, double epsilon);
+double* Fit(double* C, size_t clen, const double g[NCHANNELS], size_t pNgauss, double Lambda, double epsilon);
 int thrdfit(void*);
 double* Fitsing(double* C, size_t clen, const double g[NCHANNELS], size_t pNgauss, double Lambda, double epsilon);
 int thrdfitsing(void*);
@@ -71,8 +71,11 @@ struct polestruct {
     size_t rlen;
     double* Ei;
     size_t ilen;
+    double* g;
+    size_t glen;
     double C[4];
     void* res;
+	uint64_t *task;
     RS rs;
     size_t id;
 };
@@ -87,6 +90,7 @@ int det(void* arg);
 int detsing(void* arg);
 int both(void* arg);
 int poles(void* arg);
+int polesm(void* arg);
 int cst(void* arg);
 
 #endif  // !SCRIPT_H

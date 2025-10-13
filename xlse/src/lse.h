@@ -7,6 +7,7 @@
 #include <gsl/gsl_matrix_complex_double.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <time.h>
 
 #include "constants.h"
 #include "ome.h"
@@ -92,6 +93,7 @@ void lse_get_E_size(unsigned int* levels);
 void lse_get_M_size(LSE* self, unsigned int* rows, unsigned int* cols);
 double complex* lse_get_onshellT(LSE* self);
 double complex pole(LSE* lse, double complex E, const double C[NCHANNELS * NCHANNELS], const double g[NCHANNELS], RS rs);
+double complex polem(LSE* lse, double complex E, const double C[NCHANNELS * NCHANNELS], const double g[NCHANNELS], RS rs);
 double cost(const gsl_vector* x, void* params);
 double costsing(const gsl_vector* x, void* params);
 void minimize(LSE* lse, const double Cin[NCHANNELS * NCHANNELS], double Cout[NCHANNELS * NCHANNELS + 1]);
@@ -105,10 +107,12 @@ int lse_tmat_single(LSE* self);
 double complex lse_invT(LSE* self, double complex E, const double C[NCHANNELS * NCHANNELS], const double g[NCHANNELS], RS rs);
 double complex lse_detImVG(LSE* self, double complex E, const double C[NCHANNELS * NCHANNELS], const double g[NCHANNELS], RS rs);
 double complex lse_detImVGsing(LSE* self, double complex E, const double C[NCHANNELS * NCHANNELS], const double g[NCHANNELS], RS rs);
+double complex lse_detImVGsingm(LSE* self, double complex E, const double C[NCHANNELS * NCHANNELS], const double g[NCHANNELS]);
 double complex lse_detVG(LSE* self, double complex E, const double C[NCHANNELS * NCHANNELS], const double g[NCHANNELS], RS rs);
-double lse_cost(LSE* self, const double C[NCHANNELS * NCHANNELS],  RS rs);
-double lse_costsing(LSE* self, const double C[NCHANNELS * NCHANNELS],  RS rs);
+double lse_cost(LSE* self, const double C[NCHANNELS * NCHANNELS], RS rs);
+double lse_costsing(LSE* self, const double C[NCHANNELS * NCHANNELS], RS rs);
 void lse_refresh(LSE* self, double complex E, const double C[NCHANNELS * NCHANNELS], const double g[NCHANNELS], RS rs);
+void lse_refreshm(LSE* self, double complex p, const double C[NCHANNELS * NCHANNELS], const double g[NCHANNELS]);
 void lse_X(LSE* self);
 void lse_XtX(LSE* self);
 
@@ -121,33 +125,28 @@ double complex V_QM_01(LSE* self, size_t p, size_t pprime);
 double complex V_QM_10(LSE* self, size_t p, size_t pprime);
 double complex V_QM_11(LSE* self, size_t p, size_t pprime);
 
-#define DEFINE_VQMTEST(alpha, beta)                                                            \
-    static inline double complex V_QM_TEST_##alpha##beta(LSE* self, [[maybe_unused]] size_t p, \
-                                                         [[maybe_unused]] size_t pprime) {     \
-        double E[6] = {m_Xb11P, m_Xb12P, m_Xb13P, m_Xb14P, m_Xb15P, m_Xb16P};                  \
-        double complex res = 0;                                                                \
-        for (size_t i = 0; i < 6; i += 1) {                                                    \
-            res += 1 / (self->E - E[i]);                                                       \
-        }                                                                                      \
-        [[maybe_unused]] auto g0 = self->g0;                                                   \
-        [[maybe_unused]] auto g1 = self->g1;                                                   \
-        return res * g##alpha * g##beta;                                                       \
+#define DEFINE_VQMTEST(alpha, beta)                                                                 \
+    static inline double complex V_QM_TEST_##alpha##beta(LSE* self, [[maybe_unused]] size_t p,      \
+                                                         [[maybe_unused]] size_t pprime) {          \
+        double E[6] = {m_Xb11P, m_Xb12P, m_Xb13P, m_Xb14P, m_Xb15P, m_Xb16P};                       \
+        double complex res = 0;                                                                     \
+        size_t pNgauss = self->pNgauss;                                                             \
+        auto psi = (double complex(*)[N_MAX + 1][pNgauss + 1]) self->psi_n_mat;                     \
+        size_t chan0 = p / (pNgauss + 1);                                                           \
+        size_t chan1 = pprime / (pNgauss + 1);                                                      \
+        for (size_t i = 0; i < 6; i += 1) {                                                         \
+            res += psi[chan0][i][p % (pNgauss + 1)] * conj(psi[chan1][i][pprime % (pNgauss + 1)]) / \
+                   (self->E - E[i]);                                                                \
+        }                                                                                           \
+        [[maybe_unused]] auto g0 = self->g0;                                                        \
+        [[maybe_unused]] auto g1 = self->g1;                                                        \
+        return res * g##alpha * g##beta;                                                            \
     }
 
 DEFINE_VQMTEST(0, 0)
 DEFINE_VQMTEST(0, 1)
 DEFINE_VQMTEST(1, 0)
 DEFINE_VQMTEST(1, 1)
-
-// #define DEFINE_V_TEST(alpha, beta)                                                                                 \
-//     static inline double complex V_TEST_##alpha##beta(double complex E, double complex p, double complex pprime) { \
-//         return csin(E) * (p + pprime * pprime - 1 / p) * g##alpha * g##beta;                                       \
-//     }
-//
-// DEFINE_V_TEST(0, 0)
-// DEFINE_V_TEST(0, 1)
-// DEFINE_V_TEST(1, 0)
-// DEFINE_V_TEST(1, 1)
 
 #define DEFINE_VQM(alpha, beta)                                                                     \
     double complex V_QM_##alpha##beta(LSE* self, size_t p, size_t pprime) {                         \
@@ -172,7 +171,7 @@ DEFINE_VQMTEST(1, 1)
                                         [[maybe_unused]] size_t p2i) {                                   \
         [[maybe_unused]] auto E = self->E;                                                               \
         E += m11 + m12;                                                                                  \
-        auto res = V_QM_TEST_##suffix(self, p1i, p2i);                                                   \
+        [[maybe_unused]] auto res = -V_QM_TEST_##suffix(self, p1i, p2i);                                 \
         return res;                                                                                      \
     }
 

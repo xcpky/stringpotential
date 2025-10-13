@@ -1,6 +1,8 @@
 #include "script.h"
 
 #include <gsl/gsl_matrix_complex_double.h>
+#include <gsl/gsl_randist.h>
+#include <gsl/gsl_rng.h>
 #include <gsl/gsl_sf_legendre.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -454,6 +456,8 @@ double complex* Poles(double* Er, size_t rlen, double* Ei, size_t ilen, double* 
         args[i].rlen = rlen;
         args[i].Ei = Ei;
         args[i].ilen = ilen;
+        args[i].g = g;
+        args[i].glen = glen;
         args[i].id = i;
         for (size_t cc = 0; cc < 4; cc += 1) {
             args[i].C[cc] = C[cc];
@@ -472,6 +476,61 @@ double complex* Poles(double* Er, size_t rlen, double* Ei, size_t ilen, double* 
     for (size_t i = 0; i < NTHREADS; i += 1) {
         thrd_join(tid[i], NULL);
     }
+    return res;
+}
+
+double complex* Polesm(double* pr, size_t rlen, double* pi, size_t ilen, double* g, size_t glen, double C[4], size_t pNgauss, double Lambda, double epsilon) {
+    size_t len = rlen * ilen * glen;
+    double complex* res = malloc(sizeof(double complex) * len);
+    thrd_t tid[NTHREADS];
+    struct polestruct args[NTHREADS];
+    size_t ntasks = len / NTHREADS;
+    size_t residue = len % NTHREADS;
+
+    auto* rng = gsl_rng_alloc(gsl_rng_mt19937);
+    gsl_rng_set(rng, (uint64_t)time(NULL));
+
+    uint64_t* task = malloc(sizeof(uint64_t) * len);
+    for (uint64_t i = 0; i < len; i += 1) {
+        task[i] = i;
+    }
+    gsl_ran_shuffle(rng, task, len, sizeof(uint64_t));
+
+    for (size_t i = 0; i < NTHREADS; i += 1) {
+        args[i].pNgauss = pNgauss;
+		args[i].task = task;
+        args[i].Lambda = Lambda;
+        args[i].epsilon = epsilon;
+        args[i].res = res;
+        args[i].rs = PP;
+        args[i].Er = pr;
+        args[i].rlen = rlen;
+        args[i].Ei = pi;
+        args[i].ilen = ilen;
+        args[i].g = g;
+        args[i].glen = glen;
+        args[i].id = i;
+        for (size_t cc = 0; cc < 4; cc += 1) {
+            args[i].C[cc] = C[cc];
+        }
+        if (i < residue) {
+            args[i].len = ntasks + 1;
+            args[i].start = (ntasks + 1) * i;
+        } else {
+            args[i].len = ntasks;
+            args[i].start = ntasks * i + residue;
+        }
+    }
+    for (size_t i = 0; i < NTHREADS; i += 1) {
+        // printf("id %zu\n", i);
+        thrd_create(&tid[i], polesm, &args[i]);
+    }
+    for (size_t i = 0; i < NTHREADS; i += 1) {
+        thrd_join(tid[i], NULL);
+    }
+
+    free(task);
+    gsl_rng_free(rng);
     return res;
 }
 
@@ -841,19 +900,55 @@ int both(void* arg) {
 
 int poles(void* arg) {
     auto foo = *(struct polestruct*)arg;
-    size_t len = foo.ilen * foo.rlen;
+    // size_t len = foo.ilen * foo.rlen;
     LSE* lse [[gnu::cleanup(lsefree)]] =
         lse_malloc(foo.pNgauss, foo.Lambda, foo.epsilon);
-    double complex* res = foo.res;
+    // double complex* res = foo.res;
+    double complex(*res)[foo.glen][foo.rlen][foo.ilen] = foo.res;
     for (size_t idx = foo.start; idx < foo.start + foo.len; idx += 1) {
-        size_t re = idx / foo.ilen;
+        // [g, re, im]
+        size_t g = idx / (foo.ilen * foo.rlen);
+        size_t re = (idx / foo.ilen) % foo.rlen;
         size_t im = idx % foo.ilen;
         double complex E = foo.Er[re] + foo.Ei[im] * I;
         // res[idx] = pole(lse, E, foo.C, NN);
         // res[idx + len] = pole(lse, E, foo.C, PN);
         // res[idx + len * 2] = pole(lse, E, foo.C, NP);
-        res[idx + len * 3] = pole(lse, E, foo.C, G, PP);
+        // res[idx + len * 3] = pole(lse, E, foo.C, (double[2]){foo.g[g], G[1]}, PP);
+        res[PP][g][re][im] = pole(lse, E, foo.C, (double[2]){foo.g[g], G[1]}, PP);
     }
+    return 0;
+}
+
+int polesm(void* arg) {
+    auto foo = *(struct polestruct*)arg;
+    // size_t len = foo.ilen * foo.rlen;
+    LSE* lse [[gnu::cleanup(lsefree)]] =
+        lse_malloc(foo.pNgauss, foo.Lambda, foo.epsilon);
+    // double complex* res = foo.res;
+    double complex(*res)[foo.rlen][foo.ilen] = foo.res;
+    // printf("thread[%zu] started, len %zu\n\n", foo.id, foo.len);
+    auto mod = foo.len / 20;
+    for (size_t i = foo.start; i < foo.start + foo.len; i += 1) {
+		auto idx = foo.task[i];
+        // [g, re, im]
+        // size_t g = idx / (foo.ilen * foo.rlen);
+        // size_t re = (idx / foo.ilen) % foo.rlen;
+        // size_t im = idx % foo.ilen;
+        size_t im = idx / (foo.glen * foo.rlen);
+        size_t re = (idx / foo.glen) % foo.rlen;
+        size_t g = idx % foo.glen;
+        double complex E = foo.Er[re] + foo.Ei[im] * I;
+        // res[idx] = pole(lse, E, foo.C, NN);
+        // res[idx + len] = pole(lse, E, foo.C, PN);
+        // res[idx + len * 2] = pole(lse, E, foo.C, NP);
+        // res[idx + len * 3] = pole(lse, E, foo.C, (double[2]){foo.g[g], G[1]}, PP);
+        res[g][re][im] = polem(lse, E, foo.C, (double[2]){foo.g[g], G[1]}, PP);
+        if ((i - foo.start) % mod == 0) {
+            printf("id[%zu] at %zu%%\n", foo.id, (i - foo.start) / mod * 5);
+        }
+    }
+    // printf("thread[%zu] finished\n", foo.id);
     return 0;
 }
 
@@ -894,7 +989,7 @@ int trG(void* arg) {
 }
 
 void Free(void* ptr) { free(ptr); }
-double complex* getV(double E, size_t pNgauss, double Lambda, double epsilon) {
+double complex* getV(double complex E, size_t pNgauss, double Lambda, double epsilon) {
     // puts("getV get called");
     // printf("E: %f, pNgauss: %zu, Lambda: %f, epsilon: %f\n", E, pNgauss,
     // Lambda, epsilon);
