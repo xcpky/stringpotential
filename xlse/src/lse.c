@@ -1059,7 +1059,7 @@ int detIJ(const gsl_vector* x, void* params, gsl_vector* f) {
     struct detparams* detp = params;
     LSE* lse = detp->lse;
     const auto n = lse->pNgauss + 1;
-    matrix* tau = gsl_matrix_complex_alloc(6, 6);
+    matrix* tau[[gnu::cleanup(matfree)]] = gsl_matrix_complex_alloc(6, 6);
     auto g = lse->g0;
     gsl_matrix_complex_set_zero(tau);
     auto dE = p * p;
@@ -1069,7 +1069,7 @@ int detIJ(const gsl_vector* x, void* params, gsl_vector* f) {
     lse_refreshm(lse, p, detp->C, detp->g);
     lse_gmat(lse);
     double complex(*psi)[N_MAX + 1][n] = lse->psi_n_mat;
-    auto J = matrix_alloc(6, 6);
+    matrix* J[[gnu::cleanup(matfree)]] = matrix_alloc(6, 6);
     for (uint64_t i = 0; i < 6; i += 1) {
         for (uint64_t j = 0; j < 6; j += 1) {
             double complex ele = 0;
@@ -1080,15 +1080,15 @@ int detIJ(const gsl_vector* x, void* params, gsl_vector* f) {
             matrix_set(J, i, j, ele);
         }
     }
-    auto IJ = matrix_alloc(6, 6);
+    matrix* IJ[[gnu::cleanup(matfree)]] = matrix_alloc(6, 6);
     gsl_matrix_complex_set_identity(IJ);
 #ifdef IPVG
-    gsl_blas_zgemm(CblasNoTrans, CblasNoTrans, 1, tau, J, 1, IJ);
+    gsl_blas_zgemm(CblasNoTrans, CblasNoTrans, -1, tau, J, 1, IJ);
 #else
     gsl_blas_zgemm(CblasNoTrans, CblasNoTrans, -1, tau, J, 1, IJ);
 #endif
 
-    gsl_permutation* perm [[gnu::cleanup(permfree)]] = gsl_permutation_alloc(n);
+    gsl_permutation* perm [[gnu::cleanup(permfree)]] = gsl_permutation_alloc(6);
     if (!perm) {
         return -1;
     }
@@ -1157,7 +1157,7 @@ double complex polem(LSE* lse, double complex E, const double C[NCHANNELS * NCHA
         .g = {g[0], g[1]},
         .rs = rs,
     };
-    gsl_multiroot_function F = {&detImVGm, 2, &detp};
+    gsl_multiroot_function F = {&detIJ, 2, &detp};
     gsl_vector* x = gsl_vector_alloc(2);
     gsl_vector_set(x, 0, creal(E));
     gsl_vector_set(x, 1, cimag(E));

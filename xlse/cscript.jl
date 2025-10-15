@@ -495,7 +495,7 @@ function Polesm(Er::Vector{Cdouble}, rlen, Ei::Vector{Cdouble}, ilen, g::Vector{
     # data = transpose(reshape(data, (rlen * ilen, 4)))
     # poles = [filter(!isnan, data[i, :]) for i in 1:4]
 	poles = clusterpoles(data)
-	plot(legend=false)
+	plot(legend=false, dpi=400)
 	for i in 1:glen
 		scatter!(real.(poles[1][i]), imag.(poles[1][i]), markersize=1, markerstrokewidth=0)
 	end
@@ -506,7 +506,7 @@ function Polesm(Er::Vector{Cdouble}, rlen, Ei::Vector{Cdouble}, ilen, g::Vector{
 	# ylims!(-0.08, 0.08)
     xlabel!("Re")
     ylabel!("Im")
-	title!(L"$V = g^2\sum_{n=1}^6\frac{\psi_n(p)\psi_n^*(p')}{E - E_{\chi_{b1}(nP)}}$")
+	# title!(L"$V = g^2\sum_{n=1}^6\frac{\psi_n(p)\psi_n^*(p')}{E - E_{\chi_{b1}(nP)}}$")
     savefig("polem.png")
     savefig("polem.pdf")
     return poles
