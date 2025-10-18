@@ -20,8 +20,7 @@
 
 constexpr int max_iter = 4000;
 #define IPVG
-// #define IMVG
-// #define CONSTQM
+#define CONSTQM
 // double complex V_QM(LSE *self, size_t p, size_t pprime) {
 //   double complex res = 0 + 0 * I;
 //   __auto_type E = self->E;
@@ -253,7 +252,7 @@ void lse_refreshm(LSE* self, double complex p, const double C[NCHANNELS * NCHANN
             if (creal(dE) > 0 && fabs(cimag(dE)) < 1e-7) {
                 psi[i][j][self->pNgauss] = 1;
             } else {
-                psi[i][j][self->pNgauss] = 0;
+                psi[i][j][self->pNgauss] = 1;
             }
             // psi[i][j][self->pNgauss] = 1;
 #else
@@ -304,7 +303,7 @@ int lse_gmat(LSE* self) {
             double x = self->xi[j];
             double w = self->wi[j];
 
-            double complex denom = dE - fsquare(x) / 2 / mU + self->epsilon * I;
+            double complex denom = dE - fsquare(x) / 2 / mU - self->epsilon * I;
             int_val += w / denom;
         }
 
@@ -328,7 +327,7 @@ int lse_gmat(LSE* self) {
         for (size_t m = 0; m < self->pNgauss; m++) {
             const size_t pos = m + i * (self->pNgauss + 1);
             double complex denominator =
-                dE - fsquare(self->xi[m]) / 2 / mU + self->epsilon * I;
+                dE - fsquare(self->xi[m]) / 2 / mU - self->epsilon * I;
 #ifdef IPVG
             double complex ele = -fsquare(self->xi[m]) * self->wi[m] / 2 /
                                  fsquare(M_PI) / denominator;
@@ -430,32 +429,18 @@ int lse_vmat(LSE* self) {
 //
 int lse_tmat(LSE* self) {
     const size_t n = NCHANNELS * (self->pNgauss + 1);
-    gsl_matrix_complex* VG [[gnu::cleanup(matfree)]] =
-        gsl_matrix_complex_alloc(n, n);
-    if (!VG)
-        return -1;
-    gsl_matrix_complex_set_zero(VG);
-
-    gsl_complex alpha = gsl_complex_rect(1.0, 0.0);
-    gsl_complex beta = gsl_complex_rect(0.0, 0.0);
-    gsl_blas_zgemm(CblasNoTrans, CblasNoTrans, alpha, self->VOME, self->G, beta, VG);
-
-    // Step 2: Compute I - VG
     gsl_matrix_complex* IVG [[gnu::cleanup(matfree)]] =
         gsl_matrix_complex_alloc(n, n);
-    if (!IVG) {
+    if (!IVG)
         return -1;
-    }
+    gsl_matrix_complex_set_identity(IVG);
 
-    gsl_matrix_complex_memcpy(IVG, VG);
 #ifdef IMVG
-    gsl_matrix_complex_scale(IVG, gsl_complex_rect(-1.0, 0.0));  // I_minus_VG = -VG
+    gsl_blas_zgemm(CblasNoTrans, CblasNoTrans, -1, self->VOME, self->G, 1, IVG);
+#elif defined(IPVG)
+    gsl_blas_zgemm(CblasNoTrans, CblasNoTrans, 1, self->VOME, self->G, 1, IVG);
 #endif
 
-    // Add identity matrix: I_minus_VG = I - VG
-    gsl_matrix_complex_add_diagonal(IVG, 1 + 0I);
-
-    // Step 3: Invert (I - VG) using LU decomposition
     gsl_permutation* perm [[gnu::cleanup(permfree)]] = gsl_permutation_alloc(n);
     if (!perm) {
         return -1;
@@ -478,8 +463,8 @@ int lse_tmat(LSE* self) {
         GSL_SUCCESS) {
         return -1;
     }
-    gsl_blas_zgemm(CblasNoTrans, CblasNoTrans, alpha, inv_I_minus_VG,
-                   self->VOME, beta, self->TOME);
+    gsl_blas_zgemm(CblasNoTrans, CblasNoTrans, 1, inv_I_minus_VG,
+                   self->VOME, 0, self->TOME);
 
     // Clean up
     return 0;
@@ -510,13 +495,12 @@ int lse_tmat_single(LSE* self) {
 
     gsl_complex alpha = gsl_complex_rect(1.0, 0.0);
     gsl_complex beta = gsl_complex_rect(0.0, 0.0);
-    gsl_blas_zgemm(CblasNoTrans, CblasNoTrans, alpha, &V.matrix, &G.matrix,
-                   beta, VG);
 #ifdef IMVG
-    gsl_matrix_complex_scale(VG,
-                             gsl_complex_rect(-1.0, 0.0));  // I_minus_VG = -VG
+    gsl_blas_zgemm(CblasNoTrans, CblasNoTrans, -1, &V.matrix, &G.matrix, 1, VG);
+#elif defined(IPVG)
+    gsl_blas_zgemm(CblasNoTrans, CblasNoTrans, 1, &V.matrix, &G.matrix, 1, VG);
+
 #endif
-    gsl_matrix_complex_add_diagonal(VG, 1 + 0I);
     int signum;
     if (gsl_linalg_complex_LU_decomp(VG, perm, &signum) != GSL_SUCCESS) {
         return -1;
@@ -743,27 +727,16 @@ double complex lse_detImVG(LSE* self, double complex E, const double C[NCHANNELS
     const size_t n = NCHANNELS * (self->pNgauss + 1);
 
     // Step 1: Compute VG = V * G
-    gsl_matrix_complex* VG [[gnu::cleanup(matfree)]] =
-        gsl_matrix_complex_alloc(n, n);
-    if (!VG)
-        return -1;
-    gsl_matrix_complex_set_zero(VG);
-
-    // Use GSL BLAS wrapper for matrix multiplication: VG = V * G
-    gsl_complex alpha = gsl_complex_rect(1.0, 0.0);
-    gsl_complex beta = gsl_complex_rect(0.0, 0.0);
-    gsl_blas_zgemm(CblasNoTrans, CblasNoTrans, alpha, self->VOME, self->G, beta, VG);
-
-    // Step 2: Compute I - VG
     gsl_matrix_complex* IVG [[gnu::cleanup(matfree)]] =
         gsl_matrix_complex_alloc(n, n);
-    if (!IVG) {
+    if (!IVG)
         return -1;
-    }
+    gsl_matrix_complex_set_identity(IVG);
 
-    gsl_matrix_complex_memcpy(IVG, VG);
 #ifdef IMVG
-    gsl_matrix_complex_scale(IVG, gsl_complex_rect(-1.0, 0.0));  // I_minus_VG = -VG
+    gsl_blas_zgemm(CblasNoTrans, CblasNoTrans, -1, self->VOME, self->G, 1, IVG);
+#elif defined(IPVG)
+    gsl_blas_zgemm(CblasNoTrans, CblasNoTrans, 1, self->VOME, self->G, 1, IVG);
 #endif
 
     // Add identity matrix: I_minus_VG = I - VG
@@ -801,36 +774,22 @@ double complex lse_detImVGsing(LSE* self, double complex E, const double C[NCHAN
     auto G = gsl_matrix_complex_submatrix(self->G, 0, 0, n, n);
 
     // Step 1: Compute VG = V * G
-    gsl_matrix_complex* VG [[gnu::cleanup(matfree)]] =
+    gsl_matrix_complex* IVG [[gnu::cleanup(matfree)]] =
         gsl_matrix_complex_alloc(n, n);
-    if (!VG)
+    if (!IVG)
         return -1;
-    gsl_matrix_complex_set_zero(VG);
+    gsl_matrix_complex_set_zero(IVG);
 
     // Use GSL BLAS wrapper for matrix multiplication: VG = V * G
     gsl_complex alpha = gsl_complex_rect(1.0, 0.0);
     gsl_complex beta = gsl_complex_rect(0.0, 0.0);
-    gsl_blas_zgemm(CblasNoTrans, CblasNoTrans, alpha, &V.matrix, &G.matrix, beta,
-                   VG);
-
-    // Step 2: Compute I - VG
-    gsl_matrix_complex* IVG [[gnu::cleanup(matfree)]] =
-        gsl_matrix_complex_alloc(n, n);
-    if (!IVG) {
-        return -1;
-    }
-
-    gsl_matrix_complex_memcpy(IVG, VG);
+    gsl_blas_zgemm(CblasNoTrans, CblasNoTrans, -1, &V.matrix, &G.matrix, 1, IVG);
 #ifdef IMVG
-    gsl_matrix_complex_scale(IVG,
-                             gsl_complex_rect(-1.0, 0.0));  // I_minus_VG = -VG
+    gsl_blas_zgemm(CblasNoTrans, CblasNoTrans, -1, &V.matrix, &G.matrix, 1, IVG);
+#elif defined(IPVG)
+    gsl_blas_zgemm(CblasNoTrans, CblasNoTrans, 1, &V.matrix, &G.matrix, 1, IVG);
 #endif
 
-    // Add identity matrix: I_minus_VG = I - VG
-    gsl_matrix_complex_add_diagonal(IVG, 1 + 0I);
-    // gsl_matrix_complex_memcpy(self->reg, I_minus_VG);
-
-    // Step 3: Invert (I - VG) using LU decomposition
     gsl_permutation* perm [[gnu::cleanup(permfree)]] = gsl_permutation_alloc(n);
     if (!perm) {
         return -1;
@@ -855,35 +814,17 @@ double complex lse_detImVGsingm(LSE* self, double complex p, const double C[NCHA
     auto V = gsl_matrix_complex_submatrix(self->VOME, 0, 0, n, n);
     auto G = gsl_matrix_complex_submatrix(self->G, 0, 0, n, n);
 
-    // Step 1: Compute VG = V * G
-    gsl_matrix_complex* VG [[gnu::cleanup(matfree)]] =
-        gsl_matrix_complex_alloc(n, n);
-    if (!VG)
-        return -1;
-    gsl_matrix_complex_set_zero(VG);
-
-    // Use GSL BLAS wrapper for matrix multiplication: VG = V * G
-    gsl_complex alpha = gsl_complex_rect(1.0, 0.0);
-    gsl_complex beta = gsl_complex_rect(0.0, 0.0);
-    gsl_blas_zgemm(CblasNoTrans, CblasNoTrans, alpha, &V.matrix, &G.matrix, beta,
-                   VG);
-
-    // Step 2: Compute I - VG
     gsl_matrix_complex* IVG [[gnu::cleanup(matfree)]] =
         gsl_matrix_complex_alloc(n, n);
-    if (!IVG) {
+    if (!IVG)
         return -1;
-    }
+    gsl_matrix_complex_set_identity(IVG);
 
-    gsl_matrix_complex_memcpy(IVG, VG);
 #ifdef IMVG
-    gsl_matrix_complex_scale(IVG,
-                             gsl_complex_rect(-1.0, 0.0));  // I_minus_VG = -VG
+    gsl_blas_zgemm(CblasNoTrans, CblasNoTrans, -1, &V.matrix, &G.matrix, 1, IVG);
+#elif defined(IPVG)
+    gsl_blas_zgemm(CblasNoTrans, CblasNoTrans, 1, &V.matrix, &G.matrix, 1, IVG);
 #endif
-
-    // Add identity matrix: I_minus_VG = I - VG
-    gsl_matrix_complex_add_diagonal(IVG, 1 + 0I);
-    // gsl_matrix_complex_memcpy(self->reg, I_minus_VG);
 
     // Step 3: Invert (I - VG) using LU decomposition
     gsl_permutation* perm [[gnu::cleanup(permfree)]] = gsl_permutation_alloc(n);
@@ -1059,8 +1000,8 @@ int detIJ(const gsl_vector* x, void* params, gsl_vector* f) {
     struct detparams* detp = params;
     LSE* lse = detp->lse;
     const auto n = lse->pNgauss + 1;
-    matrix* tau[[gnu::cleanup(matfree)]] = gsl_matrix_complex_alloc(6, 6);
-    auto g = lse->g0;
+    matrix* tau [[gnu::cleanup(matfree)]] = gsl_matrix_complex_alloc(6, 6);
+    auto g = detp->g[0];
     gsl_matrix_complex_set_zero(tau);
     auto dE = p * p;
     for (uint64_t i = 0; i < 6; i += 1) {
@@ -1069,22 +1010,22 @@ int detIJ(const gsl_vector* x, void* params, gsl_vector* f) {
     lse_refreshm(lse, p, detp->C, detp->g);
     lse_gmat(lse);
     double complex(*psi)[N_MAX + 1][n] = lse->psi_n_mat;
-    matrix* J[[gnu::cleanup(matfree)]] = matrix_alloc(6, 6);
+    matrix* J [[gnu::cleanup(matfree)]] = matrix_alloc(6, 6);
     for (uint64_t i = 0; i < 6; i += 1) {
         for (uint64_t j = 0; j < 6; j += 1) {
             double complex ele = 0;
             for (uint64_t pi = 0; pi < n; pi += 1) {
                 auto G = matrix_get(lse->G, pi, pi);
-                ele += conj(psi[0][i][pi]) * G * psi[0][j][pi];
+                ele += G;
             }
             matrix_set(J, i, j, ele);
         }
     }
-    matrix* IJ[[gnu::cleanup(matfree)]] = matrix_alloc(6, 6);
+    matrix* IJ [[gnu::cleanup(matfree)]] = matrix_alloc(6, 6);
     gsl_matrix_complex_set_identity(IJ);
 #ifdef IPVG
-    gsl_blas_zgemm(CblasNoTrans, CblasNoTrans, -1, tau, J, 1, IJ);
-#else
+    gsl_blas_zgemm(CblasNoTrans, CblasNoTrans, 1, tau, J, 1, IJ);
+#elif defined(IMVG)
     gsl_blas_zgemm(CblasNoTrans, CblasNoTrans, -1, tau, J, 1, IJ);
 #endif
 

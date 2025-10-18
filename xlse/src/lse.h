@@ -171,7 +171,7 @@ DEFINE_VQMTEST(1, 1)
                                         [[maybe_unused]] size_t p2i) {                                   \
         [[maybe_unused]] auto E = self->E;                                                               \
         E += m11 + m12;                                                                                  \
-        [[maybe_unused]] auto res = -V_QM_TEST_##suffix(self, p1i, p2i);                                 \
+        [[maybe_unused]] auto res = V_QM_TEST_##suffix(self, p1i, p2i);                                 \
         return res;                                                                                      \
     }
 
