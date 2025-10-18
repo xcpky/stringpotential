@@ -107,7 +107,8 @@ int lse_tmat_single(LSE* self);
 double complex lse_invT(LSE* self, double complex E, const double C[NCHANNELS * NCHANNELS], const double g[NCHANNELS], RS rs);
 double complex lse_detImVG(LSE* self, double complex E, const double C[NCHANNELS * NCHANNELS], const double g[NCHANNELS], RS rs);
 double complex lse_detImVGsing(LSE* self, double complex E, const double C[NCHANNELS * NCHANNELS], const double g[NCHANNELS], RS rs);
-double complex lse_detImVGsingm(LSE* self, double complex E, const double C[NCHANNELS * NCHANNELS], const double g[NCHANNELS]);
+double complex lse_detImVGsingm(LSE* self, double complex p, const double C[NCHANNELS * NCHANNELS], const double g[NCHANNELS]);
+double complex lse_detIJm(LSE* self, double complex p, const double C[NCHANNELS * NCHANNELS], const double g[NCHANNELS]);
 double complex lse_detVG(LSE* self, double complex E, const double C[NCHANNELS * NCHANNELS], const double g[NCHANNELS], RS rs);
 double lse_cost(LSE* self, const double C[NCHANNELS * NCHANNELS], RS rs);
 double lse_costsing(LSE* self, const double C[NCHANNELS * NCHANNELS], RS rs);
@@ -134,7 +135,7 @@ double complex V_QM_11(LSE* self, size_t p, size_t pprime);
         auto psi = (double complex(*)[N_MAX + 1][pNgauss + 1]) self->psi_n_mat;                     \
         size_t chan0 = p / (pNgauss + 1);                                                           \
         size_t chan1 = pprime / (pNgauss + 1);                                                      \
-        for (size_t i = 0; i < 6; i += 1) {                                                         \
+        for (size_t i = 0; i < N_TOWER; i += 1) {                                                         \
             res += psi[chan0][i][p % (pNgauss + 1)] * conj(psi[chan1][i][pprime % (pNgauss + 1)]) / \
                    (self->E - E[i]);                                                                \
         }                                                                                           \

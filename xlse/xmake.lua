@@ -3,6 +3,7 @@ set_languages("gnu23")
 add_cflags("-Wall", "-Wextra", "-DHAVE_INLINE", "-fgnuc-version=8", "-Wconversion", "-Wshadow")
 set_toolchains("clang")
 add_requires("gsl", {system = true})
+add_requires("notcurses", {system = true})
 -- add_requires("gnu-gsl", {alias = "gsl", system = false})
 -- add_requires("matplotplusplus")
 add_rules("plugin.compile_commands.autoupdate")
@@ -25,13 +26,22 @@ do
 	add_links("m")
 end
 
+target("color")
+do
+	set_kind("shared")
+	set_languages("gnu17")
+	add_files("src/color.c")
+end
+
 target("xlse")
 do
 	set_kind("binary")
 	add_deps("lse")
+	add_deps("color")
 	add_deps("wavefunction")
 	add_deps("script")
 	add_packages("gsl")
+	add_packages("notcurses")
 	add_links("m")
 	add_files("src/main.c", "src/utils.c")
 end

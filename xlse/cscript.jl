@@ -503,7 +503,7 @@ function Polesm(Er::Vector{Cdouble}, rlen, Ei::Vector{Cdouble}, ilen, g::Vector{
     # scatter(real.(poles[1]), imag.(poles[1]), dpi=400, label=L"RS_{--}", markersize=3, markerstrokewidth=0, legend=:outertopright)
     # scatter!(real.(poles[2]), imag.(poles[2]), dpi=400, label=L"RS_{+-}", markersize=3, markerstrokewidth=0)
     # scatter!(real.(poles[3]), imag.(poles[3]), dpi=400, label=L"RS_{-+}", markersize=3, markerstrokewidth=0)
-	ylims!(-0.2, 0.2)
+	# ylims!(-0.2, 0.2)
     xlabel!("Re")
     ylabel!("Im")
 	# title!(L"$V = g^2\sum_{n=1}^6\frac{\psi_n(p)\psi_n^*(p')}{E - E_{\chi_{b1}(nP)}}$")

@@ -68,7 +68,7 @@
 
 // wavefunction constants
 #define N_MAX 64
-#define N_TOWER 4
+#define N_TOWER 6
 #define R_1 (0.02 * 5.068)       // GeV^-1
 #define R_N_MAX (N_MAX * 5.068)  // GeV^-1
 // #define C_T (0.19732 * 0.19732 / (0.5 * 4.18) * 5.068)
