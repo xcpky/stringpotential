@@ -40,9 +40,7 @@ void Ntower(size_t*);
 double complex* Poles(double* Er, size_t rlen, double* Ei, size_t ilen, double* g, size_t glen, double C[4], size_t pNgauss, double Lambda, double epsilon);
 double complex* Polesm(double* Er, size_t rlen, double* Ei, size_t ilen, double* g, size_t glen, double C[4], size_t pNgauss, double Lambda, double epsilon);
 double* Fit(double* C, size_t clen, const double g[NCHANNELS], size_t pNgauss, double Lambda, double epsilon);
-int thrdfit(void*);
 double* Fitsing(double* C, size_t clen, const double g[NCHANNELS], size_t pNgauss, double Lambda, double epsilon);
-int thrdfitsing(void*);
 double* Cost(double* C, size_t len, double complex resonance, size_t pNgauss, double Lambda, double epsilon);
 void Free(void* ptr);
 
@@ -80,17 +78,20 @@ struct polestruct {
     size_t id;
 };
 
-int oT(void* arg);
-int oTsing(void* arg);
-int oG(void* arg);
-int oV(void* arg);
-int oTV(void* arg);
-int trG(void* arg);
-int det(void* arg);
-int detsing(void* arg);
-int both(void* arg);
-int poles(void* arg);
-int polesm(void* arg);
-int cst(void* arg);
+struct poolstruct {
+	size_t pNgauss;
+	double Lambda;
+	double epsilon;
+	double *Er;
+	uint64_t rlen;
+	double *Ei;
+	uint64_t ilen;
+	double *g;
+	uint64_t glen;
+	uint64_t task;
+	double *C;
+	void *res;
+};
+
 
 #endif  // !SCRIPT_H

@@ -4,16 +4,63 @@
 #include <gsl/gsl_randist.h>
 #include <gsl/gsl_rng.h>
 #include <gsl/gsl_sf_legendre.h>
+#include <stdatomic.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <threads.h>
 
 #include "autofree.h"
+#include "color.h"
 #include "constants.h"
 #include "lse.h"
 #include "ome.h"
+#include "thpool.h"
 #include "wavefunction.h"
+
+// function signature
+static void polepool(void* arg);
+static int oT(void* arg);
+static int oTsing(void* arg);
+static int oG(void* arg);
+static int oV(void* arg);
+static int oTV(void* arg);
+static int trG(void* arg);
+static int det(void* arg);
+static int detsing(void* arg);
+static int both(void* arg);
+static int poles(void* arg);
+static int polesm(void* arg);
+static int cst(void* arg);
+static int thrdfit(void*);
+static int thrdfitsing(void*);
+
+static tss_t lse_key;
+static once_flag lse_once = ONCE_FLAG_INIT;
+
+static void lse_destructor(void* p) {
+    if (p) lse_free(p);
+}
+
+static void lse_key_init(void) {
+    if (tss_create(&lse_key, lse_destructor) != thrd_success) {
+        abort();
+    }
+}
+
+static LSE* get_thread_lse(size_t pNgauss, double Lambda, double epsilon) {
+    call_once(&lse_once, lse_key_init);
+
+    LSE* p = (LSE*)tss_get(lse_key);
+    if (!p) {
+        p = lse_malloc(pNgauss, Lambda, epsilon);
+        if (tss_set(lse_key, p) != thrd_success) {
+            lse_free(p);
+            abort();
+        }
+    }
+    return p;
+}
 
 double complex* onshell(double* E, size_t len, size_t pNgauss, double Lambda,
                         double epsilon) {
@@ -482,57 +529,104 @@ double complex* Poles(double* Er, size_t rlen, double* Ei, size_t ilen, double* 
 double complex* Polesm(double* pr, size_t rlen, double* pi, size_t ilen, double* g, size_t glen, double C[4], size_t pNgauss, double Lambda, double epsilon) {
     size_t len = rlen * ilen * glen;
     double complex* res = malloc(sizeof(double complex) * len);
-    thrd_t tid[NTHREADS];
-    struct polestruct args[NTHREADS];
-    size_t ntasks = len / NTHREADS;
-    size_t residue = len % NTHREADS;
+    // auto debug = debug_init();
+    // debug_log(debug, DEBUG_INFO, "Making thread pool with %d threads", NTHREADS);
+    threadpool thpool = thpool_init(NTHREADS);
+    struct poolstruct* arg = malloc(sizeof(struct poolstruct) * len);
+    // auto* rng = gsl_rng_alloc(gsl_rng_mt19937);
+    // gsl_rng_set(rng, (uint64_t)time(NULL));
 
-    auto* rng = gsl_rng_alloc(gsl_rng_mt19937);
-    gsl_rng_set(rng, (uint64_t)time(NULL));
+    // uint64_t* task = malloc(sizeof(uint64_t) * len);
+    // gsl_ran_shuffle(rng, task, len, sizeof(uint64_t));
+    for (uint64_t re = 0; re < rlen; re++) {
+        for (uint64_t im = 0; im < ilen; im++) {
+            for (uint64_t gg = 0; gg < glen; gg++) {
+                auto i = gg * rlen * ilen + re * ilen + im;
+                arg[i] = (struct poolstruct){
+                    .pNgauss = pNgauss,
+                    .Lambda = Lambda,
+                    .epsilon = epsilon,
+                    .Er = pr,
+                    .rlen = rlen,
+                    .Ei = pi,
+                    .ilen = ilen,
+                    .g = g,
+                    .glen = glen,
+                    .res = res,
+                    .task = i,
+                    .C = C,
+                };
 
-    uint64_t* task = malloc(sizeof(uint64_t) * len);
-    for (uint64_t i = 0; i < len; i += 1) {
-        task[i] = i;
-    }
-    gsl_ran_shuffle(rng, task, len, sizeof(uint64_t));
-
-    for (size_t i = 0; i < NTHREADS; i += 1) {
-        args[i].pNgauss = pNgauss;
-		args[i].task = task;
-        args[i].Lambda = Lambda;
-        args[i].epsilon = epsilon;
-        args[i].res = res;
-        args[i].rs = PP;
-        args[i].Er = pr;
-        args[i].rlen = rlen;
-        args[i].Ei = pi;
-        args[i].ilen = ilen;
-        args[i].g = g;
-        args[i].glen = glen;
-        args[i].id = i;
-        for (size_t cc = 0; cc < 4; cc += 1) {
-            args[i].C[cc] = C[cc];
-        }
-        if (i < residue) {
-            args[i].len = ntasks + 1;
-            args[i].start = (ntasks + 1) * i;
-        } else {
-            args[i].len = ntasks;
-            args[i].start = ntasks * i + residue;
+                thpool_add_work(thpool, polepool, &arg[i]);
+            }
         }
     }
-    for (size_t i = 0; i < NTHREADS; i += 1) {
-        // printf("id %zu\n", i);
-        thrd_create(&tid[i], polesm, &args[i]);
-    }
-    for (size_t i = 0; i < NTHREADS; i += 1) {
-        thrd_join(tid[i], NULL);
-    }
-
-    free(task);
-    gsl_rng_free(rng);
+    // debug_log(debug, DEBUG_INFO, "%zu tasks submitted", len);
+    thpool_wait(thpool);
+    thpool_destroy(thpool);
+    tss_delete(lse_key);
+    // debug_log(debug, DEBUG_SUCCESS, "Successfully executed in C, exiting.");
+    // debug_cleanup(debug);
+    // gsl_rng_free(rng);
+    // free(task);
+    free(arg);
     return res;
 }
+
+// double complex* Polesm(double* pr, size_t rlen, double* pi, size_t ilen, double* g, size_t glen, double C[4], size_t pNgauss, double Lambda, double epsilon) {
+//     size_t len = rlen * ilen * glen;
+//     double complex* res = malloc(sizeof(double complex) * len);
+//     thrd_t tid[NTHREADS];
+//     struct polestruct args[NTHREADS];
+//     size_t ntasks = len / NTHREADS;
+//     size_t residue = len % NTHREADS;
+//
+//     auto* rng = gsl_rng_alloc(gsl_rng_mt19937);
+//     gsl_rng_set(rng, (uint64_t)time(NULL));
+//
+//     uint64_t* task = malloc(sizeof(uint64_t) * len);
+//     for (uint64_t i = 0; i < len; i += 1) {
+//         task[i] = i;
+//     }
+//     gsl_ran_shuffle(rng, task, len, sizeof(uint64_t));
+//
+//     for (size_t i = 0; i < NTHREADS; i += 1) {
+//         args[i].pNgauss = pNgauss;
+//         args[i].task = task;
+//         args[i].Lambda = Lambda;
+//         args[i].epsilon = epsilon;
+//         args[i].res = res;
+//         args[i].rs = PP;
+//         args[i].Er = pr;
+//         args[i].rlen = rlen;
+//         args[i].Ei = pi;
+//         args[i].ilen = ilen;
+//         args[i].g = g;
+//         args[i].glen = glen;
+//         args[i].id = i;
+//         for (size_t cc = 0; cc < 4; cc += 1) {
+//             args[i].C[cc] = C[cc];
+//         }
+//         if (i < residue) {
+//             args[i].len = ntasks + 1;
+//             args[i].start = (ntasks + 1) * i;
+//         } else {
+//             args[i].len = ntasks;
+//             args[i].start = ntasks * i + residue;
+//         }
+//     }
+//     for (size_t i = 0; i < NTHREADS; i += 1) {
+//         // printf("id %zu\n", i);
+//         thrd_create(&tid[i], polesm, &args[i]);
+//     }
+//     for (size_t i = 0; i < NTHREADS; i += 1) {
+//         thrd_join(tid[i], NULL);
+//     }
+//
+//     free(task);
+//     gsl_rng_free(rng);
+//     return res;
+// }
 
 double* Fit(double* C, size_t len, const double g[NCHANNELS], size_t pNgauss, double Lambda, double epsilon) {
     void* result = malloc((NCHANNELS * NCHANNELS + 1) * len * sizeof(double));
@@ -580,7 +674,7 @@ double* Fit(double* C, size_t len, const double g[NCHANNELS], size_t pNgauss, do
 //     return result;
 // }
 
-int thrdfit(void* cargs) {
+[[maybe_unused]] int thrdfit(void* cargs) {
     auto arg = *(arg1d*)cargs;
     double (*Cin)[NCHANNELS * NCHANNELS] = (void*)arg.E;
     double (*Cout)[NCHANNELS * NCHANNELS + 1] = arg.res;
@@ -637,7 +731,7 @@ double* Fitsing(double* C, size_t len, const double g[NCHANNELS], size_t pNgauss
 //     return result;
 // }
 
-int thrdfitsing(void* cargs) {
+[[maybe_unused]] int thrdfitsing(void* cargs) {
     auto arg = *(arg1d*)cargs;
     double (*Cin)[NCHANNELS * NCHANNELS] = (void*)arg.E;
     double (*Cout)[NCHANNELS * NCHANNELS + 1] = arg.res;
@@ -920,7 +1014,7 @@ int poles(void* arg) {
     return 0;
 }
 
-int polesm(void* arg) {
+[[maybe_unused]] int polesm(void* arg) {
     auto foo = *(struct polestruct*)arg;
     // size_t len = foo.ilen * foo.rlen;
     LSE* lse [[gnu::cleanup(lsefree)]] =
@@ -930,7 +1024,7 @@ int polesm(void* arg) {
     // printf("thread[%zu] started, len %zu\n\n", foo.id, foo.len);
     auto mod = foo.len / 20;
     for (size_t i = foo.start; i < foo.start + foo.len; i += 1) {
-		auto idx = foo.task[i];
+        auto idx = foo.task[i];
         // [g, re, im]
         // size_t g = idx / (foo.ilen * foo.rlen);
         // size_t re = (idx / foo.ilen) % foo.rlen;
@@ -943,13 +1037,26 @@ int polesm(void* arg) {
         // res[idx + len] = pole(lse, E, foo.C, PN);
         // res[idx + len * 2] = pole(lse, E, foo.C, NP);
         // res[idx + len * 3] = pole(lse, E, foo.C, (double[2]){foo.g[g], G[1]}, PP);
-        res[g][re][im] = polem(lse, E, foo.C, (double[2]){foo.g[g], G[1]}, PP);
-        if ((i - foo.start) % mod == 0) {
-            printf("id[%zu] at %zu%%\n", foo.id, (i - foo.start) / mod * 5);
+        res[g][re][im] = polem(lse, E, foo.C, (double[2]){foo.g[g], G[1]});
+        if (idx == 4382) {
+            printf("g: %zu\nre: %zu\nim: %zu\n", g, re, im);
         }
+        // if ((i - foo.start) % mod == 0) {
+        //     printf("id[%zu] at %zu%%\n", foo.id, (i - foo.start) / mod * 5);
+        // }
     }
-    // printf("thread[%zu] finished\n", foo.id);
     return 0;
+}
+
+void polepool(void* arg) {
+    auto foo = *(struct poolstruct*)arg;
+    LSE* lse = get_thread_lse(foo.pNgauss, foo.Lambda, foo.epsilon);
+    double complex(*res) = foo.res;
+    auto task = foo.task;
+    uint64_t g = task / (foo.rlen * foo.ilen);
+    uint64_t re = (task / foo.ilen) % foo.rlen;
+    uint64_t im = task % foo.ilen;
+    res[task] = polem(lse, foo.Er[re] + foo.Ei[im] * I, foo.C, (double[2]){foo.g[g], G[1]});
 }
 
 int cst(void* arg) {

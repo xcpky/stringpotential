@@ -1,8 +1,6 @@
 #ifndef COLOR_H
 #define COLOR_H
 
-#include <notcurses/direct.h>
-#include <notcurses/notcurses.h>
 #include <stdarg.h>
 
 #define GRUVBOX

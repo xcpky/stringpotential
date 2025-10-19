@@ -2,8 +2,8 @@ add_rules("mode.debug", "mode.release")
 set_languages("gnu23")
 add_cflags("-Wall", "-Wextra", "-DHAVE_INLINE", "-fgnuc-version=8", "-Wconversion", "-Wshadow")
 set_toolchains("clang")
-add_requires("gsl", {system = true})
-add_requires("notcurses", {system = true})
+add_requires("gsl", { system = true })
+add_requires("notcurses", { system = true })
 -- add_requires("gnu-gsl", {alias = "gsl", system = false})
 -- add_requires("matplotplusplus")
 add_rules("plugin.compile_commands.autoupdate")
@@ -29,19 +29,27 @@ end
 target("color")
 do
 	set_kind("shared")
-	set_languages("gnu17")
+	add_packages("notcurses")
+	-- add_cflags("-D_DEFAULT_SOURCE", "-D_XOPEN_SOURCE=600", "-lnotcurses-core")
 	add_files("src/color.c")
+end
+
+target("thpool")
+do
+	set_kind("shared")
+	add_cflags("-pthread")
+	add_files("src/thpool.c")
 end
 
 target("xlse")
 do
 	set_kind("binary")
+	add_deps("thpool")
 	add_deps("lse")
 	add_deps("color")
 	add_deps("wavefunction")
 	add_deps("script")
 	add_packages("gsl")
-	add_packages("notcurses")
 	add_links("m")
 	add_files("src/main.c", "src/utils.c")
 end
@@ -53,6 +61,9 @@ do
 		target:add("defines", " NTHREADS=" .. nproc)
 	end)
 	set_kind("shared")
+	add_deps("color")
+	add_deps("thpool")
+	add_rpathdirs("$ORIGIN")
 	add_files("src/script.c", "src/wavefunction.c", "src/lse.c", "src/ome.c", "src/utils.c")
 	add_packages("gsl")
 	add_links("m")

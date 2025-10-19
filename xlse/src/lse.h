@@ -93,7 +93,7 @@ void lse_get_E_size(unsigned int* levels);
 void lse_get_M_size(LSE* self, unsigned int* rows, unsigned int* cols);
 double complex* lse_get_onshellT(LSE* self);
 double complex pole(LSE* lse, double complex E, const double C[NCHANNELS * NCHANNELS], const double g[NCHANNELS], RS rs);
-double complex polem(LSE* lse, double complex E, const double C[NCHANNELS * NCHANNELS], const double g[NCHANNELS], RS rs);
+double complex polem(LSE* lse, double complex E, const double C[NCHANNELS * NCHANNELS], const double g[NCHANNELS]);
 double cost(const gsl_vector* x, void* params);
 double costsing(const gsl_vector* x, void* params);
 void minimize(LSE* lse, const double Cin[NCHANNELS * NCHANNELS], double Cout[NCHANNELS * NCHANNELS + 1]);

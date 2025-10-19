@@ -1,3 +1,5 @@
+#include <notcurses/direct.h>
+#include <notcurses/notcurses.h>
 #include "color.h"
 
 debug_ctx_t* debug_init(void) {

@@ -20,7 +20,7 @@
 
 constexpr int max_iter = 4000;
 #define IPVG
-#define TESTQM
+#define CONSTQM
 // double complex V_QM(LSE *self, size_t p, size_t pprime) {
 //   double complex res = 0 + 0 * I;
 //   __auto_type E = self->E;
@@ -37,8 +37,8 @@ DEFINE_VQM(0, 1)
 DEFINE_VQM(1, 0)
 DEFINE_VQM(1, 1)
 
-LSE *lse_malloc(size_t pNgauss, double Lambda, double epsilon) {
-    LSE *self = malloc(sizeof(LSE));
+LSE* lse_malloc(size_t pNgauss, double Lambda, double epsilon) {
+    LSE* self = malloc(sizeof(LSE));
     if (!self)
         return NULL;
 
@@ -144,7 +144,7 @@ LSE *lse_malloc(size_t pNgauss, double Lambda, double epsilon) {
 }
 
 // Refresh LSE parameters
-void lse_refresh(LSE *self, double complex E, const double C[NCHANNELS * NCHANNELS], const double g[NCHANNELS], RS rs) {
+void lse_refresh(LSE* self, double complex E, const double C[NCHANNELS * NCHANNELS], const double g[NCHANNELS], RS rs) {
     // self->Lambda = Lambda;
     self->E = E;
     self->V0 = C[0];
@@ -207,7 +207,7 @@ void lse_refresh(LSE *self, double complex E, const double C[NCHANNELS * NCHANNE
     }
 }
 
-void lse_refreshm(LSE *self, double complex p, const double C[NCHANNELS * NCHANNELS], const double g[NCHANNELS]) {
+void lse_refreshm(LSE* self, double complex p, const double C[NCHANNELS * NCHANNELS], const double g[NCHANNELS]) {
     // self->Lambda = Lambda;
     self->E = p * p / 2 / mu[1];
     self->V0 = C[0];
@@ -247,7 +247,7 @@ void lse_refreshm(LSE *self, double complex p, const double C[NCHANNELS * NCHANN
             } else {
                 psi[i][j][self->pNgauss] = 0;
             }
-                psi[i][j][self->pNgauss] = psi_test(self->x0[i]);
+            psi[i][j][self->pNgauss] = psi_test(self->x0[i]);
 #elifdef CONSTQM
             auto dE = self->E;
             if (creal(dE) > 0 && fabs(cimag(dE)) < 1e-7) {
@@ -255,7 +255,7 @@ void lse_refreshm(LSE *self, double complex p, const double C[NCHANNELS * NCHANN
             } else {
                 psi[i][j][self->pNgauss] = 0;
             }
-            // psi[i][j][self->pNgauss] = 1;
+            psi[i][j][self->pNgauss] = 1;
 #else
             auto dE = self->E;
             if (creal(dE) > 0 && fabs(cimag(dE)) < 1e-7) {
@@ -270,7 +270,7 @@ void lse_refreshm(LSE *self, double complex p, const double C[NCHANNELS * NCHANN
 }
 
 // Free LSE resources
-void lse_free(LSE *self) {
+void lse_free(LSE* self) {
     if (!self)
         return;
 
@@ -292,7 +292,7 @@ void lse_free(LSE *self) {
 }
 
 // Calculate G matrix
-int lse_gmat(LSE *self) {
+int lse_gmat(LSE* self) {
     matrix_set_zero(self->G);
 
     for (size_t i = 0; i < NCHANNELS; i++) {
@@ -359,7 +359,7 @@ int lse_gmat(LSE *self) {
 }
 
 // Calculate V matrix
-int lse_vmat(LSE *self) {
+int lse_vmat(LSE* self) {
     size_t pNgauss = self->pNgauss;
     matrix_set_zero(self->VOME);
 #define matrindex(idx, block) ((idx) + (block) * (pNgauss + 1))
@@ -428,9 +428,9 @@ int lse_vmat(LSE *self) {
 
 // Calculate T matrix
 //
-int lse_tmat(LSE *self) {
+int lse_tmat(LSE* self) {
     const size_t n = NCHANNELS * (self->pNgauss + 1);
-    gsl_matrix_complex *IVG [[gnu::cleanup(matfree)]] =
+    gsl_matrix_complex* IVG [[gnu::cleanup(matfree)]] =
         gsl_matrix_complex_alloc(n, n);
     if (!IVG)
         return -1;
@@ -442,7 +442,7 @@ int lse_tmat(LSE *self) {
     gsl_blas_zgemm(CblasNoTrans, CblasNoTrans, 1, self->VOME, self->G, 1, IVG);
 #endif
 
-    gsl_permutation *perm [[gnu::cleanup(permfree)]] = gsl_permutation_alloc(n);
+    gsl_permutation* perm [[gnu::cleanup(permfree)]] = gsl_permutation_alloc(n);
     if (!perm) {
         return -1;
     }
@@ -454,7 +454,7 @@ int lse_tmat(LSE *self) {
     }
 
     self->det = gsl_linalg_complex_LU_det(IVG, signum);
-    gsl_matrix_complex *inv_I_minus_VG [[gnu::cleanup(matfree)]] =
+    gsl_matrix_complex* inv_I_minus_VG [[gnu::cleanup(matfree)]] =
         gsl_matrix_complex_alloc(n, n);
     if (!inv_I_minus_VG) {
         return -1;
@@ -471,17 +471,17 @@ int lse_tmat(LSE *self) {
     return 0;
 }
 
-int lse_tmat_single(LSE *self) {
+int lse_tmat_single(LSE* self) {
     const size_t n = self->pNgauss + 1;
     auto V = gsl_matrix_complex_submatrix(self->VOME, 0, 0, n, n);
     auto G = gsl_matrix_complex_submatrix(self->G, 0, 0, n, n);
     auto T = gsl_matrix_complex_submatrix(self->TOME, 0, 0, n, n);
-    gsl_matrix_complex *VG [[gnu::cleanup(matfree)]] =
+    gsl_matrix_complex* VG [[gnu::cleanup(matfree)]] =
         gsl_matrix_complex_alloc(n, n);
     // gsl_matrix_complex *I_minus_VG [[gnu::cleanup(matfree)]] =
     // gsl_matrix_complex_alloc(n, n);
-    gsl_permutation *perm [[gnu::cleanup(permfree)]] = gsl_permutation_alloc(n);
-    gsl_matrix_complex *inv_I_minus_VG [[gnu::cleanup(matfree)]] =
+    gsl_permutation* perm [[gnu::cleanup(permfree)]] = gsl_permutation_alloc(n);
+    gsl_matrix_complex* inv_I_minus_VG [[gnu::cleanup(matfree)]] =
         gsl_matrix_complex_alloc(n, n);
     if (!inv_I_minus_VG)
         return -1;
@@ -517,15 +517,15 @@ int lse_tmat_single(LSE *self) {
     return GSL_SUCCESS;
 }
 
-double complex lse_invT(LSE *self, double complex E, const double C[NCHANNELS * NCHANNELS], const double g[NCHANNELS], RS rs) {
+double complex lse_invT(LSE* self, double complex E, const double C[NCHANNELS * NCHANNELS], const double g[NCHANNELS], RS rs) {
     lse_compute_single(self, E, C, g, rs);
     size_t n = self->pNgauss;
     auto T = gsl_matrix_complex_submatrix(self->TOME, 0, 0, n, n);
-    gsl_matrix_complex *tmp [[gnu::cleanup(matfree)]] = matrix_alloc(n, n);
-    gsl_matrix_complex *inv [[gnu::cleanup(matfree)]] = matrix_alloc(n, n);
+    gsl_matrix_complex* tmp [[gnu::cleanup(matfree)]] = matrix_alloc(n, n);
+    gsl_matrix_complex* inv [[gnu::cleanup(matfree)]] = matrix_alloc(n, n);
     gsl_matrix_complex_memcpy(tmp, &T.matrix);
     int signum;
-    gsl_permutation *perm [[gnu::cleanup(permfree)]] = gsl_permutation_alloc(n);
+    gsl_permutation* perm [[gnu::cleanup(permfree)]] = gsl_permutation_alloc(n);
     if (gsl_linalg_complex_LU_decomp(tmp, perm, &signum) != GSL_SUCCESS)
         exit(1);
     if (gsl_linalg_complex_LU_invert(tmp, perm, inv) != GSL_SUCCESS)
@@ -534,7 +534,7 @@ double complex lse_invT(LSE *self, double complex E, const double C[NCHANNELS * 
     return res;
 }
 
-void lse_X(LSE *self) {
+void lse_X(LSE* self) {
     size_t pNgauss = self->pNgauss;
     double complex(*psi)[N_MAX + 1][pNgauss + 1] = self->psi_n_mat;
     double complex(*Xin)[2][N_MAX + 1][pNgauss + 1] = self->Xin;
@@ -586,13 +586,13 @@ void lse_X(LSE *self) {
     }
 }
 
-void lse_XtX(LSE *self) {
+void lse_XtX(LSE* self) {
     constexpr size_t n = N_MAX + 1;
     size_t pNgauss = self->pNgauss;
     double complex(*sigma)[2][n][n] = self->sigmat;
     double complex(*Xout)[2][n][pNgauss + 1] = self->Xout;
     [[maybe_unused]] double complex(*Xin)[2][n][pNgauss + 1] = self->Xin;
-    matrix *M [[gnu::cleanup(matfree)]] = matrix_alloc(2 * n, 2 * n);
+    matrix* M [[gnu::cleanup(matfree)]] = matrix_alloc(2 * n, 2 * n);
     matrix_set_zero(M);
     double complex(*mat)[2 * n] = (double complex(*)[2 * n]) M->data;
     double complex(*v)[2][n] = self->v;
@@ -609,8 +609,8 @@ void lse_XtX(LSE *self) {
         }
     }
     gsl_matrix_complex_add_diagonal(M, 1);
-    matrix *invM [[gnu::cleanup(matfree)]] = matrix_alloc(2 * n, 2 * n);
-    gsl_permutation *perm [[gnu::cleanup(permfree)]] =
+    matrix* invM [[gnu::cleanup(matfree)]] = matrix_alloc(2 * n, 2 * n);
+    gsl_permutation* perm [[gnu::cleanup(permfree)]] =
         gsl_permutation_alloc(2 * n);
     int signum;
     gsl_linalg_complex_LU_decomp(M, perm, &signum);
@@ -657,12 +657,12 @@ void lse_XtX(LSE *self) {
     free(invMv);
 }
 
-double complex *lse_get_iivg_data(LSE *self) {
+double complex* lse_get_iivg_data(LSE* self) {
     lse_gmat(self);
     lse_vmat(self);
     const size_t n = 2 * (self->pNgauss + 1);
     // Step 1: Compute VG = V * G
-    gsl_matrix_complex *VG [[gnu::cleanup(matfree)]] =
+    gsl_matrix_complex* VG [[gnu::cleanup(matfree)]] =
         gsl_matrix_complex_alloc(n, n);
     if (!VG)
         exit(-1);
@@ -675,7 +675,7 @@ double complex *lse_get_iivg_data(LSE *self) {
                    VG);
 
     // Step 2: Compute I - VG
-    gsl_matrix_complex *I_minus_VG [[gnu::cleanup(matfree)]] =
+    gsl_matrix_complex* I_minus_VG [[gnu::cleanup(matfree)]] =
         gsl_matrix_complex_alloc(n, n);
     if (!I_minus_VG) {
         exit(-1);
@@ -683,7 +683,7 @@ double complex *lse_get_iivg_data(LSE *self) {
 
     gsl_matrix_complex_memcpy(I_minus_VG, VG);
     gsl_matrix_complex_scale(I_minus_VG,
-                             gsl_complex_rect(-1.0, 0.0)); // I_minus_VG = -VG
+                             gsl_complex_rect(-1.0, 0.0));  // I_minus_VG = -VG
 
     // Add identity matrix: I_minus_VG = I - VG
     gsl_matrix_complex_add_diagonal(I_minus_VG, 1 + 0I);
@@ -696,7 +696,7 @@ double complex *lse_get_iivg_data(LSE *self) {
     // }
 
     // Step 3: Invert (I - VG) using LU decomposition
-    gsl_permutation *perm [[gnu::cleanup(permfree)]] = gsl_permutation_alloc(n);
+    gsl_permutation* perm [[gnu::cleanup(permfree)]] = gsl_permutation_alloc(n);
     if (!perm) {
         exit(-1);
     }
@@ -707,7 +707,7 @@ double complex *lse_get_iivg_data(LSE *self) {
         exit(-1);
     }
 
-    gsl_matrix_complex *inv_I_minus_VG [[gnu::cleanup(matfree)]] =
+    gsl_matrix_complex* inv_I_minus_VG [[gnu::cleanup(matfree)]] =
         gsl_matrix_complex_alloc(n, n);
     if (!inv_I_minus_VG) {
         exit(-1);
@@ -718,17 +718,17 @@ double complex *lse_get_iivg_data(LSE *self) {
         exit(-1);
     }
     gsl_matrix_complex_memcpy(self->reg, inv_I_minus_VG);
-    return (double complex *)self->reg->data;
+    return (double complex*)self->reg->data;
 }
 
-double complex lse_detImVG(LSE *self, double complex E, const double C[NCHANNELS * NCHANNELS], const double g[NCHANNELS], RS rs) {
+double complex lse_detImVG(LSE* self, double complex E, const double C[NCHANNELS * NCHANNELS], const double g[NCHANNELS], RS rs) {
     lse_refresh(self, E, C, g, rs);
     lse_gmat(self);
     lse_vmat(self);
     const size_t n = NCHANNELS * (self->pNgauss + 1);
 
     // Step 1: Compute VG = V * G
-    gsl_matrix_complex *IVG [[gnu::cleanup(matfree)]] =
+    gsl_matrix_complex* IVG [[gnu::cleanup(matfree)]] =
         gsl_matrix_complex_alloc(n, n);
     if (!IVG)
         return -1;
@@ -745,7 +745,7 @@ double complex lse_detImVG(LSE *self, double complex E, const double C[NCHANNELS
     // gsl_matrix_complex_memcpy(self->reg, I_minus_VG);
 
     // Step 3: Invert (I - VG) using LU decomposition
-    gsl_permutation *perm [[gnu::cleanup(permfree)]] = gsl_permutation_alloc(n);
+    gsl_permutation* perm [[gnu::cleanup(permfree)]] = gsl_permutation_alloc(n);
     if (!perm) {
         return -1;
     }
@@ -760,7 +760,7 @@ double complex lse_detImVG(LSE *self, double complex E, const double C[NCHANNELS
     return gsl_linalg_complex_LU_det(IVG, signum);
 }
 
-double complex lse_detImVGsing(LSE *self, double complex E, const double C[NCHANNELS * NCHANNELS], const double g[NCHANNELS], RS rs) {
+double complex lse_detImVGsing(LSE* self, double complex E, const double C[NCHANNELS * NCHANNELS], const double g[NCHANNELS], RS rs) {
     lse_refresh(self, E, C, g, rs);
     lse_gmat(self);
     lse_vmat(self);
@@ -775,7 +775,7 @@ double complex lse_detImVGsing(LSE *self, double complex E, const double C[NCHAN
     auto G = gsl_matrix_complex_submatrix(self->G, 0, 0, n, n);
 
     // Step 1: Compute VG = V * G
-    gsl_matrix_complex *IVG [[gnu::cleanup(matfree)]] =
+    gsl_matrix_complex* IVG [[gnu::cleanup(matfree)]] =
         gsl_matrix_complex_alloc(n, n);
     if (!IVG)
         return -1;
@@ -791,7 +791,7 @@ double complex lse_detImVGsing(LSE *self, double complex E, const double C[NCHAN
     gsl_blas_zgemm(CblasNoTrans, CblasNoTrans, 1, &V.matrix, &G.matrix, 1, IVG);
 #endif
 
-    gsl_permutation *perm [[gnu::cleanup(permfree)]] = gsl_permutation_alloc(n);
+    gsl_permutation* perm [[gnu::cleanup(permfree)]] = gsl_permutation_alloc(n);
     if (!perm) {
         return -1;
     }
@@ -806,7 +806,7 @@ double complex lse_detImVGsing(LSE *self, double complex E, const double C[NCHAN
     return gsl_linalg_complex_LU_det(IVG, signum);
 }
 
-double complex lse_detImVGsingm(LSE *self, double complex p, const double C[NCHANNELS * NCHANNELS], const double g[NCHANNELS]) {
+double complex lse_detImVGsingm(LSE* self, double complex p, const double C[NCHANNELS * NCHANNELS], const double g[NCHANNELS]) {
     lse_refreshm(self, p, C, g);
     lse_gmat(self);
     lse_vmat(self);
@@ -815,7 +815,7 @@ double complex lse_detImVGsingm(LSE *self, double complex p, const double C[NCHA
     auto V = gsl_matrix_complex_submatrix(self->VOME, 0, 0, n, n);
     auto G = gsl_matrix_complex_submatrix(self->G, 0, 0, n, n);
 
-    gsl_matrix_complex *IVG [[gnu::cleanup(matfree)]] =
+    gsl_matrix_complex* IVG [[gnu::cleanup(matfree)]] =
         gsl_matrix_complex_alloc(n, n);
     if (!IVG)
         return -1;
@@ -828,7 +828,7 @@ double complex lse_detImVGsingm(LSE *self, double complex p, const double C[NCHA
 #endif
 
     // Step 3: Invert (I - VG) using LU decomposition
-    gsl_permutation *perm [[gnu::cleanup(permfree)]] = gsl_permutation_alloc(n);
+    gsl_permutation* perm [[gnu::cleanup(permfree)]] = gsl_permutation_alloc(n);
     if (!perm) {
         return -1;
     }
@@ -843,19 +843,19 @@ double complex lse_detImVGsingm(LSE *self, double complex p, const double C[NCHA
     return gsl_linalg_complex_LU_det(IVG, signum);
 }
 
-double complex lse_detIJm(LSE *self, _Complex double p, const double *C, const double *g) {
+double complex lse_detIJm(LSE* self, _Complex double p, const double* C, const double* g) {
     lse_refreshm(self, p, C, g);
     lse_gmat(self);
     constexpr double E[6] = {m_Xb11P, m_Xb12P, m_Xb13P, m_Xb14P, m_Xb15P, m_Xb16P};
     auto n = self->pNgauss + 1;
-    matrix *tau [[gnu::cleanup(matfree)]] = matrix_alloc(6, 6);
-	matrix_set_zero(tau);
+    matrix* tau [[gnu::cleanup(matfree)]] = matrix_alloc(6, 6);
+    matrix_set_zero(tau);
     auto dE = p * p;
     for (uint64_t i = 0; i < 6; i += 1) {
         matrix_set(tau, i, i, g[0] * g[0] / (dE - E[i]));
     }
     [[maybe_unused]] double complex(*psi)[N_MAX + 1][n] = self->psi_n_mat;
-    matrix *J [[gnu::cleanup(matfree)]] = matrix_alloc(6, 6);
+    matrix* J [[gnu::cleanup(matfree)]] = matrix_alloc(6, 6);
     for (uint64_t i = 0; i < 6; i += 1) {
         for (uint64_t j = 0; j < 6; j += 1) {
             double complex ele = 0;
@@ -866,14 +866,14 @@ double complex lse_detIJm(LSE *self, _Complex double p, const double *C, const d
             matrix_set(J, i, j, ele);
         }
     }
-    matrix *IJ [[gnu::cleanup(matfree)]] = matrix_alloc(6, 6);
+    matrix* IJ [[gnu::cleanup(matfree)]] = matrix_alloc(6, 6);
     gsl_matrix_complex_set_identity(IJ);
 #ifdef IPVG
     gsl_blas_zgemm(CblasNoTrans, CblasNoTrans, 1, tau, J, 1, IJ);
 #elif defined(IMVG)
         gsl_blas)zgemm(CblasNoTrans, CblasNoTrans, -1, tau, J, 1, IJ);
 #endif
-    gsl_permutation *perm [[gnu::cleanup(permfree)]] = gsl_permutation_alloc(6);
+    gsl_permutation* perm [[gnu::cleanup(permfree)]] = gsl_permutation_alloc(6);
     if (!perm)
         return -1;
 
@@ -883,14 +883,14 @@ double complex lse_detIJm(LSE *self, _Complex double p, const double *C, const d
     return gsl_linalg_complex_LU_det(IJ, signum);
 }
 
-double complex lse_detVG(LSE *self, double complex E, const double C[NCHANNELS * NCHANNELS], const double g[NCHANNELS], RS rs) {
+double complex lse_detVG(LSE* self, double complex E, const double C[NCHANNELS * NCHANNELS], const double g[NCHANNELS], RS rs) {
     lse_refresh(self, E, C, g, rs);
     lse_gmat(self);
     lse_vmat(self);
     const size_t n = 2 * (self->pNgauss + 1);
 
     // Step 1: Compute VG = V * G
-    gsl_matrix_complex *VG [[gnu::cleanup(matfree)]] =
+    gsl_matrix_complex* VG [[gnu::cleanup(matfree)]] =
         gsl_matrix_complex_alloc(n, n);
     if (!VG)
         return -1;
@@ -903,7 +903,7 @@ double complex lse_detVG(LSE *self, double complex E, const double C[NCHANNELS *
                    VG);
 
     // Step 3: Invert (I - VG) using LU decomposition
-    gsl_permutation *perm [[gnu::cleanup(permfree)]] = gsl_permutation_alloc(n);
+    gsl_permutation* perm [[gnu::cleanup(permfree)]] = gsl_permutation_alloc(n);
     if (!perm) {
         return -1;
     }
@@ -915,7 +915,7 @@ double complex lse_detVG(LSE *self, double complex E, const double C[NCHANNELS *
     return gsl_linalg_complex_LU_det(VG, signum);
 }
 
-double lse_cost(LSE *self, const double C[NCHANNELS * NCHANNELS], RS rs) {
+double lse_cost(LSE* self, const double C[NCHANNELS * NCHANNELS], RS rs) {
     auto g = (double[2]){self->g0, self->g1};
     double res = cabs(lse_detImVG(self, m_Xb11P, C, g, rs));
     res += cabs(lse_detImVG(self, m_Xb12P, C, g, rs));
@@ -925,7 +925,7 @@ double lse_cost(LSE *self, const double C[NCHANNELS * NCHANNELS], RS rs) {
     return res;
 }
 
-double lse_costsing(LSE *self, const double C[NCHANNELS * NCHANNELS], RS rs) {
+double lse_costsing(LSE* self, const double C[NCHANNELS * NCHANNELS], RS rs) {
     // for (uint64_t i = 0; i < 4; i += 1) {
     // 	printf("C%zu %f\n", i, C[i]);
     // }
@@ -938,7 +938,7 @@ double lse_costsing(LSE *self, const double C[NCHANNELS * NCHANNELS], RS rs) {
 }
 
 // Run the LSE solver
-int lse_compute(LSE *self, double complex E, const double C[NCHANNELS * NCHANNELS], const double g[NCHANNELS], RS rs) {
+int lse_compute(LSE* self, double complex E, const double C[NCHANNELS * NCHANNELS], const double g[NCHANNELS], RS rs) {
     lse_refresh(self, E, C, g, rs);
     if (lse_gmat(self) != 0)
         return -1;
@@ -949,7 +949,7 @@ int lse_compute(LSE *self, double complex E, const double C[NCHANNELS * NCHANNEL
     return 0;
 }
 
-int lse_compute_single(LSE *self, double complex E, const double C[NCHANNELS * NCHANNELS], const double g[NCHANNELS], RS rs) {
+int lse_compute_single(LSE* self, double complex E, const double C[NCHANNELS * NCHANNELS], const double g[NCHANNELS], RS rs) {
     lse_refresh(self, E, C, g, rs);
     if (lse_gmat(self) != 0)
         return -1;
@@ -960,74 +960,74 @@ int lse_compute_single(LSE *self, double complex E, const double C[NCHANNELS * N
     return 0;
 }
 
-double complex *lse_get_g_data(LSE *self) {
-    return (double complex *)self->G->data;
+double complex* lse_get_g_data(LSE* self) {
+    return (double complex*)self->G->data;
 }
 
-void lse_get_g_size(LSE *self, unsigned int *rows, unsigned int *cols) {
+void lse_get_g_size(LSE* self, unsigned int* rows, unsigned int* cols) {
     *rows = (unsigned int)self->G->size1;
     *cols = (unsigned int)self->G->size2;
 }
 
-double complex *lse_get_v_data(LSE *self) {
-    return (double complex *)self->VOME->data;
+double complex* lse_get_v_data(LSE* self) {
+    return (double complex*)self->VOME->data;
 }
 
-void lse_get_v_size(LSE *self, unsigned int *rows, unsigned int *cols) {
+void lse_get_v_size(LSE* self, unsigned int* rows, unsigned int* cols) {
     *rows = (unsigned int)self->VOME->size1;
     *cols = (unsigned int)self->VOME->size2;
 }
 
-double complex *lse_get_t_data(LSE *self) {
-    return (double complex *)self->TOME->data;
+double complex* lse_get_t_data(LSE* self) {
+    return (double complex*)self->TOME->data;
 }
 
-void lse_get_t_size(LSE *self, unsigned int *rows, unsigned int *cols) {
+void lse_get_t_size(LSE* self, unsigned int* rows, unsigned int* cols) {
     *rows = (unsigned int)self->TOME->size1;
     *cols = (unsigned int)self->TOME->size2;
 }
 
-double complex *lse_get_ivg_data(LSE *self) {
-    return (double complex *)self->reg->data;
+double complex* lse_get_ivg_data(LSE* self) {
+    return (double complex*)self->reg->data;
 }
 
-void lse_get_ivg_size(LSE *self, unsigned int *rows, unsigned int *cols) {
+void lse_get_ivg_size(LSE* self, unsigned int* rows, unsigned int* cols) {
     *rows = (unsigned int)self->reg->size1;
     *cols = (unsigned int)self->reg->size2;
 }
 
-void lse_get_iivg_size(LSE *self, unsigned int *rows, unsigned int *cols) {
+void lse_get_iivg_size(LSE* self, unsigned int* rows, unsigned int* cols) {
     *rows = (unsigned int)self->VOME->size1;
     *cols = (unsigned int)self->VOME->size2;
 }
 
-void lse_get_M_size(LSE *self, unsigned int *rows, unsigned int *cols) {
+void lse_get_M_size(LSE* self, unsigned int* rows, unsigned int* cols) {
     *rows = (unsigned int)(2 * (self->pNgauss + 1));
     *cols = (unsigned int)(2 * (self->pNgauss + 1));
 }
 
-double complex *lse_get_onshellT(LSE *self) {
-    return (double complex *)self->onshellT;
+double complex* lse_get_onshellT(LSE* self) {
+    return (double complex*)self->onshellT;
 };
 
-double complex *lse_get_psi(LSE *self) { return self->psi_n_mat; }
+double complex* lse_get_psi(LSE* self) { return self->psi_n_mat; }
 
-void lse_get_psi_size(LSE *self, unsigned int *rows, unsigned int *cols) {
+void lse_get_psi_size(LSE* self, unsigned int* rows, unsigned int* cols) {
     *rows = (unsigned int)N_MAX;
     *cols = (unsigned int)(self->pNgauss + 1);
 }
 
-double *lse_get_E(LSE *self) { return self->E_vec; }
-void lse_get_E_size(unsigned int *levels) { *levels = (unsigned int)N_MAX; }
+double* lse_get_E(LSE* self) { return self->E_vec; }
+void lse_get_E_size(unsigned int* levels) { *levels = (unsigned int)N_MAX; }
 
 struct detparams {
-    void *lse;
+    void* lse;
     double C[NCHANNELS * NCHANNELS];
     double g[NCHANNELS];
     RS rs;
 };
-int detImVG(const gsl_vector *x, void *params, gsl_vector *f) {
-    struct detparams *detp = params;
+int detImVG(const gsl_vector* x, void* params, gsl_vector* f) {
+    struct detparams* detp = params;
     double complex E = gsl_vector_get(x, 0) + gsl_vector_get(x, 1) * I;
     auto det = lse_detImVG(detp->lse, E, detp->C, detp->g, detp->rs);
     gsl_vector_set(f, 0, creal(det));
@@ -1035,34 +1035,34 @@ int detImVG(const gsl_vector *x, void *params, gsl_vector *f) {
     return GSL_SUCCESS;
 }
 
-int detIJ(const gsl_vector *x, void *params, gsl_vector *f) {
+int detIJ(const gsl_vector* x, void* params, gsl_vector* f) {
     constexpr double E[6] = {m_Xb11P, m_Xb12P, m_Xb13P, m_Xb14P, m_Xb15P, m_Xb16P};
     double complex p = gsl_vector_get(x, 0) + gsl_vector_get(x, 1) * I;
-    struct detparams *detp = params;
-    LSE *lse = detp->lse;
+    struct detparams* detp = params;
+    LSE* lse = detp->lse;
     const auto n = lse->pNgauss + 1;
-    matrix *tau [[gnu::cleanup(matfree)]] = gsl_matrix_complex_alloc(6, 6);
+    matrix* tau [[gnu::cleanup(matfree)]] = gsl_matrix_complex_alloc(6, 6);
     auto g = detp->g[0];
     gsl_matrix_complex_set_zero(tau);
-    auto dE = p * p/2/mu[1];
+    auto dE = p * p / 2 / mu[1];
     for (uint64_t i = 0; i < 6; i += 1) {
         matrix_set(tau, i, i, g * g / (dE - E[i]));
     }
     lse_refreshm(lse, p, detp->C, detp->g);
     lse_gmat(lse);
     double complex(*psi)[N_MAX + 1][n] = lse->psi_n_mat;
-    matrix *J [[gnu::cleanup(matfree)]] = matrix_alloc(6, 6);
+    matrix* J [[gnu::cleanup(matfree)]] = matrix_alloc(6, 6);
     for (uint64_t i = 0; i < 6; i += 1) {
         for (uint64_t j = 0; j < 6; j += 1) {
             double complex ele = 0;
             for (uint64_t pi = 0; pi < n; pi += 1) {
                 auto G = matrix_get(lse->G, pi, pi);
-                ele += conj(psi[0][i][pi])*G*psi[0][j][pi];
+                ele += conj(psi[0][i][pi]) * G * psi[0][j][pi];
             }
             matrix_set(J, i, j, ele);
         }
     }
-    matrix *IJ [[gnu::cleanup(matfree)]] = matrix_alloc(6, 6);
+    matrix* IJ [[gnu::cleanup(matfree)]] = matrix_alloc(6, 6);
     gsl_matrix_complex_set_identity(IJ);
 #ifdef IPVG
     gsl_blas_zgemm(CblasNoTrans, CblasNoTrans, 1, tau, J, 1, IJ);
@@ -1070,7 +1070,7 @@ int detIJ(const gsl_vector *x, void *params, gsl_vector *f) {
     gsl_blas_zgemm(CblasNoTrans, CblasNoTrans, -1, tau, J, 1, IJ);
 #endif
 
-    gsl_permutation *perm [[gnu::cleanup(permfree)]] = gsl_permutation_alloc(6);
+    gsl_permutation* perm [[gnu::cleanup(permfree)]] = gsl_permutation_alloc(6);
     if (!perm) {
         return -1;
     }
@@ -1086,8 +1086,8 @@ int detIJ(const gsl_vector *x, void *params, gsl_vector *f) {
     return GSL_SUCCESS;
 }
 
-int detImVGm(const gsl_vector *x, void *params, gsl_vector *f) {
-    struct detparams *detp = params;
+int detImVGm(const gsl_vector* x, void* params, gsl_vector* f) {
+    struct detparams* detp = params;
     double complex p = gsl_vector_get(x, 0) + gsl_vector_get(x, 1) * I;
     auto det = lse_detImVGsingm(detp->lse, p, detp->C, detp->g);
     gsl_vector_set(f, 0, creal(det));
@@ -1095,8 +1095,8 @@ int detImVGm(const gsl_vector *x, void *params, gsl_vector *f) {
     return GSL_SUCCESS;
 }
 
-double complex pole(LSE *lse, double complex E, const double C[NCHANNELS * NCHANNELS], const double g[NCHANNELS], RS rs) {
-    const gsl_multiroot_fsolver_type *T = gsl_multiroot_fsolver_hybrid;
+double complex pole(LSE* lse, double complex E, const double C[NCHANNELS * NCHANNELS], const double g[NCHANNELS], RS rs) {
+    const gsl_multiroot_fsolver_type* T = gsl_multiroot_fsolver_hybrid;
     struct detparams detp = {
         .lse = lse,
         .C = {C[0], C[1], C[2], C[3]},
@@ -1104,10 +1104,10 @@ double complex pole(LSE *lse, double complex E, const double C[NCHANNELS * NCHAN
         .rs = rs,
     };
     gsl_multiroot_function F = {&detImVG, 2, &detp};
-    gsl_vector *x = gsl_vector_alloc(2);
+    gsl_vector* x = gsl_vector_alloc(2);
     gsl_vector_set(x, 0, creal(E));
     gsl_vector_set(x, 1, cimag(E));
-    gsl_multiroot_fsolver *s = gsl_multiroot_fsolver_alloc(T, 2);
+    gsl_multiroot_fsolver* s = gsl_multiroot_fsolver_alloc(T, 2);
     gsl_multiroot_fsolver_set(s, &F, x);
     int status;
     uint iter = 0;
@@ -1131,19 +1131,18 @@ double complex pole(LSE *lse, double complex E, const double C[NCHANNELS * NCHAN
     return res;
 }
 
-double complex polem(LSE *lse, double complex E, const double C[NCHANNELS * NCHANNELS], const double g[NCHANNELS], RS rs) {
-    const gsl_multiroot_fsolver_type *T = gsl_multiroot_fsolver_hybrid;
+double complex polem(LSE* lse, double complex E, const double C[NCHANNELS * NCHANNELS], const double g[NCHANNELS]) {
+    const gsl_multiroot_fsolver_type* T = gsl_multiroot_fsolver_hybrid;
     struct detparams detp = {
         .lse = lse,
         .C = {C[0], C[1], C[2], C[3]},
         .g = {g[0], g[1]},
-        .rs = rs,
     };
-    gsl_multiroot_function F = {&detIJ, 2, &detp};
-    gsl_vector *x = gsl_vector_alloc(2);
+    gsl_multiroot_function F = {&detImVGm, 2, &detp};
+    gsl_vector* x = gsl_vector_alloc(2);
     gsl_vector_set(x, 0, creal(E));
     gsl_vector_set(x, 1, cimag(E));
-    gsl_multiroot_fsolver *s = gsl_multiroot_fsolver_alloc(T, 2);
+    gsl_multiroot_fsolver* s = gsl_multiroot_fsolver_alloc(T, 2);
     gsl_multiroot_fsolver_set(s, &F, x);
     int status;
     uint iter = 0;
@@ -1167,8 +1166,8 @@ double complex polem(LSE *lse, double complex E, const double C[NCHANNELS * NCHA
     return res;
 }
 
-double cost(const gsl_vector *x, void *params) {
-    LSE *lse = params;
+double cost(const gsl_vector* x, void* params) {
+    LSE* lse = params;
     double C[NCHANNELS * NCHANNELS];
     for (size_t i = 0; i < 4; i += 1) {
         C[i] = gsl_vector_get(x, i);
@@ -1180,8 +1179,8 @@ double cost(const gsl_vector *x, void *params) {
     return lse_cost(lse, C, PP);
 }
 
-double costsing(const gsl_vector *x, void *params) {
-    LSE *lse = params;
+double costsing(const gsl_vector* x, void* params) {
+    LSE* lse = params;
     double C[NCHANNELS * NCHANNELS];
     for (size_t i = 0; i < 4; i += 1) {
         C[i] = gsl_vector_get(x, i);
@@ -1193,18 +1192,18 @@ double costsing(const gsl_vector *x, void *params) {
     return lse_costsing(lse, C, PP);
 }
 
-void minimize(LSE *lse, const double Cin[NCHANNELS * NCHANNELS], double Cout[NCHANNELS * NCHANNELS + 1]) {
-    gsl_vector *x = gsl_vector_alloc(4);
+void minimize(LSE* lse, const double Cin[NCHANNELS * NCHANNELS], double Cout[NCHANNELS * NCHANNELS + 1]) {
+    gsl_vector* x = gsl_vector_alloc(4);
     for (size_t i = 0; i < NCHANNELS * NCHANNELS; i += 1) {
         gsl_vector_set(x, i, Cin[i]);
     }
-    const gsl_multimin_fminimizer_type *T = gsl_multimin_fminimizer_nmsimplex2;
+    const gsl_multimin_fminimizer_type* T = gsl_multimin_fminimizer_nmsimplex2;
     gsl_multimin_function func;
     func.n = 4;
     func.f = cost;
     func.params = lse;
-    gsl_multimin_fminimizer *s = gsl_multimin_fminimizer_alloc(T, 4);
-    gsl_vector *step = gsl_vector_alloc(4);
+    gsl_multimin_fminimizer* s = gsl_multimin_fminimizer_alloc(T, 4);
+    gsl_vector* step = gsl_vector_alloc(4);
     gsl_vector_set_all(step, 0.8);
     gsl_multimin_fminimizer_set(s, &func, x, step);
     int status;
@@ -1247,18 +1246,18 @@ void minimize(LSE *lse, const double Cin[NCHANNELS * NCHANNELS], double Cout[NCH
     gsl_multimin_fminimizer_free(s);
 }
 
-void minimizesing(LSE *lse, const double Cin[NCHANNELS * NCHANNELS], double Cout[NCHANNELS * NCHANNELS + 1]) {
-    gsl_vector *x = gsl_vector_alloc(4);
+void minimizesing(LSE* lse, const double Cin[NCHANNELS * NCHANNELS], double Cout[NCHANNELS * NCHANNELS + 1]) {
+    gsl_vector* x = gsl_vector_alloc(4);
     for (size_t i = 0; i < NCHANNELS * NCHANNELS; i += 1) {
         gsl_vector_set(x, i, Cin[i]);
     }
-    const gsl_multimin_fminimizer_type *T = gsl_multimin_fminimizer_nmsimplex2;
+    const gsl_multimin_fminimizer_type* T = gsl_multimin_fminimizer_nmsimplex2;
     gsl_multimin_function func;
     func.n = 4;
     func.f = costsing;
     func.params = lse;
-    gsl_multimin_fminimizer *s = gsl_multimin_fminimizer_alloc(T, 4);
-    gsl_vector *step = gsl_vector_alloc(4);
+    gsl_multimin_fminimizer* s = gsl_multimin_fminimizer_alloc(T, 4);
+    gsl_vector* step = gsl_vector_alloc(4);
     gsl_vector_set_all(step, 0.8);
     gsl_multimin_fminimizer_set(s, &func, x, step);
     int status;
