@@ -526,7 +526,7 @@ double complex* Poles(double* Er, size_t rlen, double* Ei, size_t ilen, double* 
     return res;
 }
 
-double complex* Polesm(double* pr, size_t rlen, double* pi, size_t ilen, double* g, size_t glen, double C[4], size_t pNgauss, double Lambda, double epsilon) {
+double complex* Polesm(double* restrict pr, size_t rlen, double* restrict pi, size_t ilen, double* restrict g, size_t glen, double C[restrict 4], size_t pNgauss, double Lambda, double epsilon) {
     size_t len = rlen * ilen * glen;
     double complex* res = malloc(sizeof(double complex) * len);
     // auto debug = debug_init();
@@ -548,7 +548,7 @@ double complex* Polesm(double* pr, size_t rlen, double* pi, size_t ilen, double*
                     .epsilon = epsilon,
                     .E = pr[re] + pi[im] * I,
                     .g = g[gg],
-                    .res = res,
+                    .res = &res[i],
                     .C = C,
                 };
 
