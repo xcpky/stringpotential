@@ -82,15 +82,10 @@ struct poolstruct {
 	size_t pNgauss;
 	double Lambda;
 	double epsilon;
-	double *Er;
-	uint64_t rlen;
-	double *Ei;
-	uint64_t ilen;
-	double *g;
-	uint64_t glen;
-	uint64_t task;
+	double complex E;
+	double g;
 	double *C;
-	void *res;
+	double complex *res;
 };
 
 

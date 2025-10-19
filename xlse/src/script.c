@@ -546,14 +546,9 @@ double complex* Polesm(double* pr, size_t rlen, double* pi, size_t ilen, double*
                     .pNgauss = pNgauss,
                     .Lambda = Lambda,
                     .epsilon = epsilon,
-                    .Er = pr,
-                    .rlen = rlen,
-                    .Ei = pi,
-                    .ilen = ilen,
-                    .g = g,
-                    .glen = glen,
+                    .E = pr[re] + pi[im] * I,
+                    .g = g[gg],
                     .res = res,
-                    .task = i,
                     .C = C,
                 };
 
@@ -1052,11 +1047,7 @@ void polepool(void* arg) {
     auto foo = *(struct poolstruct*)arg;
     LSE* lse = get_thread_lse(foo.pNgauss, foo.Lambda, foo.epsilon);
     double complex(*res) = foo.res;
-    auto task = foo.task;
-    uint64_t g = task / (foo.rlen * foo.ilen);
-    uint64_t re = (task / foo.ilen) % foo.rlen;
-    uint64_t im = task % foo.ilen;
-    res[task] = polem(lse, foo.Er[re] + foo.Ei[im] * I, foo.C, (double[2]){foo.g[g], G[1]});
+    *res = polem(lse, foo.E, foo.C, (double[2]){foo.g, G[1]});
 }
 
 int cst(void* arg) {
